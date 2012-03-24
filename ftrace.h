@@ -1,17 +1,29 @@
 #ifndef _FTRACE_H_
 #define _FTRACE_H_
-///////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2000 Jeff Budzinski
+// Copyright (c) 1998-2011 Jeff Budzinski
 //
-///////////////////////////////////////////////////////////////////////
+// Permission is hereby granted, free of charge, to any person obtaining a 
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+// and/or sell copies of the Software, and to permit persons to whom the 
+// Software is furnished to do so, subject to the following conditions:
 //
-// Filename/version:
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-//   $Workfile: ofi_trace.h $ 
-//   $Revision: 3 $
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+// DEALINGS IN THE SOFTWARE.
 //
-// Description
+// Author: Jeff Budzinski
+//
+// Purpose: 
 //
 //   Interface to a rudimentary program tracing facility. Enable 
 //   tracing by setting the environment variable FTRACE to nonzero.
@@ -22,8 +34,8 @@
 //   tracing may be completely disabled by defining NOFTRACE
 //   during compilation.
 //
-// Notes
-
+// Notes:
+//
 //   It would be useful at some point to provide module-specific
 //   trace enabling through the use of additional parameters to
 //   the FTRACE macro and FTRACE enviromental variable.
@@ -34,25 +46,7 @@
 //   tracing statements should be tested before being placed in 
 //   production code.
 //
-//   The maximum trace string is approximately 1K. See trace.cpp
-//   for details.
-//
-// $History: ofi_trace.h $
-// 
-// *****************  Version 3  *****************
-// User: Jeff         Date: 1/06/03    Time: 1:37p
-// Updated in $/ofi/include
-// Commented as part of major documentation effort.
-// 
-// *****************  Version 2  *****************
-// User: Jeff         Date: 10/18/02   Time: 8:44p
-// Updated in $/ofi/include
-// Added macro to optionally deactivated tracing code.
-// 
-// *****************  Version 1  *****************
-// User: Jeff         Date: 1/20/00    Time: 8:56p
-// Created in $/include
-// created
+//   The maximum trace string is approximately 1K. 
 //
 ///////////////////////////////////////////////////////////////////////
 

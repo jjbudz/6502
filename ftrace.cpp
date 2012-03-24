@@ -1,51 +1,30 @@
-///////////////////////////////////////////////////////////////////////
 //
-// Copyright (c) 2000-2012 Jeff Budzinski
+// Copyright (c) 1998-2011 Jeff Budzinski
 //
-///////////////////////////////////////////////////////////////////////
+// Permission is hereby granted, free of charge, to any person obtaining a 
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+// and/or sell copies of the Software, and to permit persons to whom the 
+// Software is furnished to do so, subject to the following conditions:
 //
-// Filename/version:
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-//   $Workfile: ofi_trace.cpp $ 
-//   $Revision: 6 $
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+// DEALINGS IN THE SOFTWARE.
 //
-// Description:
+// Author: Jeff Budzinski
 //
-//   Implementation of the trace facility.
+// Purpose: 
 //
-// $History: ofi_trace.cpp $
-// 
-// *****************  Version 6  *****************
-// User: Jeff         Date: 1/06/03    Time: 1:36p
-// Updated in $/ofi/src/util
-// Commented as part of major cleanup effort.
-// 
-// *****************  Version 5  *****************
-// User: Jeff         Date: 12/13/02   Time: 8:50a
-// Updated in $/ofi/src/util
-// Ported to WIN32, minor cleanup.
-// 
-// *****************  Version 4  *****************
-// User: Jeff         Date: 10/18/02   Time: 8:46p
-// Updated in $/ofi/src/util
-// Added macro to control removal of tracing code during compilation.
-// 
-// *****************  Version 3  *****************
-// User: Jeff         Date: 9/13/02    Time: 6:15p
-// Updated in $/ofi/src/util
-// Corrected #ifdef statement.
-// 
-// *****************  Version 2  *****************
-// User: Jeff         Date: 9/02/02    Time: 3:38p
-// Updated in $/ofi/src/util
-// Added cross platform #defines to support compilation on Linux.
-// 
-// *****************  Version 1  *****************
-// User: Jeff         Date: 1/20/00    Time: 9:07p
-// Created in $/src/util
-// created
+//   Implementation of the trace facility/logger
 //
-///////////////////////////////////////////////////////////////////////
 
 #include <assert.h>
 #include <stdlib.h>
