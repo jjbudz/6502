@@ -105,8 +105,8 @@ const char* kVersion = "6502 Emulator v0.3.0";
  * and instruction set mapping table.
  */
 static const int kStackSize         = 256;
-static const int kLabelTableSize	= 256;
-static const int kBranchTableSize	= 256;
+static const int kLabelTableSize	  = 256;
+static const int kBranchTableSize	  = 256;
 static const int kInstrSetTableSize = 256;
 static const int kBreakTableSize    = 256;
 
@@ -174,7 +174,7 @@ static const uint8_t kSIGNBIT      = 7;
 #define MAP_INSTRUCTION(inst) \
     i6502[inst].pFunc=&i##inst; \
     i6502[inst].bytes=inst##SZ; \
-    i6502[inst].symbol=inst; \
+    i6502[inst].symbol=s##inst; \
     i6502[inst].desc=inst##DSC;
 
 /**
@@ -1272,7 +1272,7 @@ INSTRUCTION(INCZ,0xE6,2,"Increment zero page memory address")
  * Increment memory value at address found by adding zero page memory
  * value and X
  */
-INSTRUCTION(INCZX,0xF6,2,"Increment memory at zero page plus X)
+INSTRUCTION(INCZX,0xF6,2,"Increment memory at zero page plus X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sINCZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap around
@@ -1341,10 +1341,10 @@ INSTRUCTION(LDAI,0xa9,2,"Load accumulator with immediate value")
     PC += 2;
 }
 
-//
-// Load accumulator from zero page memory
-//
-INSTRUCTION(LDAZ,0xa5)
+/**
+ * Load accumulator from zero page memory
+ */
+INSTRUCTION(LDAZ,0xa5,2,"Load accumulator from zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDAZ,(short)*(BP+PC+1));
     A = *(BP+*(BP+PC+1));                 
@@ -1353,12 +1353,12 @@ INSTRUCTION(LDAZ,0xa5)
     PC += 2;
 }
 
-//
-// Load accumulator from absolute address memory
-//
-INSTRUCTION(LDAA,0xAD)
+/**
+ * Load accumulator from absolute address memory
+ */
+INSTRUCTION(LDAA,0xAD,3,"Load accumulator from absolute address memory")
 {
-    uint16_t addr16 = GetAbsoluteAddress();
+    uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDAA,(short)addr16);
     A = *(BP + addr16);
     SET_ZERO(A);
@@ -1366,11 +1366,11 @@ INSTRUCTION(LDAA,0xAD)
     PC += 3;
 }
 
-//
-// Load accumulator from memory address found by adding zero page
-// memory value to X
-//
-INSTRUCTION(LDAZX,0xB5)
+/**
+ * Load accumulator from memory address found by adding zero page
+ * memory value to X
+ */
+INSTRUCTION(LDAZX,0xB5,2,"Load accumulator from zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDAZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap around
@@ -1380,11 +1380,11 @@ INSTRUCTION(LDAZX,0xB5)
     PC += 2;
 }
 
-//
-// Load accumulator from indirect memory address found by adding 
-// immediate value to X
-//
-INSTRUCTION(LDAIX,0xA1)
+/**
+ * Load accumulator from indirect memory address found by adding 
+ * immediate value to X
+ */
+INSTRUCTION(LDAIX,0xA1,2,"Load accumulator from indirect address, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDAIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap around
@@ -1394,7 +1394,10 @@ INSTRUCTION(LDAIX,0xA1)
     PC += 2;
 }
 
-INSTRUCTION(LDAIY,0xB1)
+/**
+ * Load accumulator from indirect address, Y
+ */
+INSTRUCTION(LDAIY,0xB1,2,"Load accumulator from indirect address, Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDAIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -1404,11 +1407,11 @@ INSTRUCTION(LDAIY,0xB1)
     PC += 2;
 }
 
-//
-// Load accumulator from address found by adding X to the following
-// absolute address
-//
-INSTRUCTION(LDAX,0xB9)
+/**
+ * Load accumulator from address found by adding X to the following
+ * absolute address
+ */
+INSTRUCTION(LDAX,0xB9,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDAX,(short)addr16);
@@ -1422,7 +1425,7 @@ INSTRUCTION(LDAX,0xB9)
 // Load accumulator from address found by adding Y to the following
 // absolute address
 //
-INSTRUCTION(LDAY,0xBD)
+INSTRUCTION(LDAY,0xBD,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDAY,(short)addr16);
@@ -1435,7 +1438,7 @@ INSTRUCTION(LDAY,0xBD)
 //
 // Load X from immediate value
 //
-INSTRUCTION(LDXI,0xA2)
+INSTRUCTION(LDXI,0xA2,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDXI,(short)*(BP+PC+1));
     X = *(BP+PC+1);                 
@@ -1447,7 +1450,7 @@ INSTRUCTION(LDXI,0xA2)
 //
 // Load X from zero page memory address
 //
-INSTRUCTION(LDXZ,0xA6)
+INSTRUCTION(LDXZ,0xA6,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDXZ,(short)*(BP+PC+1));
     X = *(BP+*(BP+PC+1));                 
@@ -1459,7 +1462,7 @@ INSTRUCTION(LDXZ,0xA6)
 //
 // Load X from memory indexed by zero page address plus Y
 //
-INSTRUCTION(LDXZY,0xB6)
+INSTRUCTION(LDXZY,0xB6,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDXZY,(short)*(BP+PC+1));
     uint8_t zy = *(BP+PC+1)+Y;
@@ -1472,7 +1475,7 @@ INSTRUCTION(LDXZY,0xB6)
 //
 // Load X from absolute address
 //
-INSTRUCTION(LDXA,0xAE)
+INSTRUCTION(LDXA,0xAE,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDXA,(short)addr16);
@@ -1485,7 +1488,7 @@ INSTRUCTION(LDXA,0xAE)
 //
 // Load X from memory at absolute address plus Y
 //
-INSTRUCTION(LDXY,0xBD)
+INSTRUCTION(LDXY,0xBD,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDXY,(short)addr16);
@@ -1498,7 +1501,7 @@ INSTRUCTION(LDXY,0xBD)
 //
 // Load Y from immediate value
 //
-INSTRUCTION(LDYI,0xA0)
+INSTRUCTION(LDYI,0xA0,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDYI,(short)*(BP+PC+1));
     Y = *(BP+PC+1);                 
@@ -1510,7 +1513,7 @@ INSTRUCTION(LDYI,0xA0)
 //
 // Load Y from zero page memory address
 //
-INSTRUCTION(LDYZ,0xA4)
+INSTRUCTION(LDYZ,0xA4,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDYZ,(short)*(BP+PC+1));
     Y = *(BP+*(BP+PC+1));                 
@@ -1522,7 +1525,7 @@ INSTRUCTION(LDYZ,0xA4)
 //
 // Load Y from memory indexed by zero page address plus X
 //
-INSTRUCTION(LDYZX,0xB4)
+INSTRUCTION(LDYZX,0xB4,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDYZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -1535,7 +1538,7 @@ INSTRUCTION(LDYZX,0xB4)
 //
 // Load Y from absolute address
 //
-INSTRUCTION(LDYA,0xAE)
+INSTRUCTION(LDYA,0xAE,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDYA,(short)addr16);
@@ -1548,7 +1551,7 @@ INSTRUCTION(LDYA,0xAE)
 //
 // Load Y from memory at absolute address plus X
 //
-INSTRUCTION(LDYX,0xBC)
+INSTRUCTION(LDYX,0xBC,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDYX,(short)addr16);
@@ -1561,7 +1564,7 @@ INSTRUCTION(LDYX,0xBC)
 //
 // Logical shift accumulator to the right 
 //
-INSTRUCTION(LSR,0x4A)
+INSTRUCTION(LSR,0x4A,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sLSR);
     SET_CARRY((A&0x01));
@@ -1574,7 +1577,7 @@ INSTRUCTION(LSR,0x4A)
 //
 // Logical shift zero page memory to the right
 //
-INSTRUCTION(LSRZ,0x46)
+INSTRUCTION(LSRZ,0x46,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLSRZ,(short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
@@ -1588,7 +1591,7 @@ INSTRUCTION(LSRZ,0x46)
 //
 // Logical shift absolute memory address value to the right
 //
-INSTRUCTION(LSRA,0x4E)
+INSTRUCTION(LSRA,0x4E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLSRA,(short)addr16);
@@ -1603,7 +1606,7 @@ INSTRUCTION(LSRA,0x4E)
 //
 // Logical shift zero page memory indexed by X to the right
 //
-INSTRUCTION(LSRZX,0x56)
+INSTRUCTION(LSRZX,0x56,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLSRZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1) + X; // zero page wrap
@@ -1618,7 +1621,7 @@ INSTRUCTION(LSRZX,0x56)
 //
 // Logical shift absolute memory value indexed by X to the right
 //
-INSTRUCTION(LSRX,0x5E)
+INSTRUCTION(LSRX,0x5E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLSRX,(short)addr16);
@@ -1630,10 +1633,10 @@ INSTRUCTION(LSRX,0x5E)
     PC += 3;
 }
 
-//
-// No operation
-//
-INSTRUCTION(NOP,0xEA)
+/**
+ * No operation
+ */
+INSTRUCTION(NOP,0xEA,1,"No operation")
 {
     FTRACE("%s",__FILE__,__LINE__,sNOP);
     PC++;
@@ -1642,7 +1645,7 @@ INSTRUCTION(NOP,0xEA)
 //
 // OR the accumulator with the immediate value
 //
-INSTRUCTION(ORA,0x09)
+INSTRUCTION(ORA,0x09,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORA,(short)*(BP+PC+1));
     A |= *(BP+PC+1);
@@ -1654,7 +1657,7 @@ INSTRUCTION(ORA,0x09)
 //
 // OR the accumulator with the value at the zero page address
 //
-INSTRUCTION(ORAZ,0x05)
+INSTRUCTION(ORAZ,0x05,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAZ,(short)*(BP+PC+1));
     A |= *(BP+*(BP+PC+1));
@@ -1666,7 +1669,7 @@ INSTRUCTION(ORAZ,0x05)
 //
 // OR the accumulator with the value at the absolute address
 //
-INSTRUCTION(ORAA,0x2D)
+INSTRUCTION(ORAA,0x2D,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sORAA,(short)addr16);
@@ -1680,7 +1683,7 @@ INSTRUCTION(ORAA,0x2D)
 // OR the accumulator with value at the address found using the zero 
 // page index value plus X
 //
-INSTRUCTION(ORAZX,0x15)
+INSTRUCTION(ORAZX,0x15,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAZX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -1693,7 +1696,7 @@ INSTRUCTION(ORAZX,0x15)
 //
 // OR the accumulator with the absolute address plus X
 //
-INSTRUCTION(ORAX,0x1D)
+INSTRUCTION(ORAX,0x1D,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sORAX,(short)addr16);
@@ -1706,7 +1709,7 @@ INSTRUCTION(ORAX,0x1D)
 //
 // OR the accumulator with the absolute address plus Y
 //
-INSTRUCTION(ORAY,0x19)
+INSTRUCTION(ORAY,0x19,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sORAY,(short)addr16);
@@ -1720,7 +1723,7 @@ INSTRUCTION(ORAY,0x19)
 // OR the accumulator with value from memory address indexed by immediate
 // value plus X (indexed indirect addressing mode)
 //
-INSTRUCTION(ORAIX,0x01)
+INSTRUCTION(ORAIX,0x01,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -1734,7 +1737,7 @@ INSTRUCTION(ORAIX,0x01)
 // OR the accumulator with value from memory address indexed by immediate
 // value plus Y (indirect indexed addressing mode)
 //
-INSTRUCTION(ORAIY,0x11)
+INSTRUCTION(ORAIY,0x11,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -1747,7 +1750,7 @@ INSTRUCTION(ORAIY,0x11)
 //
 // Push accumulator on stack
 //
-INSTRUCTION(PHA,0x48)
+INSTRUCTION(PHA,0x48,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sPHA);
     STACK[SP] = A;
@@ -1758,7 +1761,7 @@ INSTRUCTION(PHA,0x48)
 //
 // Pull accumulator from stack
 //
-INSTRUCTION(PLA,0x68)
+INSTRUCTION(PLA,0x68,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sPLA);
     A = STACK[SP+1];
@@ -1769,7 +1772,7 @@ INSTRUCTION(PLA,0x68)
 //
 // Push processor status on stack
 //
-INSTRUCTION(PHP,0x08)
+INSTRUCTION(PHP,0x08,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sPHP);
     STACK[SP] = P;
@@ -1780,7 +1783,7 @@ INSTRUCTION(PHP,0x08)
 //
 // Pull process status from stack
 //
-INSTRUCTION(PLP,0x28)
+INSTRUCTION(PLP,0x28,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sPLP);
     P = STACK[SP+1];
@@ -1797,7 +1800,7 @@ INSTRUCTION(PLP,0x28)
 //
 // Rotate accumulator one bit left
 //
-INSTRUCTION(ROL,0x2A)
+INSTRUCTION(ROL,0x2A,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sROL);
     uint8_t c = CARRY;
@@ -1812,7 +1815,7 @@ INSTRUCTION(ROL,0x2A)
 //
 // Rotate zero page memory one bit left
 //
-INSTRUCTION(ROLZ,0x26)
+INSTRUCTION(ROLZ,0x26,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sROLZ,(short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
@@ -1828,7 +1831,7 @@ INSTRUCTION(ROLZ,0x26)
 //
 // Rotate absolute memory value left
 //
-INSTRUCTION(ROLA,0x2E)
+INSTRUCTION(ROLA,0x2E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sROLA,(short)addr16);
@@ -1845,7 +1848,7 @@ INSTRUCTION(ROLA,0x2E)
 //
 // Rotate zero page indexed memory left
 //
-INSTRUCTION(ROLZX,0x36)
+INSTRUCTION(ROLZX,0x36,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sROLZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -1862,7 +1865,7 @@ INSTRUCTION(ROLZX,0x36)
 //
 // Rotate absolute memory value indexed by X to the left
 //
-INSTRUCTION(ROLX,0x3E)
+INSTRUCTION(ROLX,0x3E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sROLX,addr16);
@@ -1879,7 +1882,7 @@ INSTRUCTION(ROLX,0x3E)
 //
 // Rotate accumulator right
 //
-INSTRUCTION(ROR,0x6A)
+INSTRUCTION(ROR,0x6A,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sROR);
     uint8_t c = CARRY;
@@ -1894,7 +1897,7 @@ INSTRUCTION(ROR,0x6A)
 //
 // Rotate zero page memory value right
 //
-INSTRUCTION(RORZ,0x66)
+INSTRUCTION(RORZ,0x66,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sRORZ,(short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
@@ -1910,7 +1913,7 @@ INSTRUCTION(RORZ,0x66)
 //
 // Rotate absolute memory address value right
 //
-INSTRUCTION(RORA,0x6E)
+INSTRUCTION(RORA,0x6E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sRORA,addr16);
@@ -1927,7 +1930,7 @@ INSTRUCTION(RORA,0x6E)
 //
 // Rotate zero page indexed memory address value right
 //
-INSTRUCTION(RORZX,0x76)
+INSTRUCTION(RORZX,0x76,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sRORZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -1944,7 +1947,7 @@ INSTRUCTION(RORZX,0x76)
 //
 // Rotate absolute memory value indexed by X to the right
 //
-INSTRUCTION(RORX,0x7E)
+INSTRUCTION(RORX,0x7E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sRORX,(short)addr16);
@@ -1961,7 +1964,7 @@ INSTRUCTION(RORX,0x7E)
 //
 // Return from interrupt, restoring status bits
 //
-INSTRUCTION(RTI,0x40)
+INSTRUCTION(RTI,0x40,3,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sRTI);
     P = STACK[SP+1];
@@ -1978,7 +1981,7 @@ INSTRUCTION(RTI,0x40)
 //
 // Return from subroutine
 //
-INSTRUCTION(RTS,0x60)
+INSTRUCTION(RTS,0x60,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sRTS);
     PC = ((short)STACK[SP+2]<<8)+(short)STACK[SP+1]+1;
@@ -1988,7 +1991,7 @@ INSTRUCTION(RTS,0x60)
 //
 // Subtract immediate value from accumulator with carry
 //
-INSTRUCTION(SBCI,0xE9)
+INSTRUCTION(SBCI,0xE9,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCI,(short)*(BP+PC+1));
     A = A - *(BP+PC+1) - (1 - CARRY);                 
@@ -2002,7 +2005,7 @@ INSTRUCTION(SBCI,0xE9)
 //
 // Subtract memory from accumulator with carry, zero page 
 //
-INSTRUCTION(SBCZ,0xE5)
+INSTRUCTION(SBCZ,0xE5,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCZ,(short)*(BP+PC+1));
     A = A - *(BP+*(BP+PC+1)) - (1 - CARRY);
@@ -2016,7 +2019,7 @@ INSTRUCTION(SBCZ,0xE5)
 //
 // Subtract absolute memory from accumulator with carry
 //
-INSTRUCTION(SBCA,0xED)
+INSTRUCTION(SBCA,0xED,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSBCA,(short)addr16);
@@ -2031,7 +2034,7 @@ INSTRUCTION(SBCA,0xED)
 //
 // Subtract zero page memory from accumulator with carry
 //
-INSTRUCTION(SBCZX,0xE1)
+INSTRUCTION(SBCZX,0xE1,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -2043,7 +2046,7 @@ INSTRUCTION(SBCZX,0xE1)
     PC += 2;
 }
 
-INSTRUCTION(SBCIX,0xF5)
+INSTRUCTION(SBCIX,0xF5,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -2058,7 +2061,7 @@ INSTRUCTION(SBCIX,0xF5)
 //
 // Subtract Y from accumulator
 //
-INSTRUCTION(SBCY,0xF9)
+INSTRUCTION(SBCY,0xF9,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSBCY,(short)addr16);
@@ -2073,7 +2076,7 @@ INSTRUCTION(SBCY,0xF9)
 //
 // Subtract X from accumulator
 //
-INSTRUCTION(SBCX,0xFD)
+INSTRUCTION(SBCX,0xFD,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSBCX,(short)addr16);
@@ -2088,7 +2091,7 @@ INSTRUCTION(SBCX,0xFD)
 //
 // Subtract indirect address from accumulator 
 //
-INSTRUCTION(SBCIY,0xF1)
+INSTRUCTION(SBCIY,0xF1,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -2103,7 +2106,7 @@ INSTRUCTION(SBCIY,0xF1)
 //
 // Set decimal bit
 //
-INSTRUCTION(SED,0xF8)
+INSTRUCTION(SED,0xF8,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sSED);
     SET_DECIMAL(1);
@@ -2113,7 +2116,7 @@ INSTRUCTION(SED,0xF8)
 //
 // Set carry bit
 //
-INSTRUCTION(SEC,0x38)
+INSTRUCTION(SEC,0x38,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sSEC);
     SET_CARRY(1);
@@ -2123,7 +2126,7 @@ INSTRUCTION(SEC,0x38)
 //
 // Set interrupt bit
 //
-INSTRUCTION(SEI,0x78)
+INSTRUCTION(SEI,0x78,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sSEI);
     SET_INTERRUPT(0);
@@ -2133,7 +2136,7 @@ INSTRUCTION(SEI,0x78)
 //
 // Store accumulator to zero page memory
 //
-INSTRUCTION(STAZ,0x85)
+INSTRUCTION(STAZ,0x85,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAZ,(short)*(BP+PC+1));
     *(BP+*(BP+PC+1)) = A;                 
@@ -2143,7 +2146,7 @@ INSTRUCTION(STAZ,0x85)
 //
 // Store accumulator to absolute memory address
 //
-INSTRUCTION(STAA,0x8D)
+INSTRUCTION(STAA,0x8D,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTAA,(short)addr16);
@@ -2155,7 +2158,7 @@ INSTRUCTION(STAA,0x8D)
 // Store accumulator to zero page memory address indexed
 // by X
 //
-INSTRUCTION(STAZX,0x95)
+INSTRUCTION(STAZX,0x95,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAZX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -2167,7 +2170,7 @@ INSTRUCTION(STAZX,0x95)
 // Store accumulator to memory address found by adding absolute address
 // to X
 //
-INSTRUCTION(STAX,0x9D)
+INSTRUCTION(STAX,0x9D,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTAX,(short)addr16);
@@ -2179,7 +2182,7 @@ INSTRUCTION(STAX,0x9D)
 // Store accumulator to memory address found by adding absolute address
 // to Y
 //
-INSTRUCTION(STAY,0x99)
+INSTRUCTION(STAY,0x99,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTAY,(short)addr16);
@@ -2191,7 +2194,7 @@ INSTRUCTION(STAY,0x99)
 // Store accumulator to indirect memory address found by adding zero
 // page value and X (indexed indirect)
 //
-INSTRUCTION(STAIX,0x81)
+INSTRUCTION(STAIX,0x81,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -2203,7 +2206,7 @@ INSTRUCTION(STAIX,0x81)
 // Store accumulator to indirect memory address found by adding zero 
 // page address value and Y (indirect indexed)
 //
-INSTRUCTION(STAIY,0x91)
+INSTRUCTION(STAIY,0x91,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -2214,7 +2217,7 @@ INSTRUCTION(STAIY,0x91)
 //
 // Store X to zero page memory 
 //
-INSTRUCTION(STXZ,0x86)
+INSTRUCTION(STXZ,0x86,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTXZ,(short)*(BP+PC+1));
     *(BP+*(BP+PC+1)) = X;                 
@@ -2224,7 +2227,7 @@ INSTRUCTION(STXZ,0x86)
 //
 // Store X to absolute memory address
 //
-INSTRUCTION(STXA,0x8E)
+INSTRUCTION(STXA,0x8E,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTXA,addr16);
@@ -2235,7 +2238,7 @@ INSTRUCTION(STXA,0x8E)
 //
 // Store X to zero page memory address indexed by Y
 //
-INSTRUCTION(STXZY,0x96)
+INSTRUCTION(STXZY,0x96,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTXZY,(short)*(BP+PC+1));
     uint8_t zy = *(BP+PC+1)+Y;
@@ -2246,7 +2249,7 @@ INSTRUCTION(STXZY,0x96)
 //
 // Store Y to zero page memory address
 //
-INSTRUCTION(STYZ,0x84)
+INSTRUCTION(STYZ,0x84,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTYZ,(short)*(BP+PC+1));
     *(BP+*(BP+PC+1)) = Y;                 
@@ -2256,7 +2259,7 @@ INSTRUCTION(STYZ,0x84)
 //
 // Store Y to absolute memory address
 //
-INSTRUCTION(STYA,0x8C)
+INSTRUCTION(STYA,0x8C,3,"TBD")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTYA,(short)addr16);
@@ -2267,7 +2270,7 @@ INSTRUCTION(STYA,0x8C)
 //
 // Store Y to zero page memory address indexed by X
 //
-INSTRUCTION(STYZX,0x94)
+INSTRUCTION(STYZX,0x94,2,"TBD")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTYZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1) + X; // zero page wrap
@@ -2278,7 +2281,7 @@ INSTRUCTION(STYZX,0x94)
 //
 // Transfer accumulator to X
 //
-INSTRUCTION(TAX,0xAA)
+INSTRUCTION(TAX,0xAA,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sTAX);
     X = A;
@@ -2290,7 +2293,7 @@ INSTRUCTION(TAX,0xAA)
 //
 // Transfer accumulator to Y
 //
-INSTRUCTION(TAY,0xA8)
+INSTRUCTION(TAY,0xA8,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sTAY);
     Y = A;
@@ -2302,7 +2305,7 @@ INSTRUCTION(TAY,0xA8)
 //
 // Transfer stack pointer to X
 //
-INSTRUCTION(TSX,0xBA)
+INSTRUCTION(TSX,0xBA,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sTSX);
     X = SP;
@@ -2314,7 +2317,7 @@ INSTRUCTION(TSX,0xBA)
 //
 // Transfer X to accumulator
 //
-INSTRUCTION(TXA,0x8A)
+INSTRUCTION(TXA,0x8A,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sTXA);
     A = X;
@@ -2326,7 +2329,7 @@ INSTRUCTION(TXA,0x8A)
 //
 // Transfer Y to accumulator
 //
-INSTRUCTION(TYA,0x98)
+INSTRUCTION(TYA,0x98,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sTYA);
     A = Y;
@@ -2338,7 +2341,7 @@ INSTRUCTION(TYA,0x98)
 //
 // Transfer X to stack pointer
 //
-INSTRUCTION(TXS,0x9A)
+INSTRUCTION(TXS,0x9A,1,"TBD")
 {
     FTRACE("%s",__FILE__,__LINE__,sTXS);
     SP = X;
@@ -2429,153 +2432,153 @@ int initialize()
     MAP_INITIALIZE;
     MAP_INSTRUCTION(ADCA);
     MAP_INSTRUCTION(ADCI);
-    MAP_INSTRUCTION(ADCIX,2);
-    MAP_INSTRUCTION(ADCIY,2);
-    MAP_INSTRUCTION(ADCX,3);
-    MAP_INSTRUCTION(ADCY,3);
-    MAP_INSTRUCTION(ADCZ,2);
-    MAP_INSTRUCTION(ADCZX,2);
-    MAP_INSTRUCTION(ANDA,3);
-    MAP_INSTRUCTION(ANDI,2);
-    MAP_INSTRUCTION(ANDIX,2);
-    MAP_INSTRUCTION(ANDIY,2);
-    MAP_INSTRUCTION(ANDX,3);
-    MAP_INSTRUCTION(ANDY,3);
-    MAP_INSTRUCTION(ANDZ,2);
-    MAP_INSTRUCTION(ANDZX,2);
-    MAP_INSTRUCTION(ASL,1);
-    MAP_INSTRUCTION(ASLA,3);
-    MAP_INSTRUCTION(ASLX,3);
-    MAP_INSTRUCTION(ASLZ,2);
-    MAP_INSTRUCTION(ASLZX,2);
-    MAP_INSTRUCTION(BCC,2);
-    MAP_INSTRUCTION(BCS,2);
-    MAP_INSTRUCTION(BEQ,2);
-    MAP_INSTRUCTION(BIT,3);
-    MAP_INSTRUCTION(BITZ,2);
-    MAP_INSTRUCTION(BMI,2);
-    MAP_INSTRUCTION(BNE,2);
-    MAP_INSTRUCTION(BPL,2);
-    MAP_INSTRUCTION(BRK,1);
-    MAP_INSTRUCTION(BVC,2);
-    MAP_INSTRUCTION(BVS,2);
-    MAP_INSTRUCTION(CLC,1);
-    MAP_INSTRUCTION(CLD,1);
-    MAP_INSTRUCTION(CLI,1);
-    MAP_INSTRUCTION(CLV,1);
-    MAP_INSTRUCTION(CMPA,3);
-    MAP_INSTRUCTION(CMPI,2);
-    MAP_INSTRUCTION(CMPIX,2);
-    MAP_INSTRUCTION(CMPIY,2);
-    MAP_INSTRUCTION(CMPX,3);
-    MAP_INSTRUCTION(CMPY,3);
-    MAP_INSTRUCTION(CMPZ,2);
-    MAP_INSTRUCTION(CMPZX,2);
-    MAP_INSTRUCTION(CPXA,3);
-    MAP_INSTRUCTION(CPXI,2);
-    MAP_INSTRUCTION(CPXZ,2);
-    MAP_INSTRUCTION(CPYA,3);
-    MAP_INSTRUCTION(CPYI,2);
-    MAP_INSTRUCTION(CPYZ,2);
-    MAP_INSTRUCTION(DECA,3);
-    MAP_INSTRUCTION(DECX,3);
-    MAP_INSTRUCTION(DECZ,2);
-    MAP_INSTRUCTION(DECZX,2);
-    MAP_INSTRUCTION(DEX,1);
-    MAP_INSTRUCTION(DEY,1);
-    MAP_INSTRUCTION(EOR,2);
-    MAP_INSTRUCTION(EORA,3);
-    MAP_INSTRUCTION(EORIX,2);
-    MAP_INSTRUCTION(EORIY,2);
-    MAP_INSTRUCTION(EORX,3);
-    MAP_INSTRUCTION(EORY,3);
-    MAP_INSTRUCTION(EORZ,2);
-    MAP_INSTRUCTION(EORZX,2);
-    MAP_INSTRUCTION(INCA,3);
-    MAP_INSTRUCTION(INCX,1);
-    MAP_INSTRUCTION(INCZ,2);
-    MAP_INSTRUCTION(INCZX,2);
-    MAP_INSTRUCTION(INX,1);
-    MAP_INSTRUCTION(INY,1);
-    MAP_INSTRUCTION(JMP,3);
-    MAP_INSTRUCTION(JMPI,3);
-    MAP_INSTRUCTION(JSR,3);
-    MAP_INSTRUCTION(LDAA,3);
-    MAP_INSTRUCTION(LDAI,2);
-    MAP_INSTRUCTION(LDAIX,2);
-    MAP_INSTRUCTION(LDAIY,2);
-    MAP_INSTRUCTION(LDAX,3);
-    MAP_INSTRUCTION(LDAY,3);
-    MAP_INSTRUCTION(LDAZ,2);
-    MAP_INSTRUCTION(LDAZX,2);
-    MAP_INSTRUCTION(LDXA,3);
-    MAP_INSTRUCTION(LDXY,3);
-    MAP_INSTRUCTION(LDXI,2);
-    MAP_INSTRUCTION(LDXZ,2);
-    MAP_INSTRUCTION(LDXZY,2);
-    MAP_INSTRUCTION(LDYI,2);
-    MAP_INSTRUCTION(LDYZ,2);
-    MAP_INSTRUCTION(LDYZX,2);
-    MAP_INSTRUCTION(LSR,1);
-    MAP_INSTRUCTION(LSRA,3);
-    MAP_INSTRUCTION(LSRX,3);
-    MAP_INSTRUCTION(LSRZ,2);
-    MAP_INSTRUCTION(LSRZX,2);
-    MAP_INSTRUCTION(NOP,1);
-    MAP_INSTRUCTION(ORA,2);
-    MAP_INSTRUCTION(ORAA,3);
-    MAP_INSTRUCTION(ORAIX,2);
-    MAP_INSTRUCTION(ORAIY,2);
-    MAP_INSTRUCTION(ORAX,3);
-    MAP_INSTRUCTION(ORAY,3);
-    MAP_INSTRUCTION(ORAZ,2);
-    MAP_INSTRUCTION(ORAZX,2);
-    MAP_INSTRUCTION(PHA,1);
-    MAP_INSTRUCTION(PHP,1);
-    MAP_INSTRUCTION(PLA,1);
-    MAP_INSTRUCTION(PLP,1);
-    MAP_INSTRUCTION(ROL,1);
-    MAP_INSTRUCTION(ROLA,3);
-    MAP_INSTRUCTION(ROLX,3);
-    MAP_INSTRUCTION(ROLZ,2);
-    MAP_INSTRUCTION(ROLZX,2);
-    MAP_INSTRUCTION(ROR,1);
-    MAP_INSTRUCTION(RORA,3);
-    MAP_INSTRUCTION(RORX,3);
-    MAP_INSTRUCTION(RORZ,2);
-    MAP_INSTRUCTION(RORZX,2);
-    MAP_INSTRUCTION(RTI,1);
-    MAP_INSTRUCTION(RTS,1);
-    MAP_INSTRUCTION(SBCA,3);
-    MAP_INSTRUCTION(SBCI,2);
-    MAP_INSTRUCTION(SBCIX,2);
-    MAP_INSTRUCTION(SBCIY,2);
-    MAP_INSTRUCTION(SBCX,3);
-    MAP_INSTRUCTION(SBCY,3);
-    MAP_INSTRUCTION(SBCZ,2);
-    MAP_INSTRUCTION(SBCZX,2);
-    MAP_INSTRUCTION(SEC,1);
-    MAP_INSTRUCTION(SED,1);
-    MAP_INSTRUCTION(SEI,1);
-    MAP_INSTRUCTION(STAA,3);
-    MAP_INSTRUCTION(STAIX,2);
-    MAP_INSTRUCTION(STAIY,2);
-    MAP_INSTRUCTION(STAX,3);
-    MAP_INSTRUCTION(STAY,3);
-    MAP_INSTRUCTION(STAZ,2);
-    MAP_INSTRUCTION(STAZX,2);
-    MAP_INSTRUCTION(STXA,3);
-    MAP_INSTRUCTION(STXZ,2);
-    MAP_INSTRUCTION(STXZY,2);
-    MAP_INSTRUCTION(STYA,3);
-    MAP_INSTRUCTION(STYZ,2);
-    MAP_INSTRUCTION(STYZX,2);
-    MAP_INSTRUCTION(TAX,1);
-    MAP_INSTRUCTION(TAY,1);
-    MAP_INSTRUCTION(TSX,1);
-    MAP_INSTRUCTION(TXA,1);
-    MAP_INSTRUCTION(TXS,1);
-    MAP_INSTRUCTION(TYA,1);
+    MAP_INSTRUCTION(ADCIX);
+    MAP_INSTRUCTION(ADCIY);
+    MAP_INSTRUCTION(ADCX);
+    MAP_INSTRUCTION(ADCY);
+    MAP_INSTRUCTION(ADCZ);
+    MAP_INSTRUCTION(ADCZX);
+    MAP_INSTRUCTION(ANDA);
+    MAP_INSTRUCTION(ANDI);
+    MAP_INSTRUCTION(ANDIX);
+    MAP_INSTRUCTION(ANDIY);
+    MAP_INSTRUCTION(ANDX);
+    MAP_INSTRUCTION(ANDY);
+    MAP_INSTRUCTION(ANDZ);
+    MAP_INSTRUCTION(ANDZX);
+    MAP_INSTRUCTION(ASL);
+    MAP_INSTRUCTION(ASLA);
+    MAP_INSTRUCTION(ASLX);
+    MAP_INSTRUCTION(ASLZ);
+    MAP_INSTRUCTION(ASLZX);
+    MAP_INSTRUCTION(BCC);
+    MAP_INSTRUCTION(BCS);
+    MAP_INSTRUCTION(BEQ);
+    MAP_INSTRUCTION(BIT);
+    MAP_INSTRUCTION(BITZ);
+    MAP_INSTRUCTION(BMI);
+    MAP_INSTRUCTION(BNE);
+    MAP_INSTRUCTION(BPL);
+    MAP_INSTRUCTION(BRK);
+    MAP_INSTRUCTION(BVC);
+    MAP_INSTRUCTION(BVS);
+    MAP_INSTRUCTION(CLC);
+    MAP_INSTRUCTION(CLD);
+    MAP_INSTRUCTION(CLI);
+    MAP_INSTRUCTION(CLV);
+    MAP_INSTRUCTION(CMPA);
+    MAP_INSTRUCTION(CMPI);
+    MAP_INSTRUCTION(CMPIX);
+    MAP_INSTRUCTION(CMPIY);
+    MAP_INSTRUCTION(CMPX);
+    MAP_INSTRUCTION(CMPY);
+    MAP_INSTRUCTION(CMPZ);
+    MAP_INSTRUCTION(CMPZX);
+    MAP_INSTRUCTION(CPXA);
+    MAP_INSTRUCTION(CPXI);
+    MAP_INSTRUCTION(CPXZ);
+    MAP_INSTRUCTION(CPYA);
+    MAP_INSTRUCTION(CPYI);
+    MAP_INSTRUCTION(CPYZ);
+    MAP_INSTRUCTION(DECA);
+    MAP_INSTRUCTION(DECX);
+    MAP_INSTRUCTION(DECZ);
+    MAP_INSTRUCTION(DECZX);
+    MAP_INSTRUCTION(DEX);
+    MAP_INSTRUCTION(DEY);
+    MAP_INSTRUCTION(EOR);
+    MAP_INSTRUCTION(EORA);
+    MAP_INSTRUCTION(EORIX);
+    MAP_INSTRUCTION(EORIY);
+    MAP_INSTRUCTION(EORX);
+    MAP_INSTRUCTION(EORY);
+    MAP_INSTRUCTION(EORZ);
+    MAP_INSTRUCTION(EORZX);
+    MAP_INSTRUCTION(INCA);
+    MAP_INSTRUCTION(INCX);
+    MAP_INSTRUCTION(INCZ);
+    MAP_INSTRUCTION(INCZX);
+    MAP_INSTRUCTION(INX);
+    MAP_INSTRUCTION(INY);
+    MAP_INSTRUCTION(JMP);
+    MAP_INSTRUCTION(JMPI);
+    MAP_INSTRUCTION(JSR);
+    MAP_INSTRUCTION(LDAA);
+    MAP_INSTRUCTION(LDAI);
+    MAP_INSTRUCTION(LDAIX);
+    MAP_INSTRUCTION(LDAIY);
+    MAP_INSTRUCTION(LDAX);
+    MAP_INSTRUCTION(LDAY);
+    MAP_INSTRUCTION(LDAZ);
+    MAP_INSTRUCTION(LDAZX);
+    MAP_INSTRUCTION(LDXA);
+    MAP_INSTRUCTION(LDXY);
+    MAP_INSTRUCTION(LDXI);
+    MAP_INSTRUCTION(LDXZ);
+    MAP_INSTRUCTION(LDXZY);
+    MAP_INSTRUCTION(LDYI);
+    MAP_INSTRUCTION(LDYZ);
+    MAP_INSTRUCTION(LDYZX);
+    MAP_INSTRUCTION(LSR);
+    MAP_INSTRUCTION(LSRA);
+    MAP_INSTRUCTION(LSRX);
+    MAP_INSTRUCTION(LSRZ);
+    MAP_INSTRUCTION(LSRZX);
+    MAP_INSTRUCTION(NOP);
+    MAP_INSTRUCTION(ORA);
+    MAP_INSTRUCTION(ORAA);
+    MAP_INSTRUCTION(ORAIX);
+    MAP_INSTRUCTION(ORAIY);
+    MAP_INSTRUCTION(ORAX);
+    MAP_INSTRUCTION(ORAY);
+    MAP_INSTRUCTION(ORAZ);
+    MAP_INSTRUCTION(ORAZX);
+    MAP_INSTRUCTION(PHA);
+    MAP_INSTRUCTION(PHP);
+    MAP_INSTRUCTION(PLA);
+    MAP_INSTRUCTION(PLP);
+    MAP_INSTRUCTION(ROL);
+    MAP_INSTRUCTION(ROLA);
+    MAP_INSTRUCTION(ROLX);
+    MAP_INSTRUCTION(ROLZ);
+    MAP_INSTRUCTION(ROLZX);
+    MAP_INSTRUCTION(ROR);
+    MAP_INSTRUCTION(RORA);
+    MAP_INSTRUCTION(RORX);
+    MAP_INSTRUCTION(RORZ);
+    MAP_INSTRUCTION(RORZX);
+    MAP_INSTRUCTION(RTI);
+    MAP_INSTRUCTION(RTS);
+    MAP_INSTRUCTION(SBCA);
+    MAP_INSTRUCTION(SBCI);
+    MAP_INSTRUCTION(SBCIX);
+    MAP_INSTRUCTION(SBCIY);
+    MAP_INSTRUCTION(SBCX);
+    MAP_INSTRUCTION(SBCY);
+    MAP_INSTRUCTION(SBCZ);
+    MAP_INSTRUCTION(SBCZX);
+    MAP_INSTRUCTION(SEC);
+    MAP_INSTRUCTION(SED);
+    MAP_INSTRUCTION(SEI);
+    MAP_INSTRUCTION(STAA);
+    MAP_INSTRUCTION(STAIX);
+    MAP_INSTRUCTION(STAIY);
+    MAP_INSTRUCTION(STAX);
+    MAP_INSTRUCTION(STAY);
+    MAP_INSTRUCTION(STAZ);
+    MAP_INSTRUCTION(STAZX);
+    MAP_INSTRUCTION(STXA);
+    MAP_INSTRUCTION(STXZ);
+    MAP_INSTRUCTION(STXZY);
+    MAP_INSTRUCTION(STYA);
+    MAP_INSTRUCTION(STYZ);
+    MAP_INSTRUCTION(STYZX);
+    MAP_INSTRUCTION(TAX);
+    MAP_INSTRUCTION(TAY);
+    MAP_INSTRUCTION(TSX);
+    MAP_INSTRUCTION(TXA);
+    MAP_INSTRUCTION(TXS);
+    MAP_INSTRUCTION(TYA);
 
     for (int i=0; i < kBreakTableSize; i++)
     {
@@ -2598,7 +2601,7 @@ int load(const char* filename)
     if (bInitialized == false) 
     {
         int nStatus;
-        if ((nStatus = Initialize()) != 0) return nStatus;
+        if ((nStatus = initialize()) != 0) return nStatus;
     }
 
     FILE* fp = fopen(filename,"rb");
@@ -2610,7 +2613,7 @@ int load(const char* filename)
     return 0;
 }
 
-int ave(const char* filename)
+int save(const char* filename)
 {
     if (bInitialized == false) return -1;
 
@@ -2721,14 +2724,14 @@ int assemble(const char* filename)
     if (bInitialized == false) 
     {
         int nStatus;
-        if ((nStatus = Initialize()) != 0) return nStatus;
+        if ((nStatus = initialize()) != 0) return nStatus;
     }
 
     FILE* fp = fopen(filename,"r");
 
     if (fp == NULL) return errno; // @todo correct insufficient info passed to caller
 
-    Prepare();
+    prepare();
 
     char line[kMaxLineLength+1];
     int  lineno = 0;
@@ -2808,7 +2811,7 @@ int assemble(const char* filename)
                 {
                     FTRACE("Assembler processing data section",__FILE__,__LINE__);
 
-                    while (strlen(GetToken(token,&tokens)))
+                    while (strlen(getToken(token,&tokens)))
                     {
                         uint16_t hex = getHex(token);
                         memory[ip++] = LOBYTE(hex);
@@ -2824,7 +2827,7 @@ int assemble(const char* filename)
                 }
                 else
                 {
-                    short instruction = Lookup(token);
+                    short instruction = lookup(token);
 
                     FTRACE("Assembler looking up token: %s resolves to opcode %02x",
                         __FILE__,__LINE__,token,instruction);
@@ -2869,7 +2872,7 @@ int assemble(const char* filename)
         }
     };
 
-    Resolve();
+    resolve();
 
     return 0;
 }
@@ -2971,6 +2974,27 @@ void list(uint16_t first, uint16_t last)
 }
 
 /**
+ * Interpret and execute a single instruction.
+ */
+int stepInstruction()
+{
+    FTRACE("PC=%04x OPCODE=%02x (%s) SP=%02x A=%02x X=%02x Y=%02x P=%02x",
+        __FILE__,__LINE__,
+        PC,(int)*(BP+PC),i6502[*(BP+PC)].symbol,(int)SP,(int)A,(int)X,(int)Y,(int)P);
+    FTRACE("S=%01x V=%01x B=%01x D=%01x I=%01x Z=%01x C=%01x",
+        __FILE__,__LINE__,
+        (int)SIGN,(int)OVERFLOW,(int)BREAK,(int)DECIMAL,
+        (int)INTERRUPT,(int)ZERO,(int)CARRY);
+ 
+    assert(i6502[*(BP+PC)].pFunc);
+
+    i6502[*(BP+PC)].pFunc();
+    ticker_wait(1);
+
+    return 0;
+}
+
+/**
  * Run the object code found at the given address.
  */
 int run(uint16_t address)
@@ -2981,7 +3005,7 @@ int run(uint16_t address)
 
     for(;BREAK != 1;)
     {
-        step();
+        stepInstruction();
     }
 
     return 0;
@@ -3258,7 +3282,7 @@ int debug(uint16_t address)
                     dumpFlags();
                     break;
                 case kStep:
-                    step();
+                    stepInstruction();
                     break;
                 case kContinue:
                     bRead = false;
@@ -3294,28 +3318,10 @@ int debug(uint16_t address)
         }
         else
         {
-            Step();
+            stepInstruction();
             if (checkBreakpoints(PC)) bRead = true;
         }
     }
-
-    return 0;
-}
-
-int step()
-{
-    FTRACE("PC=%04x OPCODE=%02x (%s) SP=%02x A=%02x X=%02x Y=%02x P=%02x",
-        __FILE__,__LINE__,
-        PC,(int)*(BP+PC),i6502[*(BP+PC)].symbol,(int)SP,(int)A,(int)X,(int)Y,(int)P);
-    FTRACE("S=%01x V=%01x B=%01x D=%01x I=%01x Z=%01x C=%01x",
-        __FILE__,__LINE__,
-        (int)SIGN,(int)OVERFLOW,(int)BREAK,(int)DECIMAL,
-        (int)INTERRUPT,(int)ZERO,(int)CARRY);
- 
-    assert(i6502[*(BP+PC)].pFunc);
-
-    i6502[*(BP+PC)].pFunc();
-    ticker_wait(1);
 
     return 0;
 }
@@ -3357,7 +3363,7 @@ int main(int argc, char** argv)
         switch (chOption)
         {
         case 'r':
-            address = (uint16_t)getHex(Uppercase(optarg)); 
+            address = (uint16_t)getHex(uppercase(optarg)); 
             bRun = true;
             break;
         case 'a':
@@ -3398,7 +3404,7 @@ int main(int argc, char** argv)
             bPrintInsts = true;
             break;            
         case 'd':
-            address = (uint16_t)getHex(Uppercase(optarg)); 
+            address = (uint16_t)getHex(uppercase(optarg)); 
             bDebug = true;
             break;
         case 'h':
