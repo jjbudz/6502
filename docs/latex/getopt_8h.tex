@@ -1,0 +1,144 @@
+\hypertarget{getopt_8h}{\section{getopt.\-h File Reference}
+\label{getopt_8h}\index{getopt.\-h@{getopt.\-h}}
+}
+{\ttfamily \#include $<$tchar.\-h$>$}\\*
+\subsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structoption}{option}
+\end{DoxyCompactItemize}
+\subsection*{Defines}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I}~\-\_\-\-\_\-declspec(dllimport)
+\item 
+\#define \hyperlink{getopt_8h_aeb861628fc23c2215ebf9d931385172b}{null\-\_\-argument}~0 /$\ast$Argument Null$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_a3bc1d5f667b5b4ca4b4abb685dc874ce}{no\-\_\-argument}~0 /$\ast$Argument Switch Only$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_a6ece8d8dfa8378778f7290fdaba5b8bc}{required\-\_\-argument}~1 /$\ast$Argument Required$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_acca06c0a947656bd8b395bf1084ffb72}{optional\-\_\-argument}~2 /$\ast$Argument Optional$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_a1974c59c38e477a7347bf940ebdcb201}{A\-R\-G\-\_\-\-N\-U\-L\-L}~0 /$\ast$Argument Null$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_a5b4ab91afec1ff35fd294e3ca007be49}{A\-R\-G\-\_\-\-N\-O\-N\-E}~0 /$\ast$Argument Switch Only$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_a61f6db7b71879bce066d8f50b8a0722b}{A\-R\-G\-\_\-\-R\-E\-Q}~1  /$\ast$Argument Required$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_a26d39736df762f9ad686fde7c7a9496a}{A\-R\-G\-\_\-\-O\-P\-T}~2  /$\ast$Argument Optional$\ast$/
+\item 
+\#define \hyperlink{getopt_8h_af1ed810938c8667beaa8b2d21e957e48}{\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}
+\item 
+\#define \hyperlink{getopt_8h_a33f92c59b8d5887a8f8edb6bdc3d6805}{\-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}
+\item 
+\#define \hyperlink{getopt_8h_a0e1f57718084987510b18a3ec12e9f39}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int \hyperlink{getopt_8h_ab7176e5c91933a99d96ccc4fa2d85f9c}{getopt} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$optstring) \hyperlink{getopt_8h_a0e1f57718084987510b18a3ec12e9f39}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}
+\item 
+\hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int \hyperlink{getopt_8h_a27c5a4f4e0f759224301f7285f370fdd}{getopt\-\_\-long} (int \-\_\-\-\_\-\-\_\-argc, T\-C\-H\-A\-R $\ast$const $\ast$\-\_\-\-\_\-\-\_\-argv, const T\-C\-H\-A\-R $\ast$\-\_\-\-\_\-shortopts, const struct \hyperlink{structoption}{option} $\ast$\-\_\-\-\_\-longopts, int $\ast$\-\_\-\-\_\-longind) \hyperlink{getopt_8h_a0e1f57718084987510b18a3ec12e9f39}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}
+\item 
+\hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int \hyperlink{getopt_8h_a9c0c3bd29add346438201a6cc9e65edd}{getopt\-\_\-long\-\_\-only} (int \-\_\-\-\_\-\-\_\-argc, T\-C\-H\-A\-R $\ast$const $\ast$\-\_\-\-\_\-\-\_\-argv, const T\-C\-H\-A\-R $\ast$\-\_\-\-\_\-shortopts, const struct \hyperlink{structoption}{option} $\ast$\-\_\-\-\_\-longopts, int $\ast$\-\_\-\-\_\-longind) \hyperlink{getopt_8h_a0e1f57718084987510b18a3ec12e9f39}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{getopt_8h_af1ed810938c8667beaa8b2d21e957e48}{\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C} \hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} T\-C\-H\-A\-R $\ast$ \hyperlink{getopt_8h_a36e111e1dcad3abe3b7d772d6d13c9c4}{optarg}
+\item 
+\hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int \hyperlink{getopt_8h_a00ece0b047f021a7ddee0ac37871cd4c}{optind}
+\item 
+\hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int \hyperlink{getopt_8h_a8f1d84888f26f543a7b13569c4a5cbf1}{opterr}
+\item 
+\hyperlink{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int \hyperlink{getopt_8h_a12f5ba4225a7144c90b604b7d166f631}{optopt}
+\end{DoxyCompactItemize}
+
+
+\subsection{Define Documentation}
+\hypertarget{getopt_8h_af1ed810938c8667beaa8b2d21e957e48}{\index{getopt.\-h@{getopt.\-h}!\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C@{\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}}
+\index{\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C@{\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}!getopt.h@{getopt.\-h}}
+\subsubsection[{\-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf \-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}}}\label{getopt_8h_af1ed810938c8667beaa8b2d21e957e48}
+\hypertarget{getopt_8h_a33f92c59b8d5887a8f8edb6bdc3d6805}{\index{getopt.\-h@{getopt.\-h}!\-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C@{\-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}}
+\index{\-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C@{\-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}!getopt.h@{getopt.\-h}}
+\subsubsection[{\-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf \-\_\-\-E\-N\-D\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C}}}\label{getopt_8h_a33f92c59b8d5887a8f8edb6bdc3d6805}
+\hypertarget{getopt_8h_af98d974c2db4fe9027ced13671c7b261}{\index{getopt.\-h@{getopt.\-h}!\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I@{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I}}
+\index{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I@{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I}!getopt.h@{getopt.\-h}}
+\subsubsection[{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I}~\-\_\-\-\_\-declspec(dllimport)}}\label{getopt_8h_af98d974c2db4fe9027ced13671c7b261}
+\hypertarget{getopt_8h_a0e1f57718084987510b18a3ec12e9f39}{\index{getopt.\-h@{getopt.\-h}!\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W@{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}}
+\index{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W@{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}!getopt.h@{getopt.\-h}}
+\subsubsection[{\-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-T\-H\-R\-O\-W}}}\label{getopt_8h_a0e1f57718084987510b18a3ec12e9f39}
+\hypertarget{getopt_8h_a5b4ab91afec1ff35fd294e3ca007be49}{\index{getopt.\-h@{getopt.\-h}!A\-R\-G\-\_\-\-N\-O\-N\-E@{A\-R\-G\-\_\-\-N\-O\-N\-E}}
+\index{A\-R\-G\-\_\-\-N\-O\-N\-E@{A\-R\-G\-\_\-\-N\-O\-N\-E}!getopt.h@{getopt.\-h}}
+\subsubsection[{A\-R\-G\-\_\-\-N\-O\-N\-E}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf A\-R\-G\-\_\-\-N\-O\-N\-E}~0 /$\ast$Argument Switch Only$\ast$/}}\label{getopt_8h_a5b4ab91afec1ff35fd294e3ca007be49}
+\hypertarget{getopt_8h_a1974c59c38e477a7347bf940ebdcb201}{\index{getopt.\-h@{getopt.\-h}!A\-R\-G\-\_\-\-N\-U\-L\-L@{A\-R\-G\-\_\-\-N\-U\-L\-L}}
+\index{A\-R\-G\-\_\-\-N\-U\-L\-L@{A\-R\-G\-\_\-\-N\-U\-L\-L}!getopt.h@{getopt.\-h}}
+\subsubsection[{A\-R\-G\-\_\-\-N\-U\-L\-L}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf A\-R\-G\-\_\-\-N\-U\-L\-L}~0 /$\ast$Argument Null$\ast$/}}\label{getopt_8h_a1974c59c38e477a7347bf940ebdcb201}
+\hypertarget{getopt_8h_a26d39736df762f9ad686fde7c7a9496a}{\index{getopt.\-h@{getopt.\-h}!A\-R\-G\-\_\-\-O\-P\-T@{A\-R\-G\-\_\-\-O\-P\-T}}
+\index{A\-R\-G\-\_\-\-O\-P\-T@{A\-R\-G\-\_\-\-O\-P\-T}!getopt.h@{getopt.\-h}}
+\subsubsection[{A\-R\-G\-\_\-\-O\-P\-T}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf A\-R\-G\-\_\-\-O\-P\-T}~2  /$\ast$Argument Optional$\ast$/}}\label{getopt_8h_a26d39736df762f9ad686fde7c7a9496a}
+\hypertarget{getopt_8h_a61f6db7b71879bce066d8f50b8a0722b}{\index{getopt.\-h@{getopt.\-h}!A\-R\-G\-\_\-\-R\-E\-Q@{A\-R\-G\-\_\-\-R\-E\-Q}}
+\index{A\-R\-G\-\_\-\-R\-E\-Q@{A\-R\-G\-\_\-\-R\-E\-Q}!getopt.h@{getopt.\-h}}
+\subsubsection[{A\-R\-G\-\_\-\-R\-E\-Q}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf A\-R\-G\-\_\-\-R\-E\-Q}~1  /$\ast$Argument Required$\ast$/}}\label{getopt_8h_a61f6db7b71879bce066d8f50b8a0722b}
+\hypertarget{getopt_8h_a3bc1d5f667b5b4ca4b4abb685dc874ce}{\index{getopt.\-h@{getopt.\-h}!no\-\_\-argument@{no\-\_\-argument}}
+\index{no\-\_\-argument@{no\-\_\-argument}!getopt.h@{getopt.\-h}}
+\subsubsection[{no\-\_\-argument}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf no\-\_\-argument}~0 /$\ast$Argument Switch Only$\ast$/}}\label{getopt_8h_a3bc1d5f667b5b4ca4b4abb685dc874ce}
+\hypertarget{getopt_8h_aeb861628fc23c2215ebf9d931385172b}{\index{getopt.\-h@{getopt.\-h}!null\-\_\-argument@{null\-\_\-argument}}
+\index{null\-\_\-argument@{null\-\_\-argument}!getopt.h@{getopt.\-h}}
+\subsubsection[{null\-\_\-argument}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf null\-\_\-argument}~0 /$\ast$Argument Null$\ast$/}}\label{getopt_8h_aeb861628fc23c2215ebf9d931385172b}
+\hypertarget{getopt_8h_acca06c0a947656bd8b395bf1084ffb72}{\index{getopt.\-h@{getopt.\-h}!optional\-\_\-argument@{optional\-\_\-argument}}
+\index{optional\-\_\-argument@{optional\-\_\-argument}!getopt.h@{getopt.\-h}}
+\subsubsection[{optional\-\_\-argument}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf optional\-\_\-argument}~2 /$\ast$Argument Optional$\ast$/}}\label{getopt_8h_acca06c0a947656bd8b395bf1084ffb72}
+\hypertarget{getopt_8h_a6ece8d8dfa8378778f7290fdaba5b8bc}{\index{getopt.\-h@{getopt.\-h}!required\-\_\-argument@{required\-\_\-argument}}
+\index{required\-\_\-argument@{required\-\_\-argument}!getopt.h@{getopt.\-h}}
+\subsubsection[{required\-\_\-argument}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf required\-\_\-argument}~1 /$\ast$Argument Required$\ast$/}}\label{getopt_8h_a6ece8d8dfa8378778f7290fdaba5b8bc}
+
+
+\subsection{Function Documentation}
+\hypertarget{getopt_8h_ab7176e5c91933a99d96ccc4fa2d85f9c}{\index{getopt.\-h@{getopt.\-h}!getopt@{getopt}}
+\index{getopt@{getopt}!getopt.h@{getopt.\-h}}
+\subsubsection[{getopt}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int {\bf getopt} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{optstring}
+\end{DoxyParamCaption}
+)}}\label{getopt_8h_ab7176e5c91933a99d96ccc4fa2d85f9c}
+\hypertarget{getopt_8h_a27c5a4f4e0f759224301f7285f370fdd}{\index{getopt.\-h@{getopt.\-h}!getopt\-\_\-long@{getopt\-\_\-long}}
+\index{getopt\-\_\-long@{getopt\-\_\-long}!getopt.h@{getopt.\-h}}
+\subsubsection[{getopt\-\_\-long}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int {\bf getopt\-\_\-long} (
+\begin{DoxyParamCaption}
+\item[{int}]{\-\_\-\-\_\-\-\_\-argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{\-\_\-\-\_\-\-\_\-argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{\-\_\-\-\_\-shortopts, }
+\item[{const struct {\bf option} $\ast$}]{\-\_\-\-\_\-longopts, }
+\item[{int $\ast$}]{\-\_\-\-\_\-longind}
+\end{DoxyParamCaption}
+)}}\label{getopt_8h_a27c5a4f4e0f759224301f7285f370fdd}
+\hypertarget{getopt_8h_a9c0c3bd29add346438201a6cc9e65edd}{\index{getopt.\-h@{getopt.\-h}!getopt\-\_\-long\-\_\-only@{getopt\-\_\-long\-\_\-only}}
+\index{getopt\-\_\-long\-\_\-only@{getopt\-\_\-long\-\_\-only}!getopt.h@{getopt.\-h}}
+\subsubsection[{getopt\-\_\-long\-\_\-only}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int {\bf getopt\-\_\-long\-\_\-only} (
+\begin{DoxyParamCaption}
+\item[{int}]{\-\_\-\-\_\-\-\_\-argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{\-\_\-\-\_\-\-\_\-argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{\-\_\-\-\_\-shortopts, }
+\item[{const struct {\bf option} $\ast$}]{\-\_\-\-\_\-longopts, }
+\item[{int $\ast$}]{\-\_\-\-\_\-longind}
+\end{DoxyParamCaption}
+)}}\label{getopt_8h_a9c0c3bd29add346438201a6cc9e65edd}
+
+
+\subsection{Variable Documentation}
+\hypertarget{getopt_8h_a36e111e1dcad3abe3b7d772d6d13c9c4}{\index{getopt.\-h@{getopt.\-h}!optarg@{optarg}}
+\index{optarg@{optarg}!getopt.h@{getopt.\-h}}
+\subsubsection[{optarg}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-B\-E\-G\-I\-N\-\_\-\-E\-X\-T\-E\-R\-N\-\_\-\-C} {\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} T\-C\-H\-A\-R$\ast$ {\bf optarg}}}\label{getopt_8h_a36e111e1dcad3abe3b7d772d6d13c9c4}
+\hypertarget{getopt_8h_a8f1d84888f26f543a7b13569c4a5cbf1}{\index{getopt.\-h@{getopt.\-h}!opterr@{opterr}}
+\index{opterr@{opterr}!getopt.h@{getopt.\-h}}
+\subsubsection[{opterr}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int {\bf opterr}}}\label{getopt_8h_a8f1d84888f26f543a7b13569c4a5cbf1}
+\hypertarget{getopt_8h_a00ece0b047f021a7ddee0ac37871cd4c}{\index{getopt.\-h@{getopt.\-h}!optind@{optind}}
+\index{optind@{optind}!getopt.h@{getopt.\-h}}
+\subsubsection[{optind}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int {\bf optind}}}\label{getopt_8h_a00ece0b047f021a7ddee0ac37871cd4c}
+\hypertarget{getopt_8h_a12f5ba4225a7144c90b604b7d166f631}{\index{getopt.\-h@{getopt.\-h}!optopt@{optopt}}
+\index{optopt@{optopt}!getopt.h@{getopt.\-h}}
+\subsubsection[{optopt}]{\setlength{\rightskip}{0pt plus 5cm}{\bf \-\_\-\-G\-E\-T\-O\-P\-T\-\_\-\-A\-P\-I} int {\bf optopt}}}\label{getopt_8h_a12f5ba4225a7144c90b604b7d166f631}

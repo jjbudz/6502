@@ -1,0 +1,176 @@
+\hypertarget{getopt_8c}{\section{getopt.\-c File Reference}
+\label{getopt_8c}\index{getopt.\-c@{getopt.\-c}}
+}
+{\ttfamily \#include $<$stdlib.\-h$>$}\\*
+{\ttfamily \#include $<$stdio.\-h$>$}\\*
+{\ttfamily \#include \char`\"{}getopt.\-h\char`\"{}}\\*
+\subsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{struct__getopt__data}{\-\_\-getopt\-\_\-data}
+\end{DoxyCompactItemize}
+\subsection*{Defines}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{getopt_8c_af08ec37a8c99d747fb60fa15bc28678b}{\-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S}
+\end{DoxyCompactItemize}
+\subsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \hyperlink{getopt_8c_aa52faa17a41970fda6e68b8c70368347}{E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G} \{ \hyperlink{getopt_8c_aa52faa17a41970fda6e68b8c70368347a0e73a0691c110b1442d8364d1d12eccc}{R\-E\-Q\-U\-I\-R\-E\-\_\-\-O\-R\-D\-E\-R}, 
+\hyperlink{getopt_8c_aa52faa17a41970fda6e68b8c70368347acfdde4b47c27f4efbd832e1ac7f8a8fc}{P\-E\-R\-M\-U\-T\-E}, 
+\hyperlink{getopt_8c_aa52faa17a41970fda6e68b8c70368347a3c56550bfafe809d9214b863b69c31c5}{R\-E\-T\-U\-R\-N\-\_\-\-I\-N\-\_\-\-O\-R\-D\-E\-R}
+ \}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{getopt_8c_ae5faaf982a50a5f182f3ed7359b20dea}{\-\_\-getopt\-\_\-internal\-\_\-r} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$optstring, const struct \hyperlink{structoption}{option} $\ast$longopts, int $\ast$longind, int long\-\_\-only, struct \hyperlink{struct__getopt__data}{\-\_\-getopt\-\_\-data} $\ast$d, int posixly\-\_\-correct)
+\item 
+int \hyperlink{getopt_8c_ac4a43647ec04047577b48abfa455389b}{\-\_\-getopt\-\_\-internal} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$optstring, const struct \hyperlink{structoption}{option} $\ast$longopts, int $\ast$longind, int long\-\_\-only, int posixly\-\_\-correct)
+\item 
+int \hyperlink{getopt_8c_a72762a5aee1a0abd6804963fed7047ea}{getopt} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$optstring)
+\item 
+int \hyperlink{getopt_8c_a4a3cb887557a2b64e68b8adc56517a50}{getopt\-\_\-long} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$options, const struct \hyperlink{structoption}{option} $\ast$long\-\_\-options, int $\ast$opt\-\_\-index)
+\item 
+int \hyperlink{getopt_8c_acd30e39a2e84ccbc2db199f666a7c5d4}{\-\_\-getopt\-\_\-long\-\_\-r} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$options, const struct \hyperlink{structoption}{option} $\ast$long\-\_\-options, int $\ast$opt\-\_\-index, struct \hyperlink{struct__getopt__data}{\-\_\-getopt\-\_\-data} $\ast$d)
+\item 
+int \hyperlink{getopt_8c_ad12c84e3a59d528aef6352b653f93ea3}{getopt\-\_\-long\-\_\-only} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$options, const struct \hyperlink{structoption}{option} $\ast$long\-\_\-options, int $\ast$opt\-\_\-index)
+\item 
+int \hyperlink{getopt_8c_aeeaf2c9c752c8fe5f97fd5fdff1ad026}{\-\_\-getopt\-\_\-long\-\_\-only\-\_\-r} (int argc, T\-C\-H\-A\-R $\ast$const $\ast$argv, const T\-C\-H\-A\-R $\ast$options, const struct \hyperlink{structoption}{option} $\ast$long\-\_\-options, int $\ast$opt\-\_\-index, struct \hyperlink{struct__getopt__data}{\-\_\-getopt\-\_\-data} $\ast$d)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+T\-C\-H\-A\-R $\ast$ \hyperlink{getopt_8c_a3d0b3b141e3b527861d0feef93af798e}{optarg}
+\item 
+int \hyperlink{getopt_8c_ad5e1c16213bbee2d5e8cc363309f418c}{optind} = 1
+\item 
+int \hyperlink{getopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}{opterr} = 1
+\item 
+int \hyperlink{getopt_8c_a475b8db98445da73e5f62a1ef6324b95}{optopt} = \-\_\-\-T('?')
+\end{DoxyCompactItemize}
+
+
+\subsection{Define Documentation}
+\hypertarget{getopt_8c_af08ec37a8c99d747fb60fa15bc28678b}{\index{getopt.\-c@{getopt.\-c}!\-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S@{\-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S}}
+\index{\-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S@{\-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S}!getopt.c@{getopt.\-c}}
+\subsubsection[{\-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S}]{\setlength{\rightskip}{0pt plus 5cm}\#define {\bf \-\_\-\-C\-R\-T\-\_\-\-S\-E\-C\-U\-R\-E\-\_\-\-N\-O\-\_\-\-W\-A\-R\-N\-I\-N\-G\-S}}}\label{getopt_8c_af08ec37a8c99d747fb60fa15bc28678b}
+
+
+\subsection{Enumeration Type Documentation}
+\hypertarget{getopt_8c_aa52faa17a41970fda6e68b8c70368347}{\index{getopt.\-c@{getopt.\-c}!E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G@{E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G}}
+\index{E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G@{E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G}!getopt.c@{getopt.\-c}}
+\subsubsection[{E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G}]{\setlength{\rightskip}{0pt plus 5cm}enum {\bf E\-N\-U\-M\-\_\-\-O\-R\-D\-E\-R\-I\-N\-G}}}\label{getopt_8c_aa52faa17a41970fda6e68b8c70368347}
+\begin{Desc}
+\item[Enumerator\-: ]\par
+\begin{description}
+\index{R\-E\-Q\-U\-I\-R\-E\-\_\-\-O\-R\-D\-E\-R@{R\-E\-Q\-U\-I\-R\-E\-\_\-\-O\-R\-D\-E\-R}!getopt.\-c@{getopt.\-c}}\index{getopt.\-c@{getopt.\-c}!R\-E\-Q\-U\-I\-R\-E\-\_\-\-O\-R\-D\-E\-R@{R\-E\-Q\-U\-I\-R\-E\-\_\-\-O\-R\-D\-E\-R}}\item[{\em 
+\hypertarget{getopt_8c_aa52faa17a41970fda6e68b8c70368347a0e73a0691c110b1442d8364d1d12eccc}{R\-E\-Q\-U\-I\-R\-E\-\_\-\-O\-R\-D\-E\-R}\label{getopt_8c_aa52faa17a41970fda6e68b8c70368347a0e73a0691c110b1442d8364d1d12eccc}
+}]\index{P\-E\-R\-M\-U\-T\-E@{P\-E\-R\-M\-U\-T\-E}!getopt.\-c@{getopt.\-c}}\index{getopt.\-c@{getopt.\-c}!P\-E\-R\-M\-U\-T\-E@{P\-E\-R\-M\-U\-T\-E}}\item[{\em 
+\hypertarget{getopt_8c_aa52faa17a41970fda6e68b8c70368347acfdde4b47c27f4efbd832e1ac7f8a8fc}{P\-E\-R\-M\-U\-T\-E}\label{getopt_8c_aa52faa17a41970fda6e68b8c70368347acfdde4b47c27f4efbd832e1ac7f8a8fc}
+}]\index{R\-E\-T\-U\-R\-N\-\_\-\-I\-N\-\_\-\-O\-R\-D\-E\-R@{R\-E\-T\-U\-R\-N\-\_\-\-I\-N\-\_\-\-O\-R\-D\-E\-R}!getopt.\-c@{getopt.\-c}}\index{getopt.\-c@{getopt.\-c}!R\-E\-T\-U\-R\-N\-\_\-\-I\-N\-\_\-\-O\-R\-D\-E\-R@{R\-E\-T\-U\-R\-N\-\_\-\-I\-N\-\_\-\-O\-R\-D\-E\-R}}\item[{\em 
+\hypertarget{getopt_8c_aa52faa17a41970fda6e68b8c70368347a3c56550bfafe809d9214b863b69c31c5}{R\-E\-T\-U\-R\-N\-\_\-\-I\-N\-\_\-\-O\-R\-D\-E\-R}\label{getopt_8c_aa52faa17a41970fda6e68b8c70368347a3c56550bfafe809d9214b863b69c31c5}
+}]\end{description}
+\end{Desc}
+
+
+
+\subsection{Function Documentation}
+\hypertarget{getopt_8c_ac4a43647ec04047577b48abfa455389b}{\index{getopt.\-c@{getopt.\-c}!\-\_\-getopt\-\_\-internal@{\-\_\-getopt\-\_\-internal}}
+\index{\-\_\-getopt\-\_\-internal@{\-\_\-getopt\-\_\-internal}!getopt.c@{getopt.\-c}}
+\subsubsection[{\-\_\-getopt\-\_\-internal}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf \-\_\-getopt\-\_\-internal} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{optstring, }
+\item[{const struct {\bf option} $\ast$}]{longopts, }
+\item[{int $\ast$}]{longind, }
+\item[{int}]{long\-\_\-only, }
+\item[{int}]{posixly\-\_\-correct}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_ac4a43647ec04047577b48abfa455389b}
+\hypertarget{getopt_8c_ae5faaf982a50a5f182f3ed7359b20dea}{\index{getopt.\-c@{getopt.\-c}!\-\_\-getopt\-\_\-internal\-\_\-r@{\-\_\-getopt\-\_\-internal\-\_\-r}}
+\index{\-\_\-getopt\-\_\-internal\-\_\-r@{\-\_\-getopt\-\_\-internal\-\_\-r}!getopt.c@{getopt.\-c}}
+\subsubsection[{\-\_\-getopt\-\_\-internal\-\_\-r}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf \-\_\-getopt\-\_\-internal\-\_\-r} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{optstring, }
+\item[{const struct {\bf option} $\ast$}]{longopts, }
+\item[{int $\ast$}]{longind, }
+\item[{int}]{long\-\_\-only, }
+\item[{struct {\bf \-\_\-getopt\-\_\-data} $\ast$}]{d, }
+\item[{int}]{posixly\-\_\-correct}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_ae5faaf982a50a5f182f3ed7359b20dea}
+\hypertarget{getopt_8c_aeeaf2c9c752c8fe5f97fd5fdff1ad026}{\index{getopt.\-c@{getopt.\-c}!\-\_\-getopt\-\_\-long\-\_\-only\-\_\-r@{\-\_\-getopt\-\_\-long\-\_\-only\-\_\-r}}
+\index{\-\_\-getopt\-\_\-long\-\_\-only\-\_\-r@{\-\_\-getopt\-\_\-long\-\_\-only\-\_\-r}!getopt.c@{getopt.\-c}}
+\subsubsection[{\-\_\-getopt\-\_\-long\-\_\-only\-\_\-r}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf \-\_\-getopt\-\_\-long\-\_\-only\-\_\-r} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{options, }
+\item[{const struct {\bf option} $\ast$}]{long\-\_\-options, }
+\item[{int $\ast$}]{opt\-\_\-index, }
+\item[{struct {\bf \-\_\-getopt\-\_\-data} $\ast$}]{d}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_aeeaf2c9c752c8fe5f97fd5fdff1ad026}
+\hypertarget{getopt_8c_acd30e39a2e84ccbc2db199f666a7c5d4}{\index{getopt.\-c@{getopt.\-c}!\-\_\-getopt\-\_\-long\-\_\-r@{\-\_\-getopt\-\_\-long\-\_\-r}}
+\index{\-\_\-getopt\-\_\-long\-\_\-r@{\-\_\-getopt\-\_\-long\-\_\-r}!getopt.c@{getopt.\-c}}
+\subsubsection[{\-\_\-getopt\-\_\-long\-\_\-r}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf \-\_\-getopt\-\_\-long\-\_\-r} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{options, }
+\item[{const struct {\bf option} $\ast$}]{long\-\_\-options, }
+\item[{int $\ast$}]{opt\-\_\-index, }
+\item[{struct {\bf \-\_\-getopt\-\_\-data} $\ast$}]{d}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_acd30e39a2e84ccbc2db199f666a7c5d4}
+\hypertarget{getopt_8c_a72762a5aee1a0abd6804963fed7047ea}{\index{getopt.\-c@{getopt.\-c}!getopt@{getopt}}
+\index{getopt@{getopt}!getopt.c@{getopt.\-c}}
+\subsubsection[{getopt}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf getopt} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{optstring}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_a72762a5aee1a0abd6804963fed7047ea}
+\hypertarget{getopt_8c_a4a3cb887557a2b64e68b8adc56517a50}{\index{getopt.\-c@{getopt.\-c}!getopt\-\_\-long@{getopt\-\_\-long}}
+\index{getopt\-\_\-long@{getopt\-\_\-long}!getopt.c@{getopt.\-c}}
+\subsubsection[{getopt\-\_\-long}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf getopt\-\_\-long} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{options, }
+\item[{const struct {\bf option} $\ast$}]{long\-\_\-options, }
+\item[{int $\ast$}]{opt\-\_\-index}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_a4a3cb887557a2b64e68b8adc56517a50}
+\hypertarget{getopt_8c_ad12c84e3a59d528aef6352b653f93ea3}{\index{getopt.\-c@{getopt.\-c}!getopt\-\_\-long\-\_\-only@{getopt\-\_\-long\-\_\-only}}
+\index{getopt\-\_\-long\-\_\-only@{getopt\-\_\-long\-\_\-only}!getopt.c@{getopt.\-c}}
+\subsubsection[{getopt\-\_\-long\-\_\-only}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf getopt\-\_\-long\-\_\-only} (
+\begin{DoxyParamCaption}
+\item[{int}]{argc, }
+\item[{T\-C\-H\-A\-R $\ast$const $\ast$}]{argv, }
+\item[{const T\-C\-H\-A\-R $\ast$}]{options, }
+\item[{const struct {\bf option} $\ast$}]{long\-\_\-options, }
+\item[{int $\ast$}]{opt\-\_\-index}
+\end{DoxyParamCaption}
+)}}\label{getopt_8c_ad12c84e3a59d528aef6352b653f93ea3}
+
+
+\subsection{Variable Documentation}
+\hypertarget{getopt_8c_a3d0b3b141e3b527861d0feef93af798e}{\index{getopt.\-c@{getopt.\-c}!optarg@{optarg}}
+\index{optarg@{optarg}!getopt.c@{getopt.\-c}}
+\subsubsection[{optarg}]{\setlength{\rightskip}{0pt plus 5cm}T\-C\-H\-A\-R$\ast$ {\bf optarg}}}\label{getopt_8c_a3d0b3b141e3b527861d0feef93af798e}
+\hypertarget{getopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}{\index{getopt.\-c@{getopt.\-c}!opterr@{opterr}}
+\index{opterr@{opterr}!getopt.c@{getopt.\-c}}
+\subsubsection[{opterr}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf opterr} = 1}}\label{getopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}
+\hypertarget{getopt_8c_ad5e1c16213bbee2d5e8cc363309f418c}{\index{getopt.\-c@{getopt.\-c}!optind@{optind}}
+\index{optind@{optind}!getopt.c@{getopt.\-c}}
+\subsubsection[{optind}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf optind} = 1}}\label{getopt_8c_ad5e1c16213bbee2d5e8cc363309f418c}
+\hypertarget{getopt_8c_a475b8db98445da73e5f62a1ef6324b95}{\index{getopt.\-c@{getopt.\-c}!optopt@{optopt}}
+\index{optopt@{optopt}!getopt.c@{getopt.\-c}}
+\subsubsection[{optopt}]{\setlength{\rightskip}{0pt plus 5cm}int {\bf optopt} = \-\_\-\-T('?')}}\label{getopt_8c_a475b8db98445da73e5f62a1ef6324b95}
