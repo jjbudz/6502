@@ -1,4 +1,9 @@
 /**
+ * @mainpage 6502
+ *
+ * 
+ * @section copyright_sec Copyright and License
+ *
  * Copyright (c) 1998-2011 Jeff Budzinski
  *
  * Permission is hereby granted, free of charge, to any person obtaining a 
@@ -19,16 +24,27 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  * DEALINGS IN THE SOFTWARE.
  *
- * Author: 
+ * @section intro_sec Introduction
  *
- *   @author Jeff Budzinski
+ * blah blah blah
  *
- * Purpose: 
+ * @section quickstart_sec Quick Start
  *
- *   @brief Implementation of 6502 assembler, emulator, and debugger.
+ * blah blah blah
  *
- * Notes:
+ * @section assembler_sec The Assembler
  *
+ * blah blah blah
+ *
+ * @section debugger_sec The Debugger
+ *
+ * blah blah blah
+ *
+ * @section command_sec Command Line Reference
+ * 
+ * blah blah blah
+ *
+ * @section todo_sec To Do List
  * @todo support more refined assembler syntax, see http://www.obelisk.demon.co.uk/6502/addressing.html
  * @todo unit tests for instructions (separate file and set of test programs)
  * @todo fix the assembler hacks for branching/jumps by adding instruction lengths to inst maps (see bytes struct member)
@@ -40,6 +56,7 @@
  * @todo add external interfaces (load, save, assemble, run) and associated header
  * @todo create separate command line program main
  * @todo add assertions to ftrace to insure it does not assert at run time
+ * @todo add register/address assertion functions/macros for use in unit tests
  * @todo establish clear function naming conventions (Uppercase external, lowercase internal?)
  * @todo fix doxygen comments
  * @todo provide automake build files for windows (32,64), linux (32,64), macos (32,64)
@@ -1411,7 +1428,7 @@ INSTRUCTION(LDAIY,0xB1,2,"Load accumulator from indirect address, Y")
  * Load accumulator from address found by adding X to the following
  * absolute address
  */
-INSTRUCTION(LDAX,0xB9,3,"TBD")
+INSTRUCTION(LDAX,0xB9,3,"Load accumulator from absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDAX,(short)addr16);
@@ -1421,11 +1438,11 @@ INSTRUCTION(LDAX,0xB9,3,"TBD")
     PC += 3;
 }
 
-//
-// Load accumulator from address found by adding Y to the following
-// absolute address
-//
-INSTRUCTION(LDAY,0xBD,3,"TBD")
+/*
+ * Load accumulator from address found by adding Y to the following
+ * absolute address
+ */
+INSTRUCTION(LDAY,0xBD,3,"Load accumulator from absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDAY,(short)addr16);
@@ -1435,10 +1452,10 @@ INSTRUCTION(LDAY,0xBD,3,"TBD")
     PC += 3;
 }
 
-//
-// Load X from immediate value
-//
-INSTRUCTION(LDXI,0xA2,2,"TBD")
+/**
+ * Load X from immediate value
+ */
+INSTRUCTION(LDXI,0xA2,2,"Load X from immediate")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDXI,(short)*(BP+PC+1));
     X = *(BP+PC+1);                 
@@ -1447,10 +1464,10 @@ INSTRUCTION(LDXI,0xA2,2,"TBD")
     PC += 2;
 }
 
-//
-// Load X from zero page memory address
-//
-INSTRUCTION(LDXZ,0xA6,2,"TBD")
+/**
+ * Load X from zero page memory address
+ */
+INSTRUCTION(LDXZ,0xA6,2,"Load X from zero page")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDXZ,(short)*(BP+PC+1));
     X = *(BP+*(BP+PC+1));                 
@@ -1459,10 +1476,10 @@ INSTRUCTION(LDXZ,0xA6,2,"TBD")
     PC += 2;
 }
 
-//
-// Load X from memory indexed by zero page address plus Y
-//
-INSTRUCTION(LDXZY,0xB6,2,"TBD")
+/**
+ * Load X from memory indexed by zero page address plus Y
+ */
+INSTRUCTION(LDXZY,0xB6,2,"Load X from zero page, Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDXZY,(short)*(BP+PC+1));
     uint8_t zy = *(BP+PC+1)+Y;
@@ -1472,10 +1489,10 @@ INSTRUCTION(LDXZY,0xB6,2,"TBD")
     PC += 2;
 }
 
-//
-// Load X from absolute address
-//
-INSTRUCTION(LDXA,0xAE,3,"TBD")
+/**
+ * Load X from absolute address
+ */
+INSTRUCTION(LDXA,0xAE,3,"Load X from absolute address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDXA,(short)addr16);
@@ -1485,10 +1502,10 @@ INSTRUCTION(LDXA,0xAE,3,"TBD")
     PC += 3;
 }
 
-//
-// Load X from memory at absolute address plus Y
-//
-INSTRUCTION(LDXY,0xBD,3,"TBD")
+/**
+ * Load X from memory at absolute address plus Y
+ */
+INSTRUCTION(LDXY,0xBD,3,"Load X from absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDXY,(short)addr16);
@@ -1498,10 +1515,10 @@ INSTRUCTION(LDXY,0xBD,3,"TBD")
     PC += 3;
 }
 
-//
-// Load Y from immediate value
-//
-INSTRUCTION(LDYI,0xA0,2,"TBD")
+/**
+ * Load Y from immediate value
+ */
+INSTRUCTION(LDYI,0xA0,2,"Load Y from immediate")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDYI,(short)*(BP+PC+1));
     Y = *(BP+PC+1);                 
@@ -1510,10 +1527,10 @@ INSTRUCTION(LDYI,0xA0,2,"TBD")
     PC += 2;
 }
 
-//
-// Load Y from zero page memory address
-//
-INSTRUCTION(LDYZ,0xA4,2,"TBD")
+/**
+ * Load Y from zero page memory address
+ */
+INSTRUCTION(LDYZ,0xA4,2,"Load Y from zero page")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDYZ,(short)*(BP+PC+1));
     Y = *(BP+*(BP+PC+1));                 
@@ -1522,10 +1539,10 @@ INSTRUCTION(LDYZ,0xA4,2,"TBD")
     PC += 2;
 }
 
-//
-// Load Y from memory indexed by zero page address plus X
-//
-INSTRUCTION(LDYZX,0xB4,2,"TBD")
+/**
+ * Load Y from memory indexed by zero page address plus X
+ */
+INSTRUCTION(LDYZX,0xB4,2,"Load Y from zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLDYZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -1535,10 +1552,10 @@ INSTRUCTION(LDYZX,0xB4,2,"TBD")
     PC += 2;
 }
 
-//
-// Load Y from absolute address
-//
-INSTRUCTION(LDYA,0xAE,3,"TBD")
+/*
+ * Load Y from absolute address
+ */
+INSTRUCTION(LDYA,0xAE,3,"Load Y from absolute address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDYA,(short)addr16);
@@ -1548,10 +1565,10 @@ INSTRUCTION(LDYA,0xAE,3,"TBD")
     PC += 3;
 }
 
-//
-// Load Y from memory at absolute address plus X
-//
-INSTRUCTION(LDYX,0xBC,3,"TBD")
+/**
+ * Load Y from memory at absolute address plus X
+ */
+INSTRUCTION(LDYX,0xBC,3,"Load Y from absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLDYX,(short)addr16);
@@ -1561,10 +1578,10 @@ INSTRUCTION(LDYX,0xBC,3,"TBD")
     PC += 3;
 }
 
-//
-// Logical shift accumulator to the right 
-//
-INSTRUCTION(LSR,0x4A,1,"TBD")
+/**
+ * Logical shift accumulator to the right 
+ */
+INSTRUCTION(LSR,0x4A,1,"Logical shift right accumulator")
 {
     FTRACE("%s",__FILE__,__LINE__,sLSR);
     SET_CARRY((A&0x01));
@@ -1577,7 +1594,7 @@ INSTRUCTION(LSR,0x4A,1,"TBD")
 //
 // Logical shift zero page memory to the right
 //
-INSTRUCTION(LSRZ,0x46,2,"TBD")
+INSTRUCTION(LSRZ,0x46,2,"Logical shift right zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLSRZ,(short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
@@ -1591,7 +1608,7 @@ INSTRUCTION(LSRZ,0x46,2,"TBD")
 //
 // Logical shift absolute memory address value to the right
 //
-INSTRUCTION(LSRA,0x4E,3,"TBD")
+INSTRUCTION(LSRA,0x4E,3,"Logical shift right absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLSRA,(short)addr16);
@@ -1606,7 +1623,7 @@ INSTRUCTION(LSRA,0x4E,3,"TBD")
 //
 // Logical shift zero page memory indexed by X to the right
 //
-INSTRUCTION(LSRZX,0x56,2,"TBD")
+INSTRUCTION(LSRZX,0x56,2,"Logical shift right zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLSRZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1) + X; // zero page wrap
@@ -1621,7 +1638,7 @@ INSTRUCTION(LSRZX,0x56,2,"TBD")
 //
 // Logical shift absolute memory value indexed by X to the right
 //
-INSTRUCTION(LSRX,0x5E,3,"TBD")
+INSTRUCTION(LSRX,0x5E,3,"Logical shift right absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sLSRX,(short)addr16);
@@ -1645,7 +1662,7 @@ INSTRUCTION(NOP,0xEA,1,"No operation")
 //
 // OR the accumulator with the immediate value
 //
-INSTRUCTION(ORA,0x09,2,"TBD")
+INSTRUCTION(ORA,0x09,2,"Logical OR accumulator with immediate value")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORA,(short)*(BP+PC+1));
     A |= *(BP+PC+1);
@@ -1657,7 +1674,7 @@ INSTRUCTION(ORA,0x09,2,"TBD")
 //
 // OR the accumulator with the value at the zero page address
 //
-INSTRUCTION(ORAZ,0x05,2,"TBD")
+INSTRUCTION(ORAZ,0x05,2,"Logical OR accumulator with zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAZ,(short)*(BP+PC+1));
     A |= *(BP+*(BP+PC+1));
@@ -1669,7 +1686,7 @@ INSTRUCTION(ORAZ,0x05,2,"TBD")
 //
 // OR the accumulator with the value at the absolute address
 //
-INSTRUCTION(ORAA,0x2D,3,"TBD")
+INSTRUCTION(ORAA,0x2D,3,"Logical OR accumulator with absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sORAA,(short)addr16);
@@ -1683,7 +1700,7 @@ INSTRUCTION(ORAA,0x2D,3,"TBD")
 // OR the accumulator with value at the address found using the zero 
 // page index value plus X
 //
-INSTRUCTION(ORAZX,0x15,2,"TBD")
+INSTRUCTION(ORAZX,0x15,2,"Logical OR accumulator with zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAZX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -1696,7 +1713,7 @@ INSTRUCTION(ORAZX,0x15,2,"TBD")
 //
 // OR the accumulator with the absolute address plus X
 //
-INSTRUCTION(ORAX,0x1D,3,"TBD")
+INSTRUCTION(ORAX,0x1D,3,"Logical OR accumulator with absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sORAX,(short)addr16);
@@ -1709,7 +1726,7 @@ INSTRUCTION(ORAX,0x1D,3,"TBD")
 //
 // OR the accumulator with the absolute address plus Y
 //
-INSTRUCTION(ORAY,0x19,3,"TBD")
+INSTRUCTION(ORAY,0x19,3,"Logical OR accumulator with absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sORAY,(short)addr16);
@@ -1723,7 +1740,7 @@ INSTRUCTION(ORAY,0x19,3,"TBD")
 // OR the accumulator with value from memory address indexed by immediate
 // value plus X (indexed indirect addressing mode)
 //
-INSTRUCTION(ORAIX,0x01,2,"TBD")
+INSTRUCTION(ORAIX,0x01,2,"Logical OR accumulator using indirect indexed, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -1737,7 +1754,7 @@ INSTRUCTION(ORAIX,0x01,2,"TBD")
 // OR the accumulator with value from memory address indexed by immediate
 // value plus Y (indirect indexed addressing mode)
 //
-INSTRUCTION(ORAIY,0x11,2,"TBD")
+INSTRUCTION(ORAIY,0x11,2,"Logical OR accumulator using indexed indirect, Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -1747,10 +1764,10 @@ INSTRUCTION(ORAIY,0x11,2,"TBD")
     PC += 2;
 }
 
-//
-// Push accumulator on stack
-//
-INSTRUCTION(PHA,0x48,1,"TBD")
+/**
+ * Push accumulator on stack
+ */
+INSTRUCTION(PHA,0x48,1,"Push accmulator onto stack")
 {
     FTRACE("%s",__FILE__,__LINE__,sPHA);
     STACK[SP] = A;
