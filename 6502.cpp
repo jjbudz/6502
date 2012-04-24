@@ -74,7 +74,6 @@
 //
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "6502.h"
 #include "ftrace.h"
 #include "getopt.h"
 #include "ticker.h"
@@ -1591,9 +1590,9 @@ INSTRUCTION(LSR,0x4A,1,"Logical shift right accumulator")
     PC++;
 }
 
-//
-// Logical shift zero page memory to the right
-//
+/**
+ * Logical shift zero page memory to the right
+ */
 INSTRUCTION(LSRZ,0x46,2,"Logical shift right zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLSRZ,(short)*(BP+PC+1));
@@ -1605,9 +1604,9 @@ INSTRUCTION(LSRZ,0x46,2,"Logical shift right zero page memory")
     PC += 2;
 }
 
-//
-// Logical shift absolute memory address value to the right
-//
+/**
+ * Logical shift absolute memory address value to the right
+ */
 INSTRUCTION(LSRA,0x4E,3,"Logical shift right absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
@@ -1620,9 +1619,9 @@ INSTRUCTION(LSRA,0x4E,3,"Logical shift right absolute memory address")
     PC += 3;
 }
 
-//
-// Logical shift zero page memory indexed by X to the right
-//
+/**
+ * Logical shift zero page memory indexed by X to the right
+ */
 INSTRUCTION(LSRZX,0x56,2,"Logical shift right zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sLSRZX,(short)*(BP+PC+1));
@@ -1635,9 +1634,9 @@ INSTRUCTION(LSRZX,0x56,2,"Logical shift right zero page, X")
     PC += 2;
 }
 
-//
-// Logical shift absolute memory value indexed by X to the right
-//
+/**
+ * Logical shift absolute memory value indexed by X to the right
+ */
 INSTRUCTION(LSRX,0x5E,3,"Logical shift right absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
@@ -1659,9 +1658,9 @@ INSTRUCTION(NOP,0xEA,1,"No operation")
     PC++;
 }
 
-//
-// OR the accumulator with the immediate value
-//
+/**
+ * OR the accumulator with the immediate value
+ */
 INSTRUCTION(ORA,0x09,2,"Logical OR accumulator with immediate value")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORA,(short)*(BP+PC+1));
@@ -1671,9 +1670,9 @@ INSTRUCTION(ORA,0x09,2,"Logical OR accumulator with immediate value")
     PC += 2;
 }
 
-//
-// OR the accumulator with the value at the zero page address
-//
+/**
+ * OR the accumulator with the value at the zero page address
+ */
 INSTRUCTION(ORAZ,0x05,2,"Logical OR accumulator with zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAZ,(short)*(BP+PC+1));
@@ -1683,9 +1682,9 @@ INSTRUCTION(ORAZ,0x05,2,"Logical OR accumulator with zero page memory")
     PC += 2;
 }
 
-//
-// OR the accumulator with the value at the absolute address
-//
+/**
+ * OR the accumulator with the value at the absolute address
+ */
 INSTRUCTION(ORAA,0x2D,3,"Logical OR accumulator with absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
@@ -1696,10 +1695,10 @@ INSTRUCTION(ORAA,0x2D,3,"Logical OR accumulator with absolute memory address")
     PC += 3;
 }
 
-// 
-// OR the accumulator with value at the address found using the zero 
-// page index value plus X
-//
+/**
+ * OR the accumulator with value at the address found using the zero 
+ * page index value plus X
+ */
 INSTRUCTION(ORAZX,0x15,2,"Logical OR accumulator with zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAZX,*(BP+PC+1));
@@ -1710,9 +1709,9 @@ INSTRUCTION(ORAZX,0x15,2,"Logical OR accumulator with zero page, X")
     PC += 2;
 }
 
-//
-// OR the accumulator with the absolute address plus X
-//
+/**
+ * OR the accumulator with the absolute address plus X
+ */
 INSTRUCTION(ORAX,0x1D,3,"Logical OR accumulator with absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
@@ -1723,9 +1722,9 @@ INSTRUCTION(ORAX,0x1D,3,"Logical OR accumulator with absolute address, X")
     PC += 3;
 }
 
-//
-// OR the accumulator with the absolute address plus Y
-//
+/**
+ * OR the accumulator with the absolute address plus Y
+ */
 INSTRUCTION(ORAY,0x19,3,"Logical OR accumulator with absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
@@ -1736,10 +1735,10 @@ INSTRUCTION(ORAY,0x19,3,"Logical OR accumulator with absolute address, Y")
     PC += 3;
 }
 
-//
-// OR the accumulator with value from memory address indexed by immediate
-// value plus X (indexed indirect addressing mode)
-//
+/**
+ * OR the accumulator with value from memory address indexed by immediate
+ * value plus X (indexed indirect addressing mode)
+ */
 INSTRUCTION(ORAIX,0x01,2,"Logical OR accumulator using indirect indexed, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAIX,(short)*(BP+PC+1));
@@ -1750,10 +1749,10 @@ INSTRUCTION(ORAIX,0x01,2,"Logical OR accumulator using indirect indexed, X")
     PC += 2;
 }
 
-//
-// OR the accumulator with value from memory address indexed by immediate
-// value plus Y (indirect indexed addressing mode)
-//
+/**
+ * OR the accumulator with value from memory address indexed by immediate
+ * value plus Y (indirect indexed addressing mode)
+ */
 INSTRUCTION(ORAIY,0x11,2,"Logical OR accumulator using indexed indirect, Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sORAIY,(short)*(BP+PC+1));
@@ -1775,10 +1774,10 @@ INSTRUCTION(PHA,0x48,1,"Push accmulator onto stack")
     PC++;
 }
 
-//
-// Pull accumulator from stack
-//
-INSTRUCTION(PLA,0x68,1,"TBD")
+/**
+ * Pull accumulator from stack
+ */
+INSTRUCTION(PLA,0x68,1,"Pull accumulator from stack")
 {
     FTRACE("%s",__FILE__,__LINE__,sPLA);
     A = STACK[SP+1];
@@ -1786,10 +1785,10 @@ INSTRUCTION(PLA,0x68,1,"TBD")
     PC++;
 }
 
-//
-// Push processor status on stack
-//
-INSTRUCTION(PHP,0x08,1,"TBD")
+/**
+ * Push processor status on stack
+ */
+INSTRUCTION(PHP,0x08,1,"Push processor status on stack")
 {
     FTRACE("%s",__FILE__,__LINE__,sPHP);
     STACK[SP] = P;
@@ -1797,10 +1796,10 @@ INSTRUCTION(PHP,0x08,1,"TBD")
     PC++;
 }
 
-//
-// Pull process status from stack
-//
-INSTRUCTION(PLP,0x28,1,"TBD")
+/**
+ * Pull process status from stack
+ */
+INSTRUCTION(PLP,0x28,1,"Pull process status from stack")
 {
     FTRACE("%s",__FILE__,__LINE__,sPLP);
     P = STACK[SP+1];
@@ -1814,10 +1813,10 @@ INSTRUCTION(PLP,0x28,1,"TBD")
     PC++;
 }
 
-//
-// Rotate accumulator one bit left
-//
-INSTRUCTION(ROL,0x2A,1,"TBD")
+/**
+ * Rotate accumulator one bit left
+ */
+INSTRUCTION(ROL,0x2A,1,"Rotate accumulator one bit left")
 {
     FTRACE("%s",__FILE__,__LINE__,sROL);
     uint8_t c = CARRY;
@@ -1829,10 +1828,10 @@ INSTRUCTION(ROL,0x2A,1,"TBD")
     PC++;
 }
 
-//
-// Rotate zero page memory one bit left
-//
-INSTRUCTION(ROLZ,0x26,2,"TBD")
+/**
+ * Rotate zero page memory one bit left
+ */
+INSTRUCTION(ROLZ,0x26,2,"Rotate zero page memory one bit left")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sROLZ,(short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
@@ -1845,10 +1844,10 @@ INSTRUCTION(ROLZ,0x26,2,"TBD")
     PC += 2;
 }
 
-//
-// Rotate absolute memory value left
-//
-INSTRUCTION(ROLA,0x2E,3,"TBD")
+/**
+ * Rotate absolute memory value left
+ */
+INSTRUCTION(ROLA,0x2E,3,"Rotate absolute memory value left")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sROLA,(short)addr16);
@@ -1862,10 +1861,10 @@ INSTRUCTION(ROLA,0x2E,3,"TBD")
     PC += 3;
 }
 
-//
-// Rotate zero page indexed memory left
-//
-INSTRUCTION(ROLZX,0x36,2,"TBD")
+/**
+ * Rotate zero page indexed memory left
+ */
+INSTRUCTION(ROLZX,0x36,2,"Rotate zero page indexed memory left")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sROLZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -1879,10 +1878,10 @@ INSTRUCTION(ROLZX,0x36,2,"TBD")
     PC += 2;
 }
 
-//
-// Rotate absolute memory value indexed by X to the left
-//
-INSTRUCTION(ROLX,0x3E,3,"TBD")
+/**
+ * Rotate absolute memory value indexed by X to the left
+ */
+INSTRUCTION(ROLX,0x3E,3,"Rotate absolute memory value indexed by X to the left")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sROLX,addr16);
@@ -1896,10 +1895,10 @@ INSTRUCTION(ROLX,0x3E,3,"TBD")
     PC += 3;
 }
 
-//
-// Rotate accumulator right
-//
-INSTRUCTION(ROR,0x6A,1,"TBD")
+/**
+ * Rotate accumulator right
+ */
+INSTRUCTION(ROR,0x6A,1,"Rotate accumulator right")
 {
     FTRACE("%s",__FILE__,__LINE__,sROR);
     uint8_t c = CARRY;
@@ -1911,10 +1910,10 @@ INSTRUCTION(ROR,0x6A,1,"TBD")
     PC++;
 }
 
-//
-// Rotate zero page memory value right
-//
-INSTRUCTION(RORZ,0x66,2,"TBD")
+/**
+ * Rotate zero page memory value right
+ */
+INSTRUCTION(RORZ,0x66,2,"Rotate zero page memory value right")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sRORZ,(short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
@@ -1927,10 +1926,10 @@ INSTRUCTION(RORZ,0x66,2,"TBD")
     PC += 2;
 }
 
-//
-// Rotate absolute memory address value right
-//
-INSTRUCTION(RORA,0x6E,3,"TBD")
+/**
+ * Rotate absolute memory address value right
+ */
+INSTRUCTION(RORA,0x6E,3,"Rotate absolute memory address value right")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sRORA,addr16);
@@ -1944,10 +1943,10 @@ INSTRUCTION(RORA,0x6E,3,"TBD")
     PC += 3;
 }
 
-//
-// Rotate zero page indexed memory address value right
-//
-INSTRUCTION(RORZX,0x76,2,"TBD")
+/**
+ * Rotate zero page indexed memory address value right
+ */
+INSTRUCTION(RORZX,0x76,2,"Rotate zero page indexed memory address value right")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sRORZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -1961,10 +1960,10 @@ INSTRUCTION(RORZX,0x76,2,"TBD")
     PC += 2;
 }
 
-//
-// Rotate absolute memory value indexed by X to the right
-//
-INSTRUCTION(RORX,0x7E,3,"TBD")
+/**
+ * Rotate absolute memory value indexed by X to the right
+ */
+INSTRUCTION(RORX,0x7E,3,"Rotate absolute memory value indexed by X to the right")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sRORX,(short)addr16);
@@ -1978,10 +1977,10 @@ INSTRUCTION(RORX,0x7E,3,"TBD")
     PC += 3;
 }
 
-//
-// Return from interrupt, restoring status bits
-//
-INSTRUCTION(RTI,0x40,3,"TBD")
+/**
+ * Return from interrupt, restoring status bits
+ */
+INSTRUCTION(RTI,0x40,3,"Return from interrupt, restoring status bits")
 {
     FTRACE("%s",__FILE__,__LINE__,sRTI);
     P = STACK[SP+1];
@@ -1995,20 +1994,20 @@ INSTRUCTION(RTI,0x40,3,"TBD")
     SP += 3;
 }
 
-//
-// Return from subroutine
-//
-INSTRUCTION(RTS,0x60,1,"TBD")
+/**
+ * Return from subroutine
+ */
+INSTRUCTION(RTS,0x60,1,"Return from subroutine")
 {
     FTRACE("%s",__FILE__,__LINE__,sRTS);
     PC = ((short)STACK[SP+2]<<8)+(short)STACK[SP+1]+1;
     SP += 2;
 }
 
-//
-// Subtract immediate value from accumulator with carry
-//
-INSTRUCTION(SBCI,0xE9,2,"TBD")
+/**
+ * Subtract immediate value from accumulator with carry
+ */
+INSTRUCTION(SBCI,0xE9,2,"Subtract immediate value from accumulator with carry")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCI,(short)*(BP+PC+1));
     A = A - *(BP+PC+1) - (1 - CARRY);                 
@@ -2019,10 +2018,11 @@ INSTRUCTION(SBCI,0xE9,2,"TBD")
     PC += 2;
     // !!! add decimal mode addition
 }
-//
-// Subtract memory from accumulator with carry, zero page 
-//
-INSTRUCTION(SBCZ,0xE5,2,"TBD")
+
+/**
+ * Subtract memory from accumulator with carry, zero page 
+ */
+INSTRUCTION(SBCZ,0xE5,2,"Subtract memory from accumulator with carry, zero page")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCZ,(short)*(BP+PC+1));
     A = A - *(BP+*(BP+PC+1)) - (1 - CARRY);
@@ -2033,10 +2033,10 @@ INSTRUCTION(SBCZ,0xE5,2,"TBD")
     PC += 2;
 }
 
-//
-// Subtract absolute memory from accumulator with carry
-//
-INSTRUCTION(SBCA,0xED,3,"TBD")
+/**
+ * Subtract absolute memory from accumulator with carry
+ */
+INSTRUCTION(SBCA,0xED,3,"Subtract absolute memory from accumulator with carry")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSBCA,(short)addr16);
@@ -2048,10 +2048,10 @@ INSTRUCTION(SBCA,0xED,3,"TBD")
     PC += 3;
 }
 
-//
-// Subtract zero page memory from accumulator with carry
-//
-INSTRUCTION(SBCZX,0xE1,2,"TBD")
+/**
+ * Subtract zero page memory from accumulator with carry
+ */
+INSTRUCTION(SBCZX,0xE1,2,"Subtract zero page memory from accumulator with carry")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -3034,7 +3034,7 @@ int run(uint16_t address)
 void tokenize(char* first, char* second, char* third, const char* input)
 {
     unsigned int tokeno = 0;
-    char* tokens = strdup(input);
+    char* tokens = _strdup(input);
     char* parsed = tokens;
     char  token[kMaxLineLength+1];
 
