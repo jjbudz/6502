@@ -2063,7 +2063,11 @@ INSTRUCTION(SBCZX,0xE1,2,"Subtract zero page memory from accumulator with carry"
     PC += 2;
 }
 
-INSTRUCTION(SBCIX,0xF5,2,"TBD")
+/**
+ * Subtract the accumulator with value from memory address indexed by immediate
+ * value plus X (indexed indirect addressing mode)
+ */
+INSTRUCTION(SBCIX,0xF5,2,"Subtract with carry from indirect, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
@@ -2075,10 +2079,10 @@ INSTRUCTION(SBCIX,0xF5,2,"TBD")
     PC += 2;
 }
 
-//
-// Subtract Y from accumulator
-//
-INSTRUCTION(SBCY,0xF9,3,"TBD")
+/**
+ * Subtract from accumulator from absolute adress and Y
+ */
+INSTRUCTION(SBCY,0xF9,3,"Subtract with carry from absolute, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSBCY,(short)addr16);
@@ -2090,10 +2094,10 @@ INSTRUCTION(SBCY,0xF9,3,"TBD")
     PC += 3;
 }
 
-//
-// Subtract X from accumulator
-//
-INSTRUCTION(SBCX,0xFD,3,"TBD")
+/**
+ * Subtract X from accumulator
+ */
+INSTRUCTION(SBCX,0xFD,3,"Subtract with carry from absolute, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSBCX,(short)addr16);
@@ -2105,10 +2109,10 @@ INSTRUCTION(SBCX,0xFD,3,"TBD")
     PC += 3;
 }
 
-//
-// Subtract indirect address from accumulator 
-//
-INSTRUCTION(SBCIY,0xF1,2,"TBD")
+/**
+ * Subtract indirect address from accumulator 
+ */
+INSTRUCTION(SBCIY,0xF1,2,"Subtract with carry from indirect, Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSBCIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -2120,50 +2124,50 @@ INSTRUCTION(SBCIY,0xF1,2,"TBD")
     PC += 2;
 }
 
-//
-// Set decimal bit
-//
-INSTRUCTION(SED,0xF8,1,"TBD")
+/**
+ * Set decimal bit
+ */
+INSTRUCTION(SED,0xF8,1,"Set decimal bit")
 {
     FTRACE("%s",__FILE__,__LINE__,sSED);
     SET_DECIMAL(1);
     PC++;
 }
 
-//
-// Set carry bit
-//
-INSTRUCTION(SEC,0x38,1,"TBD")
+/**
+ * Set carry bit
+ */
+INSTRUCTION(SEC,0x38,1,"Set carry bit")
 {
     FTRACE("%s",__FILE__,__LINE__,sSEC);
     SET_CARRY(1);
     PC++;
 }
 
-//
-// Set interrupt bit
-//
-INSTRUCTION(SEI,0x78,1,"TBD")
+/**
+ * Set interrupt bit
+ */
+INSTRUCTION(SEI,0x78,1,"Set interrupt bit")
 {
     FTRACE("%s",__FILE__,__LINE__,sSEI);
     SET_INTERRUPT(0);
     PC++;
 }
 
-//
-// Store accumulator to zero page memory
-//
-INSTRUCTION(STAZ,0x85,2,"TBD")
+/**
+ * Store accumulator to zero page memory
+ */
+INSTRUCTION(STAZ,0x85,2,"Store accumulator to zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAZ,(short)*(BP+PC+1));
     *(BP+*(BP+PC+1)) = A;                 
     PC += 2;
 }  
 
-//
-// Store accumulator to absolute memory address
-//
-INSTRUCTION(STAA,0x8D,3,"TBD")
+/**
+ * Store accumulator to absolute memory address
+ */
+INSTRUCTION(STAA,0x8D,3,"Store accumulator to absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTAA,(short)addr16);
@@ -2171,11 +2175,11 @@ INSTRUCTION(STAA,0x8D,3,"TBD")
     PC += 3;
 }
 
-//
-// Store accumulator to zero page memory address indexed
-// by X
-//
-INSTRUCTION(STAZX,0x95,2,"TBD")
+/**
+ * Store accumulator to zero page memory address indexed
+ * by X
+ */
+INSTRUCTION(STAZX,0x95,2,"Store accumulator to zero page, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAZX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -2183,11 +2187,11 @@ INSTRUCTION(STAZX,0x95,2,"TBD")
     PC += 2;
 }
 
-//
-// Store accumulator to memory address found by adding absolute address
-// to X
-//
-INSTRUCTION(STAX,0x9D,3,"TBD")
+/**
+ * Store accumulator to memory address found by adding absolute address
+ * to X
+ */
+INSTRUCTION(STAX,0x9D,3,"Store accumulator to absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTAX,(short)addr16);
@@ -2195,11 +2199,11 @@ INSTRUCTION(STAX,0x9D,3,"TBD")
     PC += 3;
 }
 
-//
-// Store accumulator to memory address found by adding absolute address
-// to Y
-//
-INSTRUCTION(STAY,0x99,3,"TBD")
+/**
+ * Store accumulator to memory address found by adding absolute address
+ * to Y
+ */
+INSTRUCTION(STAY,0x99,3,"Store accumulator to absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTAY,(short)addr16);
@@ -2207,11 +2211,11 @@ INSTRUCTION(STAY,0x99,3,"TBD")
     PC += 3;
 }
 
-//
-// Store accumulator to indirect memory address found by adding zero
-// page value and X (indexed indirect)
-//
-INSTRUCTION(STAIX,0x81,2,"TBD")
+/**
+ * Store accumulator to indirect memory address found by adding zero
+ * page value and X (indexed indirect)
+ */
+INSTRUCTION(STAIX,0x81,2,"Store accumulator to indirect address, X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAIX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
@@ -2219,11 +2223,11 @@ INSTRUCTION(STAIX,0x81,2,"TBD")
     PC += 2;
 }
 
-// 
-// Store accumulator to indirect memory address found by adding zero 
-// page address value and Y (indirect indexed)
-//
-INSTRUCTION(STAIY,0x91,2,"TBD")
+/** 
+ * Store accumulator to indirect memory address found by adding zero 
+ * page address value and Y (indirect indexed)
+ */
+INSTRUCTION(STAIY,0x91,2,"Store accumulator to indirect address, Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTAIY,(short)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
@@ -2231,20 +2235,20 @@ INSTRUCTION(STAIY,0x91,2,"TBD")
     PC += 2;
 }
 
-//
-// Store X to zero page memory 
-//
-INSTRUCTION(STXZ,0x86,2,"TBD")
+/**
+ * Store X to zero page memory 
+ */
+INSTRUCTION(STXZ,0x86,2,"Store X to zero page memory")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTXZ,(short)*(BP+PC+1));
     *(BP+*(BP+PC+1)) = X;                 
     PC += 2;
 }
 
-//
-// Store X to absolute memory address
-//
-INSTRUCTION(STXA,0x8E,3,"TBD")
+/**
+ * Store X to absolute memory address
+ */
+INSTRUCTION(STXA,0x8E,3,"Store X to absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTXA,addr16);
@@ -2252,10 +2256,10 @@ INSTRUCTION(STXA,0x8E,3,"TBD")
     PC += 3;
 }
 
-//
-// Store X to zero page memory address indexed by Y
-//
-INSTRUCTION(STXZY,0x96,2,"TBD")
+/**
+ * Store X to zero page memory address indexed by Y
+ */
+INSTRUCTION(STXZY,0x96,2,"Store X to memory indexed by zero page address plus Y")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTXZY,(short)*(BP+PC+1));
     uint8_t zy = *(BP+PC+1)+Y;
@@ -2263,20 +2267,20 @@ INSTRUCTION(STXZY,0x96,2,"TBD")
     PC += 2;
 }
 
-//
-// Store Y to zero page memory address
-//
-INSTRUCTION(STYZ,0x84,2,"TBD")
+/**
+ * Store Y to zero page memory address
+ */
+INSTRUCTION(STYZ,0x84,2,"Store Y to zero page memory address")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTYZ,(short)*(BP+PC+1));
     *(BP+*(BP+PC+1)) = Y;                 
     PC += 2;
 }
 
-//
-// Store Y to absolute memory address
-//
-INSTRUCTION(STYA,0x8C,3,"TBD")
+/**
+ * Store Y to absolute memory address
+ */
+INSTRUCTION(STYA,0x8C,3,"Store Y to absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x",__FILE__,__LINE__,sSTYA,(short)addr16);
@@ -2284,10 +2288,10 @@ INSTRUCTION(STYA,0x8C,3,"TBD")
     PC += 3;
 }
 
-//
-// Store Y to zero page memory address indexed by X
-//
-INSTRUCTION(STYZX,0x94,2,"TBD")
+/**
+ * Store Y to zero page memory address indexed by X
+ */
+INSTRUCTION(STYZX,0x94,2,"Store Y to zero page memory address indexed by X")
 {
     FTRACE("%s %02x",__FILE__,__LINE__,sSTYZX,(short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1) + X; // zero page wrap
@@ -2295,10 +2299,10 @@ INSTRUCTION(STYZX,0x94,2,"TBD")
     PC += 2;
 }
 
-//
-// Transfer accumulator to X
-//
-INSTRUCTION(TAX,0xAA,1,"TBD")
+/**
+ * Transfer accumulator to X
+ */
+INSTRUCTION(TAX,0xAA,1,"Transfer accumulator to X")
 {
     FTRACE("%s",__FILE__,__LINE__,sTAX);
     X = A;
@@ -2307,10 +2311,10 @@ INSTRUCTION(TAX,0xAA,1,"TBD")
     PC++;
 }
 
-//
-// Transfer accumulator to Y
-//
-INSTRUCTION(TAY,0xA8,1,"TBD")
+/**
+ * Transfer accumulator to Y
+ */
+INSTRUCTION(TAY,0xA8,1,"Transfer accumulator to Y")
 {
     FTRACE("%s",__FILE__,__LINE__,sTAY);
     Y = A;
@@ -2319,10 +2323,10 @@ INSTRUCTION(TAY,0xA8,1,"TBD")
     PC++;
 }
 
-//
-// Transfer stack pointer to X
-//
-INSTRUCTION(TSX,0xBA,1,"TBD")
+/**
+ * Transfer stack pointer to X
+ */
+INSTRUCTION(TSX,0xBA,1,"Transfer stack pointer to X")
 {
     FTRACE("%s",__FILE__,__LINE__,sTSX);
     X = SP;
@@ -2331,10 +2335,10 @@ INSTRUCTION(TSX,0xBA,1,"TBD")
     PC++;
 }
 
-//
-// Transfer X to accumulator
-//
-INSTRUCTION(TXA,0x8A,1,"TBD")
+/**
+ * Transfer X to accumulator
+ */
+INSTRUCTION(TXA,0x8A,1,"Transfer X to accumulator")
 {
     FTRACE("%s",__FILE__,__LINE__,sTXA);
     A = X;
@@ -2343,10 +2347,10 @@ INSTRUCTION(TXA,0x8A,1,"TBD")
     PC++;
 }
 
-//
-// Transfer Y to accumulator
-//
-INSTRUCTION(TYA,0x98,1,"TBD")
+/**
+ * Transfer Y to accumulator
+ */
+INSTRUCTION(TYA,0x98,1,"Transfer Y to accumulator")
 {
     FTRACE("%s",__FILE__,__LINE__,sTYA);
     A = Y;
@@ -2355,16 +2359,19 @@ INSTRUCTION(TYA,0x98,1,"TBD")
     PC++;
 }
 
-//
-// Transfer X to stack pointer
-//
-INSTRUCTION(TXS,0x9A,1,"TBD")
+/**
+ * Transfer X to stack pointer
+ */
+INSTRUCTION(TXS,0x9A,1,"Transfer X to stack pointer")
 {
     FTRACE("%s",__FILE__,__LINE__,sTXS);
     SP = X;
     PC++;
 }
 
+/**
+ * Return the next input token from the sequence.
+ */
 char* getToken(char* token, char** tokens)
 {
     int i = 0;
@@ -2380,6 +2387,9 @@ char* getToken(char* token, char** tokens)
     return token;
 }
 
+/**
+ * A symbolic label to the specified address.
+ */
 void addLabel(const char* label, uint16_t address)
 {
     labelno++;
@@ -2390,17 +2400,21 @@ void addLabel(const char* label, uint16_t address)
     }
     else
     {
-        labels[labelno].label = new char[strlen(label)+1];
+        labels[labelno].label = new char[strlen(label)+1]; // @fixme leak!!!
         strcpy(labels[labelno].label,label);
         labels[labelno].address = address;
     }
 }
 
+/*
+ * Return the address of the given label.
+ * @fixme allow label to addr 0?
+ */
 uint16_t findLabel(const char* label)
 {
     int found = 0;
 
-    // @todo replace with use of sorted map
+    // @todo replace with map?
     for (int i=0; i <= labelno; i++)
     {
         if (strcmp(label,labels[i].label) == 0)
@@ -2415,6 +2429,9 @@ uint16_t findLabel(const char* label)
     return 0;	
 }			
 
+/*
+ * Returns the offset between two addresses.
+ */
 uint8_t calcOffset(uint16_t from, uint16_t to)
 {
     short delta = to - from;
@@ -2422,7 +2439,7 @@ uint8_t calcOffset(uint16_t from, uint16_t to)
     if (delta > 127 || delta < -128)
     {
         printf("Error: Offset from $%04x to $%04x out of range.",from,to);
-        exit(-5);
+        exit(-5); // @todo 
     }
 
     return (uint8_t)delta;
@@ -2438,7 +2455,7 @@ void addBranch(const char* branch, uint16_t address)
     }
     else
     {
-        branches[branchno].label = new char[strlen(branch)+1];
+        branches[branchno].label = new char[strlen(branch)+1]; // @fixme leak!!!
         strcpy(branches[branchno].label,branch);
         branches[branchno].address = address;
     }
