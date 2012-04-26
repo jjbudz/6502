@@ -282,6 +282,37 @@ static uint8_t memory[k64K];
 //
 static short breakpoints[kBreakTableSize];
 
+/*
+ * Map input a single command and shortcut to a program action.
+ */
+typedef struct
+{
+    char*  command;
+    char*  abbrev;
+    ACTION action;
+} COMMAND_TO_ACTION;
+
+/*
+ * Maps known command strings to actions.
+ */
+static COMMAND_TO_ACTION commands[] =
+{
+    {"EXIT", "X", kExit},
+    {"QUIT", "Q", kExit},
+    {"PRINT", "P", kPrint},
+    {"FLAGS", "F", kFlags},
+    {"REGISTERS", "E", kRegisters},
+    {"STACK", "A", kStack},
+    {"STEP", "S", kStep},
+    {"BREAK", "B", kBreak},
+    {"CLEAR", "C", kClear},
+    {"GO", "G", kContinue},
+    {"RUN", "R", kRun},
+    {"TRACE", "T", kTrace},
+    {"LIST", "L", kList},
+    {"HELP", "H", kHelp}
+};
+
 /**
  * Convenience function to get an address from the PC's following bytes in 
  * the compiled object code.
@@ -2396,7 +2427,7 @@ void addLabel(const char* label, uint16_t address)
     if (labelno == kLabelTableSize)
     {
         printf("Internal Error: Maximum number of labels exceeded, expand label table.");
-        exit(-3);
+        exit(-3); // @fixme shouldn't really exit
     }
     else
     {
@@ -2424,7 +2455,7 @@ uint16_t findLabel(const char* label)
     }
 
     printf("Internal Error: Label ->%s<- not found.",label);
-    exit(-4);
+    exit(-4); // @fixme shouldn't really exit
 
     return 0;	
 }			
@@ -2439,7 +2470,7 @@ uint8_t calcOffset(uint16_t from, uint16_t to)
     if (delta > 127 || delta < -128)
     {
         printf("Error: Offset from $%04x to $%04x out of range.",from,to);
-        exit(-5); // @todo 
+        exit(-5); // @fixme shouldn't really exit
     }
 
     return (uint8_t)delta;
@@ -2703,6 +2734,9 @@ void prepare()
     }
 }
 
+/**
+ * Uppercase a character string.
+ */
 char* uppercase(char* str)
 {
     FTRACE("Uppercasing: %s",__FILE__,__LINE__,str);
@@ -2712,6 +2746,9 @@ char* uppercase(char* str)
     return str;
 }
 
+/** 
+ * Turn a hexidecimal string into a numeric value.
+ */
 uint16_t getHex(const char* str)
 {
     uint16_t value = 0;
@@ -2729,11 +2766,15 @@ uint16_t getHex(const char* str)
     return value;
 }
 
+/**
+ * Find an instruction in the lookup table, returning the index
+ * it was found at or -1 if not found.
+ */
 short lookup(const char* str)
 {
     short index = -1;
 
-    // @todo hate it -- create an efficient lookup by symbol name using a map
+    // @todo switch to stl map
 
     for (int i=0; i < kInstrSetTableSize; i++)
     {
@@ -2747,6 +2788,9 @@ short lookup(const char* str)
     return index;
 }
 
+/**
+ * Resolve all branches/jumps as part of the assembly process.
+ */
 void resolve()
 {
     // 
@@ -2780,6 +2824,10 @@ void resolve()
     }
 }
 
+/*
+ * Load the assembly program from the named file and attempt to
+ * assemble it.
+ */
 int assemble(const char* filename)
 {
     // @todo add trace statements
@@ -2936,11 +2984,17 @@ int assemble(const char* filename)
         }
     };
 
+    //
+    // Resolve all jumps and branches to their destination addresses or offets
+    //
     resolve();
 
     return 0;
 }
 
+/*
+ * Reset run-time registers and status bits to defaults.
+ */
 void reset(uint16_t address)
 {
     BP = memory;
@@ -2961,12 +3015,18 @@ void reset(uint16_t address)
     P = 0;
 }
 
+/*
+ * Print register values to stderr.
+ */
 void dumpRegisters()
 {
     fprintf(stderr,"PC=%04x SP=%02x A=%02x X=%02x Y=%02x P=%02x\n",
         PC,(int)SP,(int)A,(int)X,(int)Y,(int)P);
 }
 
+/*
+ * Print flags to stderr.
+ */
 void dumpFlags()
 {
    fprintf(stderr,"S=%01x V=%01x B=%01x D=%01x I=%01x Z=%01x C=%01x\n",
@@ -2974,6 +3034,9 @@ void dumpFlags()
        (int)INTERRUPT,(int)ZERO,(int)CARRY);
 }
 
+/*
+ * Print stack values to stderr.
+ */
 void dumpStack()
 {
     fprintf(stderr,"Stack Dump...");
@@ -2986,6 +3049,9 @@ void dumpStack()
     fprintf(stderr,"\n");
 }
 
+/*
+ * Print non-zero memory values to stderr.
+ */
 void dumpMemory(uint16_t first=0, uint16_t last=k64K-1)
 {
     first = (first / 8) * 8;
@@ -3005,6 +3071,9 @@ void dumpMemory(uint16_t first=0, uint16_t last=k64K-1)
     fprintf(stderr,"\n");
 }
 
+/*
+ * Print selected items to stderr.
+ */
 void dump(bool bRegisters=true, bool bFlags=true, bool bStack=true, bool bMemory=true)
 {
     if (bRegisters) dumpRegisters();
@@ -3013,6 +3082,9 @@ void dump(bool bRegisters=true, bool bFlags=true, bool bStack=true, bool bMemory
     if (bMemory) dumpMemory();
 }
 
+/*
+ * Turn object code into instruction descriptions (disassembly).
+ */
 void decodeAt(uint16_t address)
 {
     fprintf(stdout,"PC=%04x %s ",
@@ -3175,97 +3247,21 @@ bool checkBreakpoints(short address)
 }
 
 /**
- * This ugly mega switch maps command input to their corresponding functions.
+ * Find the command action corresponding to the input command.
  */
 ACTION getCommand(const char* command)
 {
-    const char* kExitCmd = "EXIT";
-    const char* kShortExitCmd = "X";
-    const char* kQuitCmd = "QUIT";
-    const char* kShortQuitCmd = "Q";
-    const char* kPrintCmd = "PRINT";
-    const char* kShortPrintCmd = "P";
-    const char* kFlagsCmd = "FLAGS";
-    const char* kShortFlagsCmd = "F";
-    const char* kRegistersCmd = "REGISTERS";
-    const char* kShortRegistersCmd = "E";
-    const char* kStackCmd = "STACK";
-    const char* kShortStackCmd = "A";
-    const char* kStepCmd = "STEP";
-    const char* kShortStepCmd = "S";
-    const char* kBreakCmd = "BREAK";
-    const char* kShortBreakCmd = "B";
-    const char* kClearCmd = "CLEAR";
-    const char* kShortClearCmd = "C";
-    const char* kContCmd = "GO";
-    const char* kShortContCmd = "G";
-    const char* kRunCmd = "RUN";
-    const char* kShortRunCmd = "R";
-    const char* kTraceCmd = "TRACE";
-    const char* kShortTraceCmd = "T";
-    const char* kListCmd = "LIST";
-    const char* kShortListCmd = "L";
-    const char* kHelpCmd = "HELP";
-    const char* kShortHelpCmd = "H";
-
-    // @todo hate it! make it data driven using a map or array with find
-    // @todo crying out for a lookup table
-    if (strcmp(command,kExitCmd) == 0 || strcmp(command,kShortExitCmd) == 0 ||
-        strcmp(command,kQuitCmd) == 0 || strcmp(command,kShortQuitCmd) == 0)
+    for (int i=0; i < sizeof commands/sizeof(COMMAND_TO_ACTION); i++)
     {
-        return kExit;
-    }
-    else if (strcmp(command,kPrintCmd) == 0 || strcmp(command,kShortPrintCmd) == 0)
-    {
-        return kPrint;
-    }
-    else if (strcmp(command,kFlagsCmd) == 0 || strcmp(command,kShortFlagsCmd) == 0)
-    {
-        return kFlags;
-    }
-    else if (strcmp(command,kRegistersCmd) == 0 || strcmp(command,kShortRegistersCmd) == 0)
-    {
-        return kRegisters;
-    }
-    else if (strcmp(command,kStackCmd) == 0 || strcmp(command,kShortStackCmd) == 0)
-    {
-        return kStack;
-    }
-    else if (strcmp(command,kStepCmd) == 0 || strcmp(command,kShortStepCmd) == 0)
-    {
-        return kStep;
-    }
-    else if (strcmp(command,kBreakCmd) == 0 || strcmp(command,kShortBreakCmd) == 0)
-    {
-        return kBreak; 
-    }
-    else if (strcmp(command,kClearCmd) == 0 || strcmp(command,kShortClearCmd) == 0)
-    {
-        return kClear; 
-    }
-    else if (strcmp(command,kContCmd) == 0 || strcmp(command,kShortContCmd) == 0)
-    {
-        return kContinue;
-    }
-    else if (strcmp(command,kRunCmd) == 0 || strcmp(command,kShortRunCmd) == 0)
-    {
-        return kRun;
-    }
-    else if (strcmp(command,kTraceCmd) == 0 || strcmp(command,kShortTraceCmd) == 0)
-    {
-        return kTrace;
-    }
-    else if (strcmp(command,kListCmd) == 0 || strcmp(command,kShortListCmd) == 0)
-    {
-        return kList;
-    }
-    else if (strcmp(command,kHelpCmd) == 0 || strcmp(command,kShortHelpCmd) == 0)
-    {
-        return kHelp;
+        if (strcmp(command,commands[i].command) == 0 || 
+            strcmp(command,commands[i].abbrev) == 0)
+        {
+            return commands[i].action;
+        }
     }
 
     return kUnknown;
-}
+ }
 
 /**
  * Print help.
@@ -3390,19 +3386,28 @@ int debug(uint16_t address)
     return 0;
 }
 
+/**
+ * Print version string and build timestamp
+ */
 void printVersion()
 {
-    printf("%s (Build Time: %s)\n",kVersion,__TIMESTAMP__);
+    fprintf(stderr,"%s (Build Time: %s)\n",kVersion,__TIMESTAMP__);
 }
 
+/*
+ * Print the instruction table to stderr.
+ */
 void printInstructions()
 {
     for (unsigned int ii=0; ii < kInstrSetTableSize; ii++)
     {
-        if (i6502[ii].symbol) printf("%s - %s\n",i6502[ii].symbol,i6502[ii].desc);
+        if (i6502[ii].symbol) fprintf(stderr,"%s - %s\n",i6502[ii].symbol,i6502[ii].desc);
     }
 }
 
+/** 
+ * Main program
+ */
 int main(int argc, char** argv)
 {     
     ftrace_init(); 
