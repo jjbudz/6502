@@ -2400,7 +2400,7 @@ void addLabel(const char* label, uint16_t address)
     }
     else
     {
-        labels[labelno].label = new char[strlen(label)+1]; // @fixme leak!!!
+        labels[labelno].label = new char[strlen(label)+1]; 
         strcpy(labels[labelno].label,label);
         labels[labelno].address = address;
     }
@@ -2445,6 +2445,10 @@ uint8_t calcOffset(uint16_t from, uint16_t to)
     return (uint8_t)delta;
 }
 
+/**
+ * Adds an unresolved branch label to the table for resolution after the
+ * entire program has been assembled and all label addresses are know.
+ */
 void addBranch(const char* branch, uint16_t address)
 {
     branchno++;
@@ -2455,12 +2459,16 @@ void addBranch(const char* branch, uint16_t address)
     }
     else
     {
-        branches[branchno].label = new char[strlen(branch)+1]; // @fixme leak!!!
+        branches[branchno].label = new char[strlen(branch)+1]; 
         strcpy(branches[branchno].label,branch);
         branches[branchno].address = address;
     }
 }
 
+/**
+ * Initializes the instruction table and corresponding
+ * functions, data structures, etc.
+ */
 int initialize()
 {
     MAP_INITIALIZE;
@@ -2623,6 +2631,9 @@ int initialize()
     return 0;
 }
 
+/**
+ * Cleanup of data structures before program exit.
+ */
 int cleanup()
 {
     ticker_cleanup(); // @todo emit errors
@@ -2630,6 +2641,9 @@ int cleanup()
     return 0;
 }
 
+/**
+ * Load an object file from the specified file.
+ */
 int load(const char* filename)
 {
     if (bInitialized == false) 
@@ -2647,6 +2661,9 @@ int load(const char* filename)
     return 0;
 }
 
+/**
+ * Save a program to the named file.
+ */
 int save(const char* filename)
 {
     if (bInitialized == false) return -1;
@@ -2660,6 +2677,9 @@ int save(const char* filename)
     return 0;
 }
 
+/**
+ * Re-initialize data structures prior to assembly.
+ */
 void prepare()
 {
     memset(memory,0,k64K);
@@ -2668,8 +2688,18 @@ void prepare()
     
     for (unsigned int i=0; i < kLabelTableSize; i++)
     {
-        labels[i].label = 0;
-        labels[i].address = 0;
+        if (labels[i].label != 0)
+        {
+            delete labels[i].label;
+            labels[i].label = 0;
+            labels[i].address = 0;
+        }
+        if (branches[i].label != 0)
+        {
+            delete branches[i].label;
+            branches[i].label = 0;
+            branches[i].address = 0;
+        }
     }
 }
 
