@@ -116,6 +116,12 @@ int main(int argc, char** argv)
         }
     }
 
+    if ((nStatus = initialize()) != 0) 
+    {
+        fprintf(stderr,"Error: initialization failed with error %d\n", nStatus);
+        exit(nStatus);
+    }
+
     if (bPrintVersion) 
     {
         printVersion();
@@ -169,6 +175,7 @@ int main(int argc, char** argv)
         dump(bDumpRegisters,bDumpFlags,bDumpStack,bDumpMemory);
     }
 
+    cleanup();
     ftrace_cleanup();
 
     exit(nStatus);
@@ -179,6 +186,7 @@ usage:
 
     // @todo consider changing -t to -t <filename> where omitting filename uses stderr
     printf("Usage: -l <filename> -a <filename> -s <filename> -r [<address>] [-t] [-p] where:\n");
+    printf("\t-h to display command line options\n");
     printf("\t-l <filename> to load an object file\n");
     printf("\t-a <filename> to assemble source file\n");
     printf("\t-s <filename> to save object file after assembly\n");

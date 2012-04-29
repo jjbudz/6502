@@ -223,6 +223,7 @@ typedef enum
     kRun,
     kTrace, 
     kList, 
+    kAssert,
     kHelp
 } ACTION; 
  
@@ -254,6 +255,7 @@ static COMMAND_TO_ACTION commands[] =
     {"RUN", "R", kRun},
     {"TRACE", "T", kTrace},
     {"LIST", "L", kList},
+    {"ASSERT", "A", kAssert},
     {"HELP", "H", kHelp}
 };
 
@@ -2344,6 +2346,14 @@ INSTRUCTION(TXS,0x9A,1,"Transfer X to stack pointer")
     PC++;
 }
 
+/*
+ * Assert value at given address.
+ */
+bool assertmem(uint16_t address, uint8_t value)
+{
+    return memory[address] == value;
+}
+
 /**
  * Return the value of the carry flag.
  */
@@ -2736,11 +2746,7 @@ int load(const char* filename)
 {
     assert(filename);
 
-    if (bInitialized == false) 
-    {
-        int nStatus;
-        if ((nStatus = initialize()) != 0) return nStatus;
-    }
+    if (bInitialized == false) return -1;
 
     FILE* fp = fopen(filename,"rb");
 
@@ -2866,11 +2872,7 @@ int assemble(const char* filename)
     // @todo add trace statements
     // @todo this whole block and related functions need to be refactored
 
-    if (bInitialized == false) 
-    {
-        int nStatus;
-        if ((nStatus = initialize()) != 0) return nStatus;
-    }
+    if (bInitialized == false) return -1;
 
     FILE* fp = fopen(filename,"r");
 
@@ -3407,6 +3409,13 @@ int debug(uint16_t address)
                         short addr1 = strlen(param1) ? getHex(param1):PC;
                         short addr2 = strlen(param2) ? getHex(param2):addr1;
                         list(addr1,addr2);
+                    }
+                    break;
+                case kAssert:
+                    {
+                        short addr = getHex(param1);
+                        uint8_t val = (uint8_t)getHex(param2);
+                        fprintf(stderr,"%s\n",assertmem(addr,val)?"true":"false");
                     }
                     break;
                 case kHelp:
