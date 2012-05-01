@@ -156,6 +156,11 @@ void dump(bool bRegisters=true, bool bFlags=true, bool bStack=true, bool bMemory
 void decodeAt(uint16_t address);
 
 /**
+ * Return the value of memory at the given address.
+ */
+uint8_t inspect(uint16_t address);
+
+/**
  * Decode object code to symbolic instructions.
  */
 void list(uint16_t first, uint16_t last);

@@ -120,8 +120,8 @@ int main(int argc, char** argv)
                 {
                     *delim = '\0';
                     delim++;
-                    address2 = (uint16_t)getHex(optarg); 
-                    value = (uint8_t)getHex(delim); 
+                    address2 = (uint16_t)getHex(uppercase(optarg)); 
+                    value = (uint8_t)getHex(uppercase(delim)); 
                 }
                 else
                 {
@@ -210,7 +210,6 @@ int main(int argc, char** argv)
 
 usage:
 
-    // @todo consider changing -t to -t <filename> where omitting filename uses stderr
     printf("Usage: -l <filename> -a <filename> -s <filename> -r [<address>] [-t] [-p] where:\n");
     printf("\t-h to display command line options\n");
     printf("\t-l <filename> to load an object file\n");

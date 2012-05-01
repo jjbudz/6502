@@ -3134,6 +3134,14 @@ void decodeAt(uint16_t address)
 }
 
 /**
+ * Return the value of memory at the given address.
+ */
+uint8_t inspect(uint16_t address)
+{
+    return memory[address];
+}
+
+/**
  * Decode object code to symbolic instructions.
  */
 void list(uint16_t first, uint16_t last)
@@ -3413,7 +3421,7 @@ int debug(uint16_t address)
                     break;
                 case kAssert:
                     {
-                        short addr = getHex(param1);
+                        uint16_t addr = getHex(param1);
                         uint8_t val = (uint8_t)getHex(param2);
                         fprintf(stderr,"%s\n",assertmem(addr,val)?"true":"false");
                     }
