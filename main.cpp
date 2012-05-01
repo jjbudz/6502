@@ -52,6 +52,8 @@ int main(int argc, char** argv)
     char* pchLoad = 0;
     char* pchSave = 0;
     uint16_t address = 0x4000;
+    uint16_t address2 = 0x0;
+    uint8_t value = 0x00;
     bool bRun = false;
     bool bDebug = false;
     bool bDumpRegisters = false;
@@ -60,8 +62,9 @@ int main(int argc, char** argv)
     bool bDumpMemory = false;
     bool bPrintVersion = false;
     bool bPrintInsts = false;
+    bool bAssert = false;
     
-    while ((chOption = getopt(argc,argv,"l:a:s:r:tp::vd:hi")) != -1)
+    while ((chOption = getopt(argc,argv,"l:c:s:r:tp::a:vd:hi")) != -1)
     {
         switch (chOption)
         {
@@ -69,7 +72,7 @@ int main(int argc, char** argv)
             address = (uint16_t)getHex(uppercase(optarg)); 
             bRun = true;
             break;
-        case 'a':
+        case 'c':
             pchSource = _strdup(optarg);
             break;
         case 'l':
@@ -109,6 +112,23 @@ int main(int argc, char** argv)
         case 'd':
             address = (uint16_t)getHex(uppercase(optarg)); 
             bDebug = true;
+            break;
+        case 'a':
+            {
+                char* delim = strchr(optarg,':');
+                if (delim)
+                {
+                    *delim = '\0';
+                    delim++;
+                    address2 = (uint16_t)getHex(optarg); 
+                    value = (uint8_t)getHex(delim); 
+                }
+                else
+                {
+                    fprintf(stderr,"Warning: assert parameters malformed\n");
+                }
+            }
+            bAssert = true;
             break;
         case 'h':
         default:
@@ -175,6 +195,12 @@ int main(int argc, char** argv)
         dump(bDumpRegisters,bDumpFlags,bDumpStack,bDumpMemory);
     }
 
+    if (bAssert)
+    {
+        nStatus = !assertmem(address2,value); // 0 for true
+        fprintf(stderr,"Assert %d:%d=%d %s\n",address2,value,inspect(address2),(nStatus==0?"true":"false"));
+    }
+
     cleanup();
     ftrace_cleanup();
 
@@ -188,9 +214,10 @@ usage:
     printf("Usage: -l <filename> -a <filename> -s <filename> -r [<address>] [-t] [-p] where:\n");
     printf("\t-h to display command line options\n");
     printf("\t-l <filename> to load an object file\n");
-    printf("\t-a <filename> to assemble source file\n");
+    printf("\t-c <filename> to compile source file\n");
     printf("\t-s <filename> to save object file after assembly\n");
     printf("\t-r [<address>] to run code from the optional address (hexadecimal, e.g. A000)\n");
+    printf("\t-a <address>:<value> to assert value matches at the given address\n");
     printf("\t-t to turn on trace output\n");
     printf("\t-i to list assembler instructions\n");
     printf("\t-p[rfsm] to print (dump) registers, flags, stack, and memory on exit\n");
