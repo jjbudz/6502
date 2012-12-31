@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include <string.h>  
 #include <ctype.h>
+#include <string>
+#include <map>
 
 /**
  * Version string
@@ -49,10 +51,7 @@ const char* kVersion = "6502 Emulator v0.3.0";
  * and instruction set mapping table.
  */
 static const int kStackSize         = 256;
-static const int kLabelTableSize	  = 256;
-static const int kBranchTableSize	  = 256;
 static const int kInstrSetTableSize = 256;
-static const int kBreakTableSize    = 256;
 
 /**
  * Maximum input line length
@@ -128,16 +127,6 @@ static const uint8_t kSIGNBIT      = 7;
 #define SET_INTERRUPT(val) (INTERRUPT = val, P = (P&~(1<<kINTERRUPTBIT)) | (INTERRUPT<<kINTERRUPTBIT))
 
 /**
- * Definition of a program label used when an assembly code label
- * is encountered
- */
-typedef struct
-{
-    char* label;
-    uint16_t address;
-} LABEL_DESCRIPTOR;
-
-/**
  * Instruction descriptor
  */
 typedef struct
@@ -147,6 +136,16 @@ typedef struct
     const char* desc; // Instruction description
     void (*pFunc)(void); // Function pointer for the instructions implementation
 } INST_DESCRIPTOR;
+
+/**
+ * Association for symbols to addresses used by assembler.
+ */
+typedef std::map<std::string,uint16_t> SymbolAddressMap;
+
+/**
+ * Association for active breakpoints.
+ */
+typedef std::map<uint16_t,bool> BreakpointMap;
 
 /**
  * Initialization status
@@ -181,14 +180,12 @@ static uint8_t STACK[kStackSize];
 /**
  * Program labels used by the assembler
  */
-static LABEL_DESCRIPTOR labels[kLabelTableSize];
-static int labelno = -1;
+static SymbolAddressMap labels;
 
-//
-// Branches to labels used by the assembler
-//
-static LABEL_DESCRIPTOR branches[kBranchTableSize];
-static int branchno = -1;
+/**
+ * Branches to labels used by the assembler
+ */
+static SymbolAddressMap branches;
 
 //
 // 6502 instruction set table (indexed by opcode)
@@ -200,10 +197,10 @@ static INST_DESCRIPTOR i6502[kInstrSetTableSize];
 //
 static uint8_t memory[k64K];
 
-//
-// Breakpoints for debugging
-//
-static short breakpoints[kBreakTableSize];
+/**
+ * Breakpoints for debugging
+ */
+static BreakpointMap breakpoints;
 
 /**
  * Debugger actions.
@@ -2480,49 +2477,27 @@ char* getToken(char* token, char** tokens)
 }
 
 /**
- * A symbolic label to the specified address.
+ * Add a symbolic label for the specified address.
  */
 void addLabel(const char* label, uint16_t address)
 {
     assert(label);
-
-    labelno++;
-    if (labelno == kLabelTableSize)
-    {
-        printf("Internal Error: Maximum number of labels exceeded, expand label table.");
-        exit(-3); // @fixme shouldn't really exit
-    }
-    else
-    {
-        labels[labelno].label = new char[strlen(label)+1]; 
-        strcpy(labels[labelno].label,label);
-        labels[labelno].address = address;
-    }
+    labels[label] = address;
 }
+
+#include <map>
+#include <string>
 
 /*
  * Return the address of the given label.
- * @fixme allow label to addr 0?
  */
 uint16_t findLabel(const char* label)
 {
-    int found = 0;
-
     assert(label);
 
-    // @todo replace with map?
-    for (int i=0; i <= labelno; i++)
-    {
-        if (strcmp(label,labels[i].label) == 0)
-        {
-            return labels[i].address;
-        }
-    }
+    SymbolAddressMap::iterator it = labels.find(std::string(label));
 
-    printf("Internal Error: Label ->%s<- not found.",label);
-    exit(-4); // @fixme shouldn't really exit
-
-    return 0;	
+    return (it != labels.end()) ? it->second : 0;
 }			
 
 /*
@@ -2548,19 +2523,7 @@ uint8_t calcOffset(uint16_t from, uint16_t to)
 void addBranch(const char* branch, uint16_t address)
 {
     assert(branch);
-
-    branchno++;
-    if (branchno == kBranchTableSize)
-    {
-        printf("Internal Error: Maximum number of unresolved branches exceeded, expand branch table.");
-        exit(-6);
-    }
-    else
-    {
-        branches[branchno].label = new char[strlen(branch)+1]; 
-        strcpy(branches[branchno].label,branch);
-        branches[branchno].address = address;
-    }
+    branches[branch] = address;
 }
 
 /**
@@ -2720,11 +2683,6 @@ int initialize()
     MAP_INSTRUCTION(TXS);
     MAP_INSTRUCTION(TYA);
 
-    for (int i=0; i < kBreakTableSize; i++)
-    {
-        breakpoints[i] = -1;
-    }
-
     bInitialized = true;
     return 0;
 }
@@ -2781,24 +2739,9 @@ int save(const char* filename)
 void prepare()
 {
     memset(memory,0,k64K);
-    labelno = -1;
-    branchno = -1;
-    
-    for (unsigned int i=0; i < kLabelTableSize; i++)
-    {
-        if (labels[i].label != 0)
-        {
-            delete labels[i].label;
-            labels[i].label = 0;
-            labels[i].address = 0;
-        }
-        if (branches[i].label != 0)
-        {
-            delete branches[i].label;
-            branches[i].label = 0;
-            branches[i].address = 0;
-        }
-    }
+    labels.clear();
+    branches.clear();
+    breakpoints.clear();
 }
 
 /**
@@ -2828,37 +2771,51 @@ short lookup(const char* str)
 /**
  * Resolve all branches/jumps as part of the assembly process.
  */
-void resolve()
+int resolve()
 {
     // 
     // Resolve branches/jumps
     //
-    for (int j=0; j <= branchno; j++)
+    for (SymbolAddressMap::iterator it=branches.begin(); 
+        it != branches.end(); 
+        it++)
     {
+        const std::string& brLabel = it->first; // label to branch to
+        uint16_t brAddress = it->second; // address of unresolved branch
+
         //
         // For each branch, get the address for the destination label
         //
-        uint16_t address = findLabel(branches[j].label);
+        uint16_t address = findLabel(brLabel.c_str());
 
-        //
-        // Look for JSR or JMP instructions
-        //
-        if (i6502[memory[branches[j].address-1]].symbol[0] == 'J')
+        if (address)
         {
             //
-            // Store the destination address after the JMP/JSR
+            // Look for JSR or JMP instructions
             //
-            memory[branches[j].address] = LOBYTE(address);
-            memory[branches[j].address+1] = HIBYTE(address);
+            if (i6502[memory[brAddress-1]].symbol[0] == 'J')
+            {
+                //
+                // Store the destination address after the JMP/JSR
+                //
+                memory[brAddress] = LOBYTE(address);
+                memory[brAddress+1] = HIBYTE(address);
+            }
+            else // branch
+            {
+                //
+                // Branches are relative, so caculate the offset and store
+                //
+                memory[brAddress] = calcOffset(brAddress+1,address);
+            }
         }
-        else // branch
+        else
         {
-            //
-            // Branches are relative, so caculate the offset and store
-            //
-            memory[branches[j].address] = calcOffset(branches[j].address+1,address);
+            printf("Unresolved branch to label %s",__FILE__,__LINE__,brLabel.c_str());
+            return -1;
         }
     }
+    return 0;
 }
 
 /*
@@ -2874,7 +2831,7 @@ int assemble(const char* filename)
 
     if (bInitialized == false) return -1;
 
-    FILE* fp = fopen(filename,"r");
+    FILE* fp = fopen(filename, "r");
 
     if (fp == NULL) return errno; // @todo correct insufficient info passed to caller
 
@@ -2887,7 +2844,7 @@ int assemble(const char* filename)
 
     while (!done)
     {
-        if (fgets(line,kMaxLineLength,fp) != NULL)
+        if (fgets(line, kMaxLineLength,fp) != NULL)
         {
             unsigned int tokeno = 0;
             char* tokens = line;
@@ -3168,7 +3125,7 @@ int step()
     assert(i6502[*(BP+PC)].pFunc);
 
     i6502[*(BP+PC)].pFunc();
-    ticker_wait(1);
+    ticker_wait(1); // @fixme each instruction is different and should come from inst table
 
     return 0;
 }
@@ -3207,20 +3164,24 @@ void tokenize(char* first, char* second, char* third, const char* input)
 
     uppercase(tokens);
 
-    while (strlen(getToken(token,&parsed)))
+    *first = '\0';
+    *second = '\0';
+    *third = '\0';
+
+    while (strlen(getToken(token, &parsed)))
     {
-        FTRACE("Tokenize got token (#%d): %s",__FILE__,__LINE__,tokeno,token);
+        FTRACE("Tokenize got token (#%d): %s", __FILE__, __LINE__, tokeno, token);
 
         switch(tokeno++)
         {
             case 0:
-                strcpy(first,token);
+                strcpy(first, token);
                 break;
             case 1:
-                strcpy(second,token);
+                strcpy(second, token);
                 break;
             case 2:
-                strcpy(third,token);
+                strcpy(third, token);
                 break;
             default:
                 assert(0);
@@ -3236,17 +3197,7 @@ void tokenize(char* first, char* second, char* third, const char* input)
  */
 void setBreak(uint16_t address)
 {
-    //
-    // This function does not check for duplicates.
-    //
-    for (int i=0; i < kBreakTableSize; i++)
-    {
-        if (breakpoints[i] == -1)
-        {
-            breakpoints[i] = address;
-            break;
-        }
-    }
+    breakpoints[address] = true;
 }
 
 /**
@@ -3254,17 +3205,7 @@ void setBreak(uint16_t address)
  */
 void clearBreak(uint16_t address)
 {
-    //
-    // This function does not check for duplicates.
-    //
-    for (int i=0; i < kBreakTableSize; i++)
-    {
-        if (breakpoints[i] == address)
-        {
-            breakpoints[i] = -1;
-            break;
-        }
-    }
+    breakpoints.erase(address);
 }
 
 /**
@@ -3272,9 +3213,11 @@ void clearBreak(uint16_t address)
  */
 void listBreak()
 {
-    for (int i=0; i < kBreakTableSize; i++)
+    for (BreakpointMap::iterator it=breakpoints.begin();
+        it != breakpoints.end();
+        it++)
     {
-        if (breakpoints[i] != -1) printf("%04x\n",breakpoints[i]);
+        printf("%04x\n",it->first);
     }
 }
 
@@ -3283,12 +3226,9 @@ void listBreak()
  */
 bool checkBreak(uint16_t address)
 {
-    for (int i=0; i < kBreakTableSize; i++)
+    if (breakpoints.find(address) != breakpoints.end())
     {
-        if (breakpoints[i] == address)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -3303,8 +3243,8 @@ ACTION getCommand(const char* command)
 
     for (int i=0; i < sizeof commands/sizeof(COMMAND_TO_ACTION); i++)
     {
-        if (strcmp(command,commands[i].command) == 0 || 
-            strcmp(command,commands[i].abbrev) == 0)
+        if (strcmp(command, commands[i].command) == 0 || 
+            strcmp(command, commands[i].abbrev) == 0)
         {
             return commands[i].action;
         }
@@ -3318,26 +3258,26 @@ ACTION getCommand(const char* command)
  */
 void printDebugHelp()
 {
-    fprintf(stdout,"Valid commands:\n");
-    fprintf(stdout,"\trun (or r)\n");
-    fprintf(stdout,"\tstep (or s)\n");
-    fprintf(stdout,"\tgo (or g)\n");
-    fprintf(stdout,"\tprint (or p) <first> <last>\n");
-    fprintf(stdout,"\tregisters (or e)\n");
-    fprintf(stdout,"\tflags (or f)\n");
-    fprintf(stdout,"\tstack (or a)\n");
-    fprintf(stdout,"\tbreak (or b)\n");
-    fprintf(stdout,"\tclear (or c)\n");
-    fprintf(stdout,"\ttrace (or t)\n");
-    fprintf(stdout,"\tlist (or l) <first> <last>\n");
-    fprintf(stdout,"\texit (or x)\n");
-    fprintf(stdout,"\tquit (or q)\n");
-    fprintf(stdout,"\thelp (or h)\n");
+    fprintf(stdout, "Valid commands:\n");
+    fprintf(stdout, "\trun (or r)\n");
+    fprintf(stdout, "\tstep (or s)\n");
+    fprintf(stdout, "\tgo (or g)\n");
+    fprintf(stdout, "\tprint (or p) <first> <last>\n");
+    fprintf(stdout, "\tregisters (or e)\n");
+    fprintf(stdout, "\tflags (or f)\n");
+    fprintf(stdout, "\tstack (or a)\n");
+    fprintf(stdout, "\tbreak (or b)\n");
+    fprintf(stdout, "\tclear (or c)\n");
+    fprintf(stdout, "\ttrace (or t)\n");
+    fprintf(stdout, "\tlist (or l) <first> <last>\n");
+    fprintf(stdout, "\texit (or x)\n");
+    fprintf(stdout, "\tquit (or q)\n");
+    fprintf(stdout, "\thelp (or h)\n");
 }
 
 /**
  * Enter the interactive debugger using the object code at given address.
- * @fixme needs to work in envs that aren't CLI-based (e.g. GUI driven)
+ * @fixme needs to work in envs that aren't CLI-based (i.e. GUI driven)
  */
 int debug(uint16_t address)
 {
@@ -3355,23 +3295,23 @@ int debug(uint16_t address)
             printf("> ");
             fflush(stdout);
 
-            if (fgets(line,kMaxLineLength,stdin) != NULL)
+            if (fgets(line, kMaxLineLength, stdin) != NULL)
             {
                 char command[kMaxLineLength+1];
                 char param1[kMaxLineLength+1];
                 char param2[kMaxLineLength+1];
 
-                FTRACE("Debugger read line: %s",__FILE__,__LINE__,line);
+                FTRACE("Debugger read line: %s", __FILE__ ,__LINE__, line);
                 
-                tokenize(command,param1,param2,line);
+                tokenize(command, param1, param2, line);
 
                 FTRACE("Debugger command and params are: CMD=%s, PARAM1=%s, PARAM2=%s",
-                    __FILE__,__LINE__,command,param1,param2);
+                    __FILE__, __LINE__, command,param1,param2);
 
                 switch (getCommand(command))
                 {
                 case kUnknown:
-                    fprintf(stderr,"Unknown command: %s\n",command);
+                    fprintf(stderr, "Unknown command: %s\n", command);
                     break;
                 case kExit:
                     return 0;
@@ -3380,7 +3320,7 @@ int debug(uint16_t address)
                     {
                         short addr1 = strlen(param1) ? getHex(param1):PC;
                         short addr2 = strlen(param2) ? getHex(param2):addr1;
-                        dumpMemory(addr1,addr2);
+                        dumpMemory(addr1, addr2);
                     }
                     break;
                 case kStack:
@@ -3406,8 +3346,11 @@ int debug(uint16_t address)
                     clearBreak(getHex(param1));
                     break;
                 case kRun:
-                    // @todo implement me
-                    assert(0);
+                    {
+                        short addr = strlen(param1) ? getHex(param1):address;
+                        reset(addr);
+                        bRead = false;
+                    }
                     break;
                 case kTrace:
                     g_bTrace = !g_bTrace;
@@ -3423,7 +3366,7 @@ int debug(uint16_t address)
                     {
                         uint16_t addr = getHex(param1);
                         uint8_t val = (uint8_t)getHex(param2);
-                        fprintf(stderr,"%s\n",assertmem(addr,val)?"true":"false");
+                        fprintf(stderr, "%s\n", assertmem(addr,val) ? "true":"false");
                     }
                     break;
                 case kHelp:
@@ -3449,7 +3392,7 @@ int debug(uint16_t address)
  */
 void printVersion()
 {
-    fprintf(stderr,"%s (Build Time: %s)\n",kVersion,__TIMESTAMP__);
+    fprintf(stderr, "%s (Build Time: %s)\n", kVersion, __TIMESTAMP__);
 }
 
 /*
@@ -3459,7 +3402,7 @@ void printInstructions()
 {
     for (unsigned int ii=0; ii < kInstrSetTableSize; ii++)
     {
-        if (i6502[ii].symbol) fprintf(stderr,"%s - %s\n",i6502[ii].symbol,i6502[ii].desc);
+        if (i6502[ii].symbol) fprintf(stderr,"%s - %s\n", i6502[ii].symbol, i6502[ii].desc);
     }
 }
 

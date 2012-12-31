@@ -32,7 +32,6 @@
 // Suppress unsafe character string handling warnings.
 //
 #define _CRT_SECURE_NO_WARNINGS
-
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

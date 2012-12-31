@@ -40,6 +40,8 @@ const unsigned int kNanoSeconds = 1000000000;
 
 static unsigned int rate = 0;
 
+static fd_set fds;
+
 int ticker_init(unsigned int rateMhz)
 {
     WORD wVersionRequested;
@@ -58,6 +60,8 @@ int ticker_init(unsigned int rateMhz)
         return err;
     }
 
+    fds.fd_count = 0;
+
     rate = (kNanoSeconds / rateMhz);
 
     return 0;
@@ -65,13 +69,13 @@ int ticker_init(unsigned int rateMhz)
 
 int ticker_wait(unsigned int cycles)
 {
-  struct timeval stDelay;
+    struct timeval stDelay;
 
-  stDelay.tv_sec = 5;
-  stDelay.tv_usec = cycles * rate;
-
-  // @fixme select needs at least one FD set to be non-null
-  return select(0,0,0,0,&stDelay);
+    stDelay.tv_sec = 0;
+    stDelay.tv_usec = cycles * rate;
+    
+    // @fixme select needs at least one FD set to be non-null
+    return select(0,&fds,0,0,&stDelay);
 }
 
 int ticker_cleanup()
