@@ -195,7 +195,7 @@ int main(int argc, char** argv)
         }
     }
 
-    if (nStatus) perror("Error: ");
+    if (nStatus) perror("Error");
 
     if (bDumpRegisters || bDumpFlags || bDumpStack || bDumpMemory) 
     {
