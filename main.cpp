@@ -63,9 +63,11 @@ int main(int argc, char** argv)
     bool bPrintVersion = false;
     bool bPrintInsts = false;
     bool bAssert = false;
+    bool bHelp = true;
     
-    while ((chOption = getopt(argc,argv,"l:c:s:r:tp::a:vd:hi")) != -1)
+    while ((chOption = getopt(argc, argv, "l:c:s:r:tp::a:vd:hi")) != -1)
     {
+        bHelp = false;
         switch (chOption)
         {
         case 'r':
@@ -91,10 +93,10 @@ int main(int argc, char** argv)
             if (optarg) 
             {
                 uppercase(optarg);
-                bDumpRegisters = (strchr(optarg,'R') != NULL);
-                bDumpFlags = (strchr(optarg,'F') != NULL);
-                bDumpStack = (strchr(optarg,'S') != NULL);
-                bDumpMemory = (strchr(optarg,'M') != NULL);
+                bDumpRegisters = (strchr(optarg, 'R') != NULL);
+                bDumpFlags = (strchr(optarg, 'F') != NULL);
+                bDumpStack = (strchr(optarg, 'S') != NULL);
+                bDumpMemory = (strchr(optarg, 'M') != NULL);
             }
             else
             {
@@ -115,7 +117,7 @@ int main(int argc, char** argv)
             break;
         case 'a':
             {
-                char* delim = strchr(optarg,':');
+                char* delim = strchr(optarg, ':');
                 if (delim)
                 {
                     *delim = '\0';
@@ -125,7 +127,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    fprintf(stderr,"Warning: assert parameters malformed\n");
+                    fprintf(stderr, "Warning: assert parameters malformed\n");
                 }
             }
             bAssert = true;
@@ -136,9 +138,14 @@ int main(int argc, char** argv)
         }
     }
 
+    if (bHelp == true)
+    {
+        goto usage;
+    }
+
     if ((nStatus = initialize()) != 0) 
     {
-        fprintf(stderr,"Error: initialization failed with error %d\n", nStatus);
+        fprintf(stderr, "Error: initialization failed with error %d\n", nStatus);
         exit(nStatus);
     }
 
@@ -154,7 +161,7 @@ int main(int argc, char** argv)
 
     if (pchSource && pchLoad)
     {
-        fprintf(stderr,"Warning: both -a and -l specified, will ignore load flag\n");
+        fprintf(stderr, "Warning: both -a and -l specified, will ignore load flag\n");
     }
 
     if (pchSource)
@@ -173,7 +180,7 @@ int main(int argc, char** argv)
 
     if (bRun && bDebug)
     {
-        fprintf(stderr,"Warning: both -r and -d specified, will ignore debug flag\n");
+        fprintf(stderr, "Warning: both -r and -d specified, will ignore debug flag\n");
     }
 
     if (nStatus == 0)
@@ -192,13 +199,13 @@ int main(int argc, char** argv)
 
     if (bDumpRegisters || bDumpFlags || bDumpStack || bDumpMemory) 
     {
-        dump(bDumpRegisters,bDumpFlags,bDumpStack,bDumpMemory);
+        dump(bDumpRegisters, bDumpFlags, bDumpStack, bDumpMemory);
     }
 
     if (bAssert)
     {
         nStatus = !assertmem(address2,value); // 0 for true
-        fprintf(stderr,"Assert %d:%d=%d %s\n",address2,value,inspect(address2),(nStatus==0?"true":"false"));
+        fprintf(stderr, "Assert %d:%d=%d %s\n", address2, value,inspect(address2), (nStatus==0?"true":"false"));
     }
 
     cleanup();
