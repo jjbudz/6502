@@ -1,3 +1,3 @@
 set PATH=..\debug;%PATH%
 
-CMD <test.script
+CMD <unittest.script

@@ -2,6 +2,7 @@
 6502 -c LDAI1.asm -r 4000 -a 8000:7f 
 6502 -c LDAI2.asm -r 4000 -a 8000:7f
 6502 -c LDAI3.asm -r 4000 -a 8000:00
+6502 -c PHA.asm -r 4000 -a 1000:ff
 6502 -c test00.asm -r 4000 -a 022a:55
 6502 -c test01.asm -r 4000 -a 00a9:aa
 6502 -c test05.asm -r 4000 -a 0040:33
