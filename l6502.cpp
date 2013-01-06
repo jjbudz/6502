@@ -143,6 +143,11 @@ typedef struct
 typedef std::map<std::string, uint16_t> SymbolAddressMap;
 
 /**
+ * Association for addresses to symbols used by assembler.
+ */
+typedef std::map<uint16_t, std::string> AddressSymbolMap;
+
+/**
  * Association for active breakpoints.
  */
 typedef std::map<uint16_t, bool> BreakpointMap;
@@ -185,7 +190,7 @@ static SymbolAddressMap labels;
 /**
  * Branches to labels used by the assembler
  */
-static SymbolAddressMap branches;
+static AddressSymbolMap branches;
 
 //
 // 6502 instruction set table (indexed by opcode)
@@ -1104,9 +1109,9 @@ INSTRUCTION(DEY, 0x88, 1, "Decrement Y register")
 /**
  * Exclusive OR accumulator with immediate value
  */
-INSTRUCTION(EOR, 0x49, 2, "Exclusive OR accumulator with immediate value")
+INSTRUCTION(EORI, 0x49, 2, "Exclusive OR accumulator with immediate value")
 {
-    FTRACE("%s %02x", __FILE__, __LINE__, sEOR, (short)*(BP+PC+1));
+    FTRACE("%s %02x", __FILE__, __LINE__, sEORI, (short)*(BP+PC+1));
     A = ~((~A)|*(BP+PC+1));
     SET_ZERO(A);
     SET_SIGN(A);
@@ -1401,7 +1406,7 @@ INSTRUCTION(LDAIY, 0xB1, 2, "Load accumulator from indirect address, Y")
  * Load accumulator from address found by adding X to the following
  * absolute address
  */
-INSTRUCTION(LDAX, 0xB9, 3, "Load accumulator from absolute address, X")
+INSTRUCTION(LDAX, 0xBD, 3, "Load accumulator from absolute address, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sLDAX, (short)addr16);
@@ -1415,7 +1420,7 @@ INSTRUCTION(LDAX, 0xB9, 3, "Load accumulator from absolute address, X")
  * Load accumulator from address found by adding Y to the following
  * absolute address
  */
-INSTRUCTION(LDAY, 0xBD, 3, "Load accumulator from absolute address, Y")
+INSTRUCTION(LDAY, 0xB9, 3, "Load accumulator from absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sLDAY, (short)addr16);
@@ -1478,7 +1483,7 @@ INSTRUCTION(LDXA, 0xAE, 3, "Load X from absolute address")
 /**
  * Load X from memory at absolute address plus Y
  */
-INSTRUCTION(LDXY, 0xBD, 3, "Load X from absolute address, Y")
+INSTRUCTION(LDXY, 0xBE, 3, "Load X from absolute address, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sLDXY, (short)addr16);
@@ -1528,7 +1533,7 @@ INSTRUCTION(LDYZX, 0xB4, 2, "Load Y from zero page, X")
 /*
  * Load Y from absolute address
  */
-INSTRUCTION(LDYA, 0xAE, 3, "Load Y from absolute address")
+INSTRUCTION(LDYA, 0xAC, 3, "Load Y from absolute address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sLDYA, (short)addr16);
@@ -1635,9 +1640,9 @@ INSTRUCTION(NOP, 0xEA, 1, "No operation")
 /**
  * OR the accumulator with the immediate value
  */
-INSTRUCTION(ORA, 0x09, 2, "Logical OR accumulator with immediate value")
+INSTRUCTION(ORAI, 0x09, 2, "Logical OR accumulator with immediate value")
 {
-    FTRACE("%s %02x", __FILE__, __LINE__, sORA, (short)*(BP+PC+1));
+    FTRACE("%s %02x", __FILE__, __LINE__, sORAI, (short)*(BP+PC+1));
     A |= *(BP+PC+1);
     SET_ZERO(A);
     SET_SIGN(A);
@@ -1659,7 +1664,7 @@ INSTRUCTION(ORAZ, 0x05, 2, "Logical OR accumulator with zero page memory")
 /**
  * OR the accumulator with the value at the absolute address
  */
-INSTRUCTION(ORAA, 0x2D, 3, "Logical OR accumulator with absolute memory address")
+INSTRUCTION(ORAA, 0x0D, 3, "Logical OR accumulator with absolute memory address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sORAA, (short)addr16);
@@ -2523,7 +2528,7 @@ uint8_t calcOffset(uint16_t from, uint16_t to)
 void addBranch(const char* branch, uint16_t address)
 {
     assert(branch);
-    branches[branch] = address;
+    branches[address] = branch;
 }
 
 /**
@@ -2589,7 +2594,7 @@ int initialize()
     MAP_INSTRUCTION(DECZX);
     MAP_INSTRUCTION(DEX);
     MAP_INSTRUCTION(DEY);
-    MAP_INSTRUCTION(EOR);
+    MAP_INSTRUCTION(EORI);
     MAP_INSTRUCTION(EORA);
     MAP_INSTRUCTION(EORIX);
     MAP_INSTRUCTION(EORIY);
@@ -2619,8 +2624,10 @@ int initialize()
     MAP_INSTRUCTION(LDXI);
     MAP_INSTRUCTION(LDXZ);
     MAP_INSTRUCTION(LDXZY);
+    MAP_INSTRUCTION(LDYA);
     MAP_INSTRUCTION(LDYI);
     MAP_INSTRUCTION(LDYZ);
+    MAP_INSTRUCTION(LDYX);
     MAP_INSTRUCTION(LDYZX);
     MAP_INSTRUCTION(LSR);
     MAP_INSTRUCTION(LSRA);
@@ -2628,7 +2635,7 @@ int initialize()
     MAP_INSTRUCTION(LSRZ);
     MAP_INSTRUCTION(LSRZX);
     MAP_INSTRUCTION(NOP);
-    MAP_INSTRUCTION(ORA);
+    MAP_INSTRUCTION(ORAI);
     MAP_INSTRUCTION(ORAA);
     MAP_INSTRUCTION(ORAIX);
     MAP_INSTRUCTION(ORAIY);
@@ -2773,20 +2780,28 @@ short lookup(const char* str)
  */
 int resolve()
 {
+    FTRACE("Resolving %d branches\n", __FILE__, __LINE__, branches.size());
+
     // 
     // Resolve branches/jumps
     //
-    for (SymbolAddressMap::iterator it=branches.begin(); 
+    for (AddressSymbolMap::iterator it=branches.begin(); 
         it != branches.end(); 
         it++)
     {
-        const std::string& brLabel = it->first; // label to branch to
-        uint16_t brAddress = it->second; // address of unresolved branch
+        uint16_t brAddress = it->first; // address of unresolved branch
+        const std::string& brLabel = it->second; // label to branch to
+
+        FTRACE("Resolving branch %s at %04x\n", __FILE__, __LINE__,
+            brLabel.c_str(), brAddress);
 
         //
         // For each branch, get the address for the destination label
         //
         uint16_t address = findLabel(brLabel.c_str());
+
+        FTRACE("Resolved label %s to %04x\n", __FILE__, __LINE__,
+            brLabel.c_str(), address);
 
         if (address)
         {
@@ -2811,8 +2826,7 @@ int resolve()
         }
         else
         {
-            printf("Unresolved branch to label %s",
-                __FILE__, __LINE__, brLabel.c_str());
+            printf("Unresolved branch to label %s\n", brLabel.c_str());
             return -1;
         }
     }
@@ -2829,6 +2843,7 @@ int assemble(const char* filename)
 
     // @todo add trace statements
     // @todo this whole block and related functions need to be refactored
+    // @todo bestow award for worlds longest function
 
     if (bInitialized == false) return -1;
 
@@ -2850,6 +2865,7 @@ int assemble(const char* filename)
             unsigned int tokeno = 0;
             char* tokens = line;
             char  token[kMaxLineLength+1];
+            bool  skip = false;
 
             lineno++;
 
@@ -2860,21 +2876,27 @@ int assemble(const char* filename)
             
             // !!! refactor the following assembler to functions
 
-            while (strlen(getToken(token,&tokens)))
+            while (strlen(getToken(token,&tokens)) && skip == false)
             {
                 tokeno++;
 
                 FTRACE("Assembler got token (#%02x): %s",
                     __FILE__, __LINE__, tokeno, token);
 
-                if (token[0] == '$') // address 
+                if (token[0] == ';') // comment
+                {
+                    skip = true;
+                    FTRACE("Ignoring comment line: %s",
+                        __FILE__, __LINE__, line);
+                }
+                else if (token[0] == '$') // address 
                 {
                     if (tokeno == 1) // @todo fix lame state machine
                     {
                         if (strlen(token+1) > 4)
                         {
-                            printf("Line %d: wrong number of digits in hex value, ->%s<-",
-                                __FILE__, __LINE__, lineno, token);
+                            printf("Line %d: wrong number of digits in hex value, ->%s<-\n",
+                                lineno, token);
                             return -1; // @todo change to constant (or actually would prefer exceptions everywhere)
                         }
                         else
@@ -2886,8 +2908,8 @@ int assemble(const char* filename)
                     {
                         if (strlen(token+1) > 4)
                         {
-                            printf("Line %d: wrong number of digits in hex value, ->%s<-",
-                                __FILE__, __LINE__, lineno, token);
+                            printf("Line %d: wrong number of digits in hex value, ->%s<-\n",
+                                lineno, token);
                             return -2; // @todo change to error value
                         }
                         else
@@ -2903,20 +2925,39 @@ int assemble(const char* filename)
                 }
                 else if (token[0] == '#') // value 
                 {
-                    if (strlen(token+1) > 4)
+                    if (token[1] == '$') // hex value
                     {
-                        printf("Line %d: wrong number of digits in hex value, ->%s<-",
-                            __FILE__, __LINE__, lineno, token);
-                        return -2; // @todo change to error value
-                    }
-                    else
-                    {
-                        uint16_t hex = getHex(token+1);
-                        memory[ip++] = LOBYTE(hex);
-                        if (hex > 0xff) memory[ip++] = HIBYTE(hex);
+                        if (strlen(token+2) > 2)
+                        {
+                            printf("Line %d: wrong number of digits in hex value, ->%s<-\n",
+                                lineno, token);
+                            return -2; // @todo change to error value
+                        }
+                        else
+                        {
+                            uint16_t hex = getHex(token+2);
+                            memory[ip++] = LOBYTE(hex);
 
-                        FTRACE("Assembler stored value: %04x",
-                            __FILE__, __LINE__, hex);
+                            FTRACE("Assembler stored value: %02x",
+                                __FILE__, __LINE__, hex);
+                        }
+                    }
+                    else // decimal value
+                    {
+                        if (strlen(token+1) > 3)
+                        {
+                            printf("Line %d: wrong number of digits in decimal value, ->%s<-\n",
+                                lineno, token);
+                            return -2; // @todo change to error value
+                        }
+                        else
+                        {
+                            uint16_t value = atoi(token+1);
+                            memory[ip++] = LOBYTE(value);
+
+                            FTRACE("Assembler stored value: %02x (%03d)",
+                                __FILE__, __LINE__, value, value);
+                        }
                     }
                 }
                 else if (strcmp(token, ".DATA") == 0)
@@ -2936,7 +2977,7 @@ int assemble(const char* filename)
                 }
                 else if (strncmp(token, line, strlen(token)) == 0)
                 {
-                    addLabel(token,ip);
+                    addLabel(token, ip);
                     FTRACE("Assembler recording label: %s at %04x",
                         __FILE__, __LINE__, token, ip);
                 }
@@ -2961,16 +3002,19 @@ int assemble(const char* filename)
                         //
 
                         FTRACE("Assembler adding branch to: %s at %04x",
-                            __FILE__, __LINE__, token,ip);
+                            __FILE__, __LINE__, token, ip);
 
                         //
                         // @todo fix this assumption to validate or error out
                         //
-                        addBranch(token,ip);
+                        addBranch(token, ip);
 
+                        //
+                        // hack to distinguish between absolute and relative destinations
+                        //
                         ip += (i6502[memory[ip-1]].symbol[0] == 'J') ? 2:1;
 
-                        //printf("Line %d: unrecognized instruction, ->%s<-", __FILE__, __LINE__,lineno,token);
+                        //printf("Line %d: unrecognized instruction, ->%s<-", __FILE__, __LINE__, lineno, token);
                         //exit(-3);
                     }
                 }
@@ -3061,11 +3105,11 @@ void dumpMemory(uint16_t first, uint16_t last)
 
     fprintf(stderr, "%04x ", first);
 
-    for (uint16_t dump=first; dump <= +last; dump++)
+    for (uint32_t dump=first; dump <= last; dump++)
     {
         fprintf(stderr, "%02x ", (short)*(BP+dump));
 
-        if ((dump+1) < last && (dump % 8) == 0) 
+        if ((dump+1) < last && ((dump+1) % 8) == 0) 
         {
             fprintf(stderr, "\n%04x ", dump+1);
         }

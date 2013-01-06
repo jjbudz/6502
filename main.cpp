@@ -222,7 +222,8 @@ usage:
     printf("\t-l <filename> to load an object file\n");
     printf("\t-c <filename> to compile source file\n");
     printf("\t-s <filename> to save object file after assembly\n");
-    printf("\t-r [<address>] to run code from the optional address (hexadecimal, e.g. A000)\n");
+    printf("\t-r <address> to run code from the address (hexadecimal, e.g. A000)\n");
+    printf("\t-d <address> to debug code from the address (hexadecimal, e.g. A000)\n");
     printf("\t-a <address>:<value> to assert value matches at the given address\n");
     printf("\t-t to turn on trace output\n");
     printf("\t-i to list assembler instructions\n");

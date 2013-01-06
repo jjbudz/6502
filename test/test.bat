@@ -1,3 +1,3 @@
 set PATH=..\debug;%PATH%
 
-CMD <LDAI.script
+CMD <test.script
