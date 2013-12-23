@@ -524,3 +524,4 @@ int _getopt_long_only_r (int argc, TCHAR *const *argv, const TCHAR *options, con
 {
 	return _getopt_internal_r (argc, argv, options, long_options, opt_index, 1, d, 0);
 }
+

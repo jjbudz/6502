@@ -23,15 +23,6 @@
  *
  */
 
-//
-// Suppress unsafe character string handling warnings.
-//
-#define _CRT_SECURE_NO_WARNINGS
-
-#include "l6502.h"
-#include "ftrace.h"
-#include "getopt.h"
-#include "util.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -39,7 +30,12 @@
 #include <string.h>  
 #include <ctype.h>
 
-/** 
+#include "platform.h"
+#include "l6502.h"
+#include "ftrace.h"
+#include "util.h"
+
+/**
  * Main program
  */
 int main(int argc, char** argv)
@@ -75,13 +71,13 @@ int main(int argc, char** argv)
             bRun = true;
             break;
         case 'c':
-            pchSource = _strdup(optarg);
+            pchSource = strdup(optarg);
             break;
         case 'l':
-            pchLoad = _strdup(optarg);
+            pchLoad = strdup(optarg);
             break;
         case 's':
-            pchSave = _strdup(optarg);
+            pchSave = strdup(optarg);
             break;
         case 't':
             FTRACE_ON();

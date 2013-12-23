@@ -23,11 +23,6 @@
  *
  */
 
-//
-// Suppress unsafe character string handling warnings.
-//
-#define _CRT_SECURE_NO_WARNINGS
-
 #include "l6502.h"
 #include "ftrace.h"
 #include "ticker.h"
@@ -234,8 +229,8 @@ typedef enum
  */
 typedef struct
 {
-    char*  command;
-    char*  abbrev;
+    const char*  command;
+    const char*  abbrev;
     ACTION action;
 } COMMAND_TO_ACTION;
 
@@ -1032,7 +1027,7 @@ INSTRUCTION(DECZ, 0xC6, 2, "Decrement zero page memory address")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sDECZ, (short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
-    *(addr)--;
+    *(addr) -= 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 2;
@@ -1046,7 +1041,7 @@ INSTRUCTION(DECA, 0xCE, 3, "Decrement memory value at absolute address")
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sDECA, (short)addr16);
     uint8_t* addr = BP + addr16;
-    *(addr)--;
+    *(addr) -= 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 3;
@@ -1061,7 +1056,7 @@ INSTRUCTION(DECZX, 0xD6, 2, "Decrement memory using zero page, X addressing")
     FTRACE("%s %02x", __FILE__, __LINE__, sDECZX, (short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap around
     uint8_t* addr = BP + zx;
-    *(addr)--;
+    *(addr) -= 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 2;
@@ -1076,7 +1071,7 @@ INSTRUCTION(DECX, 0xDE, 3, "Decrement memory value at absolute address, X")
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sDECX, (short)addr16);
     uint8_t* addr = BP + addr16 + X;
-    *(addr)--;
+    *(addr) -= 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 3;
@@ -1219,7 +1214,7 @@ INSTRUCTION(INCA, 0xEE, 3, "Increment memory value at absolute address")
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sINCA, (short)addr16);
     uint8_t* addr = BP + addr16;
-    *(addr)++;
+    *(addr) += 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 3;
@@ -1256,7 +1251,7 @@ INSTRUCTION(INCZ, 0xE6, 2, "Increment zero page memory address")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sINCZ, (short)*(BP+PC+1));
     uint8_t* addr = BP + *(BP+PC+1);
-    *(addr)++;
+    *(addr) += 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 2;
@@ -1272,7 +1267,7 @@ INSTRUCTION(INCZX, 0xF6, 2, "Increment memory at zero page plus X")
     FTRACE("%s %02x", __FILE__, __LINE__, sINCZX, (short)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap around
     uint8_t* addr = BP + zx;
-    *(addr)++;
+    *(addr) += 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 2;
@@ -1287,7 +1282,7 @@ INSTRUCTION(INCX, 0xFE, 3, "Increment memory at address found by adding absolute
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sINCX, (short)addr16);
     uint8_t* addr = BP + addr16 + X;
-    *(addr)++;
+    *(addr) += 1;
     SET_ZERO(*addr);
     SET_SIGN(*addr);
     PC += 3;
@@ -2537,6 +2532,11 @@ void addBranch(const char* branch, uint16_t address)
  */
 int initialize()
 {
+    int err = ticker_init(1); // @todo make speed a config option
+    if (err != 0)
+    {
+        printf("Warning: clock timing initialization failed, error %d", err);
+    }
     MAP_INITIALIZE;
     MAP_INSTRUCTION(ADCA);
     MAP_INSTRUCTION(ADCI);
@@ -2689,7 +2689,6 @@ int initialize()
     MAP_INSTRUCTION(TXA);
     MAP_INSTRUCTION(TXS);
     MAP_INSTRUCTION(TYA);
-
     bInitialized = true;
     return 0;
 }
@@ -3181,7 +3180,7 @@ int step()
     assert(i6502[*(BP+PC)].pFunc);
 
     i6502[*(BP+PC)].pFunc();
-    ticker_wait(1); // @fixme each instruction is different and should come from inst table
+    ticker_wait(1000000); // @fixme each instruction is different and should come from inst table
 
     return 0;
 }
@@ -3209,7 +3208,7 @@ int run(uint16_t address)
 void tokenize(char* first, char* second, char* third, const char* input)
 {
     unsigned int tokeno = 0;
-    char* tokens = _strdup(input);
+    char* tokens = strdup(input);
     char* parsed = tokens;
     char  token[kMaxLineLength+1];
 

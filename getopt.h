@@ -34,6 +34,8 @@ EXPRESSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #ifndef __GETOPT_H_
 #define __GETOPT_H_
 
+#include <tchar.h>
+
 #ifdef _GETOPT_API
 	#undef _GETOPT_API
 #endif
@@ -50,9 +52,6 @@ EXPRESSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 	#pragma message("Importing getopt library")
 	#define _GETOPT_API __declspec(dllimport)
 #endif
-
-
-#include <tchar.h>
 
 // Standard GNU options
 #define	null_argument		0 /*Argument Null*/

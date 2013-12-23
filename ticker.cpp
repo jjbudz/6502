@@ -32,15 +32,17 @@
 #include "ticker.h"
 
 #include <assert.h>
-#include <Winsock2.h>
-
-#pragma comment(lib, "ws2_32.lib")
+#include <stdio.h>
 
 const unsigned int kNanoSeconds = 1000000000;
 
 static unsigned int rate = 0;
 
-static fd_set fds;
+#ifdef WIN32
+
+#include <Winsock2.h>
+
+#pragma comment(lib, "ws2_32.lib")
 
 int ticker_init(unsigned int rateMhz)
 {
@@ -50,35 +52,50 @@ int ticker_init(unsigned int rateMhz)
 
     /* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
     wVersionRequested = MAKEWORD(1, 1);
-
     err = WSAStartup(wVersionRequested, &wsaData);
-
-    if (err != 0) {
-        /* Tell the user that we could not find a usable */
-        /* Winsock DLL.                                  */
-//        printf("WSAStartup failed with error: %d\n", err);
-        return err;
-    }
-
-    fds.fd_count = 0;
-
     rate = (kNanoSeconds / rateMhz);
 
+    return (err == SOCKET_ERROR) ? WSAGetLastError() : 0;    
+}
+
+int ticker_wait(unsigned int cycles)
+{
+    SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    static fd_set fds;
+    struct timeval stDelay;
+    int err = 0;
+
+    FD_ZERO(&fds);
+    FD_SET(s, &fds);
+    stDelay.tv_sec = 1;
+    stDelay.tv_usec = cycles * rate;
+    err = select(0, &fds, NULL, NULL, &stDelay);
+    err |= closesocket(s);
+
+    return (err == SOCKET_ERROR) ? WSAGetLastError() : 0;
+}
+
+int ticker_cleanup()
+{
+    return (WSACleanup() == SOCKET_ERROR) ? WSAGetLastError() : 0;    
+}
+
+#else
+
+int ticker_init(unsigned int rateMhz)
+{
     return 0;
 }
 
 int ticker_wait(unsigned int cycles)
 {
-    struct timeval stDelay;
-
-    stDelay.tv_sec = 0;
-    stDelay.tv_usec = cycles * rate;
-    
-    // @fixme select needs at least one FD set to be non-null
-    return select(0,&fds,0,0,&stDelay);
+    return 0;
 }
 
 int ticker_cleanup()
 {
-    return WSACleanup();
+    return 0;
 }
+
+#endif
+

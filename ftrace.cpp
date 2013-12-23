@@ -31,20 +31,13 @@
 //
 // Suppress unsafe character string handling warnings.
 //
-#define _CRT_SECURE_NO_WARNINGS
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifdef WIN32
-#include <process.h>
-#else
-#include <sys/types.h>
-#include <unistd.h>
-#endif
-
+#include "platform.h"
 #include "ftrace.h"
 
 #ifndef FNOTRACE
