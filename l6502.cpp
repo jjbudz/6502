@@ -24,6 +24,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>  
@@ -39,7 +40,7 @@
 /**
  * Version string
  */
-const char* kVersion = "6502 Emulator v0.3.0";
+const char* kVersion = "6502 Emulator v0.3.1";
 
 /**
  * Consts for program stack size, label and branch tables, 
@@ -2952,7 +2953,7 @@ int assemble(const char* filename)
                         else
                         {
                             char* next = token+1;
-                            uint16_t value = strtol(token+1, &next, 10);
+                            uint16_t value = (uint16_t)strtol(token+1, &next, 10);
 
                             if (next == token+1)
                             {
