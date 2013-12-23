@@ -191,7 +191,7 @@ int main(int argc, char** argv)
         }
     }
 
-    if (nStatus) perror("Error");
+    if (nStatus) perror("Error"); // @todo this is kinda stupid and should use custom error strings
 
     if (bDumpRegisters || bDumpFlags || bDumpStack || bDumpMemory) 
     {
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 
     if (bAssert)
     {
-        nStatus = !assertmem(address2,value); // 0 for true
+        nStatus = !assertmem(address2, value); // 0 for true
         fprintf(stderr, "Assert $%04x:%02x=%02x %s\n", address2, value,inspect(address2), (nStatus==0?"true":"false"));
     }
 

@@ -25,6 +25,8 @@
  *
  */
 
+#include "platform.h"
+
 /**
  * Uppercase a character string.
  */
@@ -33,6 +35,6 @@ char* uppercase(char* str);
 /** 
  * Turn a hexidecimal string into a numeric value.
  */
-short getHex(const char* str);
+uint16_t getHex(const char* str);
 
 #endif

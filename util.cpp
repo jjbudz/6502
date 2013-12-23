@@ -23,11 +23,12 @@
  *
  */
 
-#include "util.h"
-
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+
+#include "util.h"
+#include "platform.h"
 
 /**
  * Uppercase a character string.
@@ -42,11 +43,11 @@ char* uppercase(char* str)
 }
 
 /** 
- * Turn a hexidecimal string into a numeric value.
+ * Turn a hexadecimal string into a numeric value.
  */
-short getHex(const char* str)
+uint16_t getHex(const char* str)
 {
-    short value = 0;
+    uint16_t value = 0;
 
     assert(str);
 

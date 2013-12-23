@@ -29,10 +29,10 @@
  *
  */
 
-#include "ticker.h"
-
 #include <assert.h>
 #include <stdio.h>
+
+#include "ticker.h"
 
 const unsigned int kNanoSeconds = 1000000000;
 
