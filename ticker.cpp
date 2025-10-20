@@ -93,8 +93,8 @@ int ticker_init(unsigned int rateMhz)
 int ticker_wait(unsigned int cycles)
 {
     struct timespec ts;
-    // rate is in nanoseconds per MHz (1 million cycles)
-    // divide by 1000000 to get nanoseconds per cycle
+    // rate = nanoseconds per MHz = nanoseconds per 1,000,000 cycles
+    // So: nanoseconds = cycles * (nanoseconds per 1,000,000 cycles) / 1,000,000
     unsigned long long nanos = ((unsigned long long)cycles * rate) / 1000000;
     
     ts.tv_sec = nanos / kNanoSeconds;
