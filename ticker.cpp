@@ -66,7 +66,8 @@ int ticker_wait(unsigned int cycles)
     int err = 0;
 
     // rate = nanoseconds per MHz = nanoseconds per 1,000,000 cycles
-    // So: microseconds = cycles * (nanoseconds per 1,000,000 cycles) / 1,000,000 / 1000
+    // So: microseconds = cycles * (nanoseconds per 1,000,000 cycles) / 1,000,000,000
+    //     where 1,000,000,000 = 1,000 nanoseconds/microsecond * 1,000,000 cycles/MHz
     unsigned long long micros = ((unsigned long long)cycles * rate) / 1000000000;
     
     FD_ZERO(&fds);
