@@ -65,10 +65,15 @@ int ticker_wait(unsigned int cycles)
     struct timeval stDelay;
     int err = 0;
 
+    // rate = nanoseconds per MHz = nanoseconds per 1,000,000 cycles
+    // So: microseconds = (cycles * nanoseconds per 1,000,000 cycles) / (1,000 nanoseconds per microsecond * 1,000,000)
+    //                  = (cycles * rate) / 1,000,000,000
+    unsigned long long micros = ((unsigned long long)cycles * rate) / 1000000000;
+    
     FD_ZERO(&fds);
     FD_SET(s, &fds);
-    stDelay.tv_sec = 1;
-    stDelay.tv_usec = cycles * rate;
+    stDelay.tv_sec = micros / 1000000;
+    stDelay.tv_usec = micros % 1000000;
     err = select(0, &fds, NULL, NULL, &stDelay);
     err |= closesocket(s);
 
