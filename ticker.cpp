@@ -82,13 +82,25 @@ int ticker_cleanup()
 
 #else
 
+#include <time.h>
+
 int ticker_init(unsigned int rateMhz)
 {
+    rate = (kNanoSeconds / rateMhz);
     return 0;
 }
 
 int ticker_wait(unsigned int cycles)
 {
+    struct timespec ts;
+    // rate is in nanoseconds per MHz (1 million cycles)
+    // divide by 1000000 to get nanoseconds per cycle
+    unsigned long long nanos = ((unsigned long long)cycles * rate) / 1000000;
+    
+    ts.tv_sec = nanos / kNanoSeconds;
+    ts.tv_nsec = nanos % kNanoSeconds;
+    
+    nanosleep(&ts, NULL);
     return 0;
 }
 
