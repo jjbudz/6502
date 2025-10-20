@@ -50,6 +50,18 @@ DEBUGFLAGS = -g3 -DDEBUG
 NODEBUGFLAGS = -O3 -DNDEBUG
 CCFLAGS += -D_REENTRANT
 else
+ifeq ($(PLATFORM),macos_x86_64)
+CC=gcc
+DEBUGFLAGS = -g3 -DDEBUG
+NODEBUGFLAGS = -O3 -DNDEBUG
+CCFLAGS += -Wall -D_REENTRANT -march=x86-64
+else
+ifeq ($(PLATFORM),macos_arm64)
+CC=gcc
+DEBUGFLAGS = -g3 -DDEBUG
+NODEBUGFLAGS = -O3 -DNDEBUG
+CCFLAGS += -Wall -D_REENTRANT
+else
 ifeq ($(PLATFORM),ubuntu_x86-64)
 CC=gcc
 DEBUGFLAGS = -g3 -DDEBUG
@@ -57,7 +69,16 @@ NODEBUGFLAGS = -O3 -DNDEBUG -DOFI_NOTRACE
 PROFILEFLAGS = $(NODEBUGFLAGS) -pg
 CCFLAGS += -Wall -D_REENTRANT -march=x86-64
 else
+ifeq ($(PLATFORM),rpi_arm64)
+CC=gcc
+DEBUGFLAGS = -g3 -DDEBUG
+NODEBUGFLAGS = -O3 -DNDEBUG
+CCFLAGS += -Wall -D_REENTRANT
+else
 $(error bad PLATFORM=$(PLATFORM))
+endif
+endif
+endif
 endif
 endif
 endif
@@ -109,7 +130,7 @@ SHAREDLIBRARY = $(LIBDIR)/lib$(SHAREDLIBNAME).dll
 LIBRARIES += $(SHAREDLIBRARY)
 LINKLIBS += $(SHAREDLIBNAME:%=-l%)
 else
-ifeq ($(PLATFORM),macos_x86)
+ifneq (,$(filter $(PLATFORM),macos_x86 macos_x86_64 macos_arm64))
 SHAREDLIBRARY = $(LIBDIR)/lib$(SHAREDLIBNAME).dylib
 LIBRARIES += $(SHAREDLIBRARY)
 LINKLIBS += $(SHAREDLIBNAME:%=-l%)
@@ -196,9 +217,9 @@ $(SHAREDLIBRARY): $(OBJECTS)
 $(SHAREDLIBRARYDLL): $(OBJECTS)
 	link /nologo /dll /out:$@ $(OBJECTS)
 else
-ifeq ($(PLATFORM),macos_x86)
+ifneq (,$(filter $(PLATFORM),macos_x86 macos_x86_64 macos_arm64))
 $(SHAREDLIBRARY): $(OBJECTS)
-	cc -o $@ -dynamiclib -macosx_version_min $(OBJECTS)
+	cc -o $@ -dynamiclib -mmacosx-version-min=10.9 $(OBJECTS)
 #	cc -o $@ -dynamic -undefined dynamic_lookup -single_module -macosx_version_min 10.6 -lcrt1.10.6.o -lc -ldylib1.o -lSystem $(OBJECTS)
 else
 $(SHAREDLIBRARY): $(OBJECTS)
