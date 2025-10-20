@@ -46,13 +46,9 @@
 #endif
 
 /**
- * Typedefs for key sized types
+ * Use standard integer types from stdint.h
  */
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-#ifndef __APPLE__
-typedef unsigned long  uint32_t;
-#endif
+#include <stdint.h>
 
 #ifdef _WIN32
 #define strdup _strdup

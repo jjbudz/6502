@@ -3,10 +3,48 @@ Mac
 
 From a terminal:
 
+**For Intel-based Macs (x86_64):**
+
 ```
   cd 6502
-  make -DPLATFORM=macos_x86 -DTYPE=release
+  make PLATFORM=macos_x86_64 TYPE=release
+  export PATH=$PATH:`pwd`/bin/release/macos_x86_64
+  cd test
+  sh unittest.script
+  cd ..
+```
+
+**For Apple Silicon Macs (ARM64/M1/M2/M3):**
+
+```
+  cd 6502
+  make PLATFORM=macos_arm64 TYPE=release
+  export PATH=$PATH:`pwd`/bin/release/macos_arm64
+  cd test
+  sh unittest.script
+  cd ..
+```
+
+**For older Intel-based Macs (legacy x86):**
+
+```
+  cd 6502
+  make PLATFORM=macos_x86 TYPE=release
   export PATH=$PATH:`pwd`/bin/release/macos_x86
+  cd test
+  sh unittest.script
+  cd ..
+```
+
+Raspberry Pi (Bookworm, 64-bit)
+--------------------------------
+
+From a terminal:
+
+```
+  cd 6502
+  make PLATFORM=rpi_arm64 TYPE=release
+  export PATH=$PATH:`pwd`/bin/release/rpi_arm64
   cd test
   sh unittest.script
   cd ..
