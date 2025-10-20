@@ -219,7 +219,7 @@ $(SHAREDLIBRARYDLL): $(OBJECTS)
 else
 ifneq (,$(filter $(PLATFORM),macos_x86 macos_x86_64 macos_arm64))
 $(SHAREDLIBRARY): $(OBJECTS)
-	cc -o $@ -dynamiclib -macosx_version_min $(OBJECTS)
+	cc -o $@ -dynamiclib -mmacosx-version-min=10.9 $(OBJECTS)
 #	cc -o $@ -dynamic -undefined dynamic_lookup -single_module -macosx_version_min 10.6 -lcrt1.10.6.o -lc -ldylib1.o -lSystem $(OBJECTS)
 else
 $(SHAREDLIBRARY): $(OBJECTS)
