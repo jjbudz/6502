@@ -4,6 +4,8 @@ The software builds on both Windows and MacOS. See the [BUILDING](BUILDING.md) f
 
 See the [CHEATSHEET](CHEATSHEET.md) for usage instructions.
 
+For developers wanting to contribute or understand the codebase, see the [DEVELOPMENT](DEVELOPMENT.md) guide which covers project structure, assembler syntax, emulator implementation, and testing.
+
 Warning: this program is under development and has only been lightly tested. The unit test set is quite incomplete.
 
 
