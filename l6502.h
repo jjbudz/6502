@@ -80,9 +80,10 @@ static const int k64K = 0x10000;
  * Initializes the instruction table and corresponding functions
  * data structures, etc. Call before anything else.
  *
+ * @param rateMhz CPU clock rate in MHz (default 1)
  * @return int 0 on success
  */
-int initialize();
+int initialize(unsigned int rateMhz = 1);
 
 /**
  * Call to cleanup of data structures before program exit.

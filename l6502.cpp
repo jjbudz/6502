@@ -2534,10 +2534,12 @@ void addBranch(const char* branch, uint16_t address)
 /**
  * Initializes the instruction table and corresponding
  * functions, data structures, etc.
+ *
+ * @param rateMhz CPU clock rate in MHz (default 1)
  */
-int initialize()
+int initialize(unsigned int rateMhz)
 {
-    int err = ticker_init(1); // @todo make speed a config option
+    int err = ticker_init(rateMhz);
     if (err != 0)
     {
         printf("Warning: clock timing initialization failed, error %d", err);

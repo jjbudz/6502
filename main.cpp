@@ -50,6 +50,7 @@ int main(int argc, char** argv)
     uint16_t address = 0x4000;
     uint16_t address2 = 0x0;
     uint8_t value = 0x00;
+    unsigned int clockRate = 1; // Default 1MHz
     bool bRun = false;
     bool bDebug = false;
     bool bDumpRegisters = false;
@@ -61,11 +62,30 @@ int main(int argc, char** argv)
     bool bAssert = false;
     bool bHelp = true;
     
-    while ((chOption = getopt(argc, argv, "l:c:s:r:tp::a:vd:hi")) != -1)
+    // Long options
+    static struct option long_options[] = {
+        {"rate", required_argument, 0, 0},
+        {0, 0, 0, 0}
+    };
+    
+    int option_index = 0;
+    while ((chOption = getopt_long(argc, argv, "l:c:s:r:tp::a:vd:hi", long_options, &option_index)) != -1)
     {
         bHelp = false;
         switch (chOption)
         {
+        case 0:
+            // Long option
+            if (strcmp(long_options[option_index].name, "rate") == 0)
+            {
+                clockRate = (unsigned int)atoi(optarg);
+                if (clockRate == 0)
+                {
+                    fprintf(stderr, "Warning: invalid clock rate specified, using default 1MHz\n");
+                    clockRate = 1;
+                }
+            }
+            break;
         case 'r':
             address = (uint16_t)getHex(uppercase(optarg)); 
             bRun = true;
@@ -139,7 +159,7 @@ int main(int argc, char** argv)
         goto usage;
     }
 
-    if ((nStatus = initialize()) != 0) 
+    if ((nStatus = initialize(clockRate)) != 0) 
     {
         fprintf(stderr, "Error: initialization failed with error %d\n", nStatus);
         exit(nStatus);
@@ -225,6 +245,7 @@ usage:
     printf("\t-i to list assembler instructions\n");
     printf("\t-p[rfsm] to print (dump) registers, flags, stack, and memory on exit\n");
     printf("\t-v to print version information\n");
+    printf("\t--rate <mhz> to set CPU clock rate in MHz (default: 1)\n");
 
     exit(0);
     return 0;
