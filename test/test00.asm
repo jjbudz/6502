@@ -42,14 +42,14 @@ $4000   LDAI #085
         LDXI #$22
         LDXZY $77
         LDYI #$99
-        LDYX $08A0
+        LDYX $0910
         LDXI #$22
-        LDXY $08A1
+        LDXY $0914
         STAX $0200
 
         ;;  CHECK test00:
         LDAA $022A
-        CMPA $0200
+        CMPI #$55
         BEQ test00pass
         JMP theend
 test00pass LDAI #$FE

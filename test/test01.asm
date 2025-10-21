@@ -127,7 +127,7 @@ $4000   LDAI #085
 
 ;;  CHECK test01
         LDAZ $A9
-        CMPA $0201
+        CMPI #$AA
         BEQ theend
         LDAI #001
         STAA $0210
