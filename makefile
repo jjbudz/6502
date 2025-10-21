@@ -43,3 +43,8 @@ $(BINDIR)/6502: $(LIBRARIES) main.cpp
 	$(CC) main.cpp -o $@ $(CCFLAGS) -I. -L$(LIBDIR) $(LINKLIBS) -lstdc++
 endif
 endif
+
+# Override the test target from include.mk to invoke the test directory makefile
+.PHONY: test
+test:
+	$(MAKE) -C test test PLATFORM=$(PLATFORM) TYPE=$(TYPE)

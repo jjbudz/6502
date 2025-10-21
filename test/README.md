@@ -2,23 +2,56 @@
 
 ## Running Tests
 
-To run the test suite:
+### Using Make (Recommended)
+
+To run all tests from the project root:
+
+```bash
+make PLATFORM=ubuntu_x86-64 TYPE=debug test
+```
+
+Or from the test directory:
+
+```bash
+cd test
+make PLATFORM=ubuntu_x86-64 TYPE=debug test
+```
+
+To run individual tests:
+
+```bash
+cd test
+make PLATFORM=ubuntu_x86-64 TYPE=debug test-LDAI1
+make PLATFORM=ubuntu_x86-64 TYPE=debug test-PHA test-test05
+```
+
+Available test targets:
+- `test-ADCI` - Add with carry immediate test
+- `test-LDAI1`, `test-LDAI2`, `test-LDAI3` - Load accumulator immediate tests
+- `test-CLC` - Clear carry flag test
+- `test-SEC` - Set carry flag test
+- `test-NOP` - No operation test
+- `test-PHA` - Push accumulator to stack test
+- `test-test00`, `test-test01`, `test-test05` - Complex multi-instruction tests
+- `test-timing` - Timing simulation validation test
+
+Note: Adjust the PLATFORM based on your system (e.g., `macos_arm64`, `win32_x86`, etc.)
+
+### Using unittest.script (Legacy)
+
+You can still run the legacy test script:
 
 ```bash
 cd test
 PATH=$PATH:../bin/debug/ubuntu_x86-64 bash unittest.script
 ```
 
-Note: Adjust the path based on your platform (e.g., `macos_arm64`, `win32_x86`, etc.)
-
-Alternatively, you can override the emulator command by setting the `EMU_CMD` environment variable:
+Or override the emulator command:
 
 ```bash
 cd test
 EMU_CMD=/path/to/your/6502 bash unittest.script
 ```
-
-This allows you to test with different builds or wrappers around the emulator.
 
 ## Test Status
 
@@ -59,10 +92,15 @@ These tests use hex notation without the `$` prefix (e.g., `#FF` instead of `#$F
 To add a new test:
 
 1. Create a `.asm` file in the test directory
-2. Add an echo statement and test command to `unittest.script`
-3. Use `$EMU_CMD` to invoke the emulator instead of hardcoding `6502`
-4. Use the `-a` flag to specify expected memory address:value pair
-5. Example: `$EMU_CMD -c mytest.asm -r 4000 -a 8000:42`
+2. Add a new test target to `test/makefile`:
+   ```makefile
+   test-mytest:
+       @echo "Test mytest"
+       $(EMU) -c mytest.asm -r 4000 -a 8000:42
+   ```
+3. Add the new test target to the `test` target's dependency list
+4. Optionally add to `unittest.script` for legacy compatibility
+5. Use the `-a` flag to specify expected memory address:value pair
 
 ## Test File Format
 
