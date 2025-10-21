@@ -24,7 +24,7 @@ test:
 
 test-ADCI:
 	@echo "Test ADCI"
-	$(EMU) -c ADCI.asm -r 4000 -a 8000:ff
+	$(EMU) -c ADCI.asm -r 4000 -a 8000:01
 
 test-LDAI1:
 	@echo "Test LDA1"

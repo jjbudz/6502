@@ -1,6 +1,6 @@
 $4000   LDAI #$ff
-	      PHA
-        LDAI #00
+	    PHA
+        LDAI #000
         PLA
         STAA $1000
-	      BRK
+	    BRK

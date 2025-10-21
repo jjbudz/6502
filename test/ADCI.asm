@@ -1,12 +1,12 @@
 $4000   CLC
-        LDAI  #00
+        LDAI  #000
         STAA  $8000
-        ADCI  #01
-        CMPI  #01
+        ADCI  #001
+        CMPI  #001
         BNE   fail1
         ADCI  #$FF
         CLC
-        CMPI  #00
+        CMPI  #000
         BNE   fail2
         BCS   fail3
         LDAI  #$7F
@@ -30,7 +30,7 @@ fail4   LDAI  #$FC
 fail5   LDAI  #$FB
         STAA  $8000
         BRK
-pass    LDAI  #01
+pass    LDAI  #001
         STAA  $8000
         BRK
 

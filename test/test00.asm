@@ -1,6 +1,6 @@
         ;;  expected result: $022A = 0x55
-$4000   LDAI #85
-        LDXI #42
+$4000   LDAI #085
+        LDXI #042
         LDYI #115
         STAZ $81
         LDAI #$01
