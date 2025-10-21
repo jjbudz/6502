@@ -30,10 +30,6 @@
 #include <errno.h>
 #endif
 
-#ifdef _WIN32
-#include <process.h>
-#include "getopt.h"
-#else
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -54,23 +50,11 @@ extern "C" {
                       const char *optstring,
                       const struct option *longopts, int *longindex);
 }
-#endif
-
-#ifdef _WIN32
-//
-// Suppress unsafe character string handling warnings.
-//
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 
 /**
  * Use standard integer types from stdint.h
  */
 #include <stdint.h>
-
-#ifdef _WIN32
-#define strdup _strdup
-#endif
 
 #endif
 

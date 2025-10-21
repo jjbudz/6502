@@ -2,9 +2,16 @@ ifndef TYPE
 TYPE=debug
 endif
 
-#ifndef PLATFORM
-#PLATFORM=win32_x86
-#endif
+# Auto-detect platform if not specified
+ifndef PLATFORM
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+PLATFORM=linux
+endif
+ifeq ($(UNAME_S),Darwin)
+PLATFORM=macos
+endif
+endif
 
 ifeq ($(TYPE),debug)
 else
@@ -17,72 +24,40 @@ endif
 endif
 endif
 
-ifeq ($(PLATFORM),win32_x86)
-CC=cl.exe
-DEBUGFLAGS = -Zi -GZ -Ge -DDEBUG -MTd -nologo 
-NODEBUGFLAGS = -O2 -DNDEBUG -MT -nologo
-PROFILEFLAGS = $(NODEBUGFLAGS) 
-CCFLAGS += -GX -W3 -DWIN32 -GR -G6
-else
-ifeq ($(PLATFORM),redhat_x86-64)
+ifeq ($(PLATFORM),linux)
 CC=gcc
 DEBUGFLAGS = -g3 -DDEBUG
 NODEBUGFLAGS = -O3 -DNDEBUG -DOFI_NOTRACE 
 PROFILEFLAGS = $(NODEBUGFLAGS) -pg
-CCFLAGS += -Wall -D_REENTRANT -march=x86-64
+CCFLAGS += -Wall -D_REENTRANT
+# Auto-detect CPU architecture for Linux
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+CCFLAGS += -march=x86-64
+else ifeq ($(UNAME_M),aarch64)
+# ARM64 - no specific march flag needed
+else ifeq ($(UNAME_M),arm64)
+# ARM64 - no specific march flag needed
+else ifeq ($(UNAME_M),i386)
+CCFLAGS += -march=i386
+else ifeq ($(UNAME_M),i686)
+CCFLAGS += -march=i686
+endif
 else
-ifeq ($(PLATFORM),redhat_x86)
-CC=gcc
-DEBUGFLAGS = -g3 -DDEBUG
-NODEBUGFLAGS = -O3 -DNDEBUG -DOFI_NOTRACE 
-PROFILEFLAGS = $(NODEBUGFLAGS) -pg
-CCFLAGS += -Wall -D_REENTRANT -march=i386
-else
-ifeq ($(PLATFORM),cygwin_x86)
-CC=gcc
-DEBUGFLAGS = -g3 -DDEBUG
-NODEBUGFLAGS = -O3 -DNDEBUG
-CCFLAGS += -D_REENTRANT
-else
-ifeq ($(PLATFORM),macos_x86)
-CC=gcc
-DEBUGFLAGS = -g3 -DDEBUG
-NODEBUGFLAGS = -O3 -DNDEBUG
-CCFLAGS += -D_REENTRANT
-else
-ifeq ($(PLATFORM),macos_x86_64)
-CC=gcc
-DEBUGFLAGS = -g3 -DDEBUG
-NODEBUGFLAGS = -O3 -DNDEBUG
-CCFLAGS += -Wall -D_REENTRANT -march=x86-64
-else
-ifeq ($(PLATFORM),macos_arm64)
+ifeq ($(PLATFORM),macos)
 CC=gcc
 DEBUGFLAGS = -g3 -DDEBUG
 NODEBUGFLAGS = -O3 -DNDEBUG
 CCFLAGS += -Wall -D_REENTRANT
+# Auto-detect CPU architecture for macOS
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+CCFLAGS += -march=x86-64
+else ifeq ($(UNAME_M),arm64)
+# ARM64 - no specific march flag needed
+endif
 else
-ifeq ($(PLATFORM),ubuntu_x86-64)
-CC=gcc
-DEBUGFLAGS = -g3 -DDEBUG
-NODEBUGFLAGS = -O3 -DNDEBUG -DOFI_NOTRACE 
-PROFILEFLAGS = $(NODEBUGFLAGS) -pg
-CCFLAGS += -Wall -D_REENTRANT -march=x86-64
-else
-ifeq ($(PLATFORM),rpi_arm64)
-CC=gcc
-DEBUGFLAGS = -g3 -DDEBUG
-NODEBUGFLAGS = -O3 -DNDEBUG
-CCFLAGS += -Wall -D_REENTRANT
-else
-$(error bad PLATFORM=$(PLATFORM))
-endif
-endif
-endif
-endif
-endif
-endif
-endif
+$(error bad PLATFORM=$(PLATFORM). Supported platforms: linux, macos)
 endif
 endif
 
@@ -107,30 +82,13 @@ OBJECTS = $(LIBSOURCE:%.cpp=$(OBJDIR)/%.o)
 LINKLIBS =
 
 ifdef LIBNAME
-ifeq ($(PLATFORM),win32_x86)
-LIBRARY = $(LIBDIR)/lib$(LIBNAME).lib
-LIBRARIES += $(LIBRARY)
-LINKLIBS += $(LIBRARY)
-else
 LIBRARY = $(LIBDIR)/lib$(LIBNAME).a
 LIBRARIES += $(LIBRARY)
 LINKLIBS += $(LIBNAME:%=-l%)
 endif
-endif
 
 ifdef SHAREDLIBNAME
-ifeq ($(PLATFORM),win32_x86)
-SHAREDLIBRARY = $(LIBDIR)/lib$(SHAREDLIBNAME).lib
-SHAREDLIBRARYDLL = $(LIBDIR)/lib$(SHAREDLIBNAME).dll
-LIBRARIES += $(SHAREDLIBRARY)
-LINKLIBS += $(SHAREDLIBRARY)
-else
-ifeq ($(PLATFORM),cygwin_x86)
-SHAREDLIBRARY = $(LIBDIR)/lib$(SHAREDLIBNAME).dll
-LIBRARIES += $(SHAREDLIBRARY)
-LINKLIBS += $(SHAREDLIBNAME:%=-l%)
-else
-ifneq (,$(filter $(PLATFORM),macos_x86 macos_x86_64 macos_arm64))
+ifeq ($(PLATFORM),macos)
 SHAREDLIBRARY = $(LIBDIR)/lib$(SHAREDLIBNAME).dylib
 LIBRARIES += $(SHAREDLIBRARY)
 LINKLIBS += $(SHAREDLIBNAME:%=-l%)
@@ -140,37 +98,18 @@ LIBRARIES += $(SHAREDLIBRARY)
 LINKLIBS += $(SHAREDLIBNAME:%=-l%)
 endif
 endif
-endif
-endif
 
 ifdef LIBNAMES
-ifeq ($(PLATFORM),win32_x86)
-LIBRARIES += $(LIBNAMES:%=$(LIBDIR)/lib%.lib)
-LINKLIBS += $(LIBRARIES)
-else
 LIBRARIES += $(LIBNAMES:%=$(LIBDIR)/lib%.a)
 LINKLIBS += $(LIBNAMES:%=-l%) 
 endif
-endif
 
 ifdef SHAREDLIBNAMES
-ifeq ($(PLATFORM),win32_x86)
-LINKLIBS += $(SHAREDLIBNAMES:%=$(LIBDIR)/lib%.lib) 
-else
 LINKLIBS += $(SHAREDLIBNAMES:%=-l%) 
-endif
 endif
 
 ifdef BINNAMES
-ifeq ($(PLATFORM),win32_x86)
-BINARIES = $(BINNAMES:%=$(BINDIR)/%.exe)
-else
-ifeq ($(PLATFORM),cygwin_x86)
-BINARIES = $(BINNAMES:%=$(BINDIR)/%.exe)
-else
 BINARIES = $(BINNAMES:%=$(BINDIR)/%)
-endif
-endif
 endif
 
 all: dirs lib bin
@@ -191,40 +130,21 @@ $(TESTNAMES) :
 	echo "+ END TEST $@"; \
 	echo "----------------------------------------------------"
 
-ifeq ($(PLATFORM),win32_x86)
-$(OBJDIR)/%.o : %.cpp
-	$(CC) $< -c $(CCFLAGS) -Fo$@
-else
 $(OBJDIR)/%.o : %.cpp
 	$(CC) $< -c $(CCFLAGS) -o $@
-endif
 
 ifdef LIBNAME
-ifeq ($(PLATFORM),win32_x86)
-$(LIBRARY) : $(OBJECTS)
-	lib /nologo /out:$@ $(OBJECTS)
-else
 $(LIBRARY) : $(OBJECTS)
 	ar crsv $@ $(OBJECTS)
 endif
-endif
 
 ifdef SHAREDLIBNAME
-ifeq ($(PLATFORM),win32_x86)
-$(SHAREDLIBRARY): $(OBJECTS)
-	lib /nologo /out:$@ $(OBJECTS)
-
-$(SHAREDLIBRARYDLL): $(OBJECTS)
-	link /nologo /dll /out:$@ $(OBJECTS)
-else
-ifneq (,$(filter $(PLATFORM),macos_x86 macos_x86_64 macos_arm64))
+ifeq ($(PLATFORM),macos)
 $(SHAREDLIBRARY): $(OBJECTS)
 	cc -o $@ -dynamiclib -mmacosx-version-min=10.9 $(OBJECTS)
-#	cc -o $@ -dynamic -undefined dynamic_lookup -single_module -macosx_version_min 10.6 -lcrt1.10.6.o -lc -ldylib1.o -lSystem $(OBJECTS)
 else
 $(SHAREDLIBRARY): $(OBJECTS)
 	ld -o $@ -Bshareable $(OBJECTS)
-endif
 endif
 endif
 
