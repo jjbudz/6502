@@ -1,30 +1,72 @@
-# DISABLED - Test script expects wrong value (ff instead of 01)
-# echo "Test ADCI"
-# 6502 -c ADCI.asm -r 4000 -a 8000:ff
+echo "Test ADCI"
+6502 -c ADCI.asm -r 4000 -a 8000:ff
 echo "Test LDA1"
 6502 -c LDAI1.asm -r 4000 -a 8000:7f 
 echo "Test LDA2"
 6502 -c LDAI2.asm -r 4000 -a 8000:7f
 echo "Test LDA3"
 6502 -c LDAI3.asm -r 4000 -a 8000:00
-# DISABLED - Parser doesn't accept #FF format (requires #$FF)
-# echo "Test CLC"
-# 6502 -c CLC.asm -r 4000 -a 8000:01
-# DISABLED - Parser doesn't accept #FF format (requires #$FF)
-# echo "Test SEC"
-# 6502 -c SEC.asm -r 4000 -a 8000:01
-# DISABLED - Parser doesn't accept #FF format (requires #$FF)
-# echo "Test NOP"
-# 6502 -c NOP.asm -r 4000 -a 8000:01
+echo "Test CLC"
+6502 -c CLC.asm -r 4000 -a 8000:01
+echo "Test SEC"
+6502 -c SEC.asm -r 4000 -a 8000:01
+echo "Test NOP"
+6502 -c NOP.asm -r 4000 -a 8000:01
 echo "Test PHA"
 6502 -c PHA.asm -r 4000 -a 1000:ff
-# DISABLED - Test program has logic error (stores at wrong address)
-# echo "Test test00"
-# 6502 -c test00.asm -r 4000 -a 022a:55
-# DISABLED - Parser doesn't accept #F0 format (requires #$F0)
-# echo "Test test01"
-# 6502 -c test01.asm -r 4000 -a 00a9:aa
+echo "Test test00"
+6502 -c test00.asm -r 4000 -a 022a:55
+echo "Test test01"
+6502 -c test01.asm -r 4000 -a 00a9:aa
 echo "Test test05"
 6502 -c test05.asm -r 4000 -a 0040:33
-echo "Test timing"
-6502 -c timing.asm -r 4000 -a 9000:42
+
+# Timing integration test - appended by copilot
+# Deterministic loop in test/timing.asm uses X as iteration counter (LDX #$0F)
+# Total cycles = 7*N + 1 where N = 15 -> 106 cycles
+N_ITER=15
+TOTAL_CYCLES=$((7 * N_ITER + 1))
+TOLERANCE=0.10
+# Default EMU_CMD template; you can override EMU_CMD in the environment.
+# Template MUST include the literal {rate} which will be replaced with numeric Hz.
+: "${EMU_CMD:=6502 -c test/timing.asm --clock-rate {rate}}"
+
+# Simple check for placeholder presence
+echo "Running timing integration tests (1..10 Hz), total cycles=${TOTAL_CYCLES}, tolerance=${TOLERANCE}"
+case "$EMU_CMD" in
+  *\{rate\}*) ;; 
+  *) echo "EMU_CMD must contain the literal {rate}; current EMU_CMD='$EMU_CMD'"; exit 2 ;;
+esac
+
+for rate in $(seq 1 10); do
+  echo "==== Testing rate ${rate} Hz ===="
+  # Replace {rate} in template (portable):
+  cmd=$(printf "%s" "$EMU_CMD" | sed "s/{rate}/$rate/g")
+  echo "Command: $cmd"
+  start_time=$(date +%s.%N)
+  # Run emulator; expect it to exit when BRK executes
+  $cmd
+  exit_status=$?
+  end_time=$(date +%s.%N)
+
+  measured=$(awk -v s="$start_time" -v e="$end_time" 'BEGIN{printf "%.6f", e - s}')
+  expected=$(awk -v c="$TOTAL_CYCLES" -v r="$rate" 'BEGIN{printf "%.6f", c / r}')
+  lower=$(awk -v x="$expected" -v t="$TOLERANCE" 'BEGIN{printf "%.6f", x * (1 - t)}')
+  upper=$(awk -v x="$expected" -v t="$TOLERANCE" 'BEGIN{printf "%.6f", x * (1 + t)}')
+
+  echo "Exit status: $exit_status"
+  echo "Measured time: ${measured}s"
+  echo "Expected time: ${expected}s (allowed range: ${lower}s - ${upper}s)"
+
+  ok=$(awk -v m="$measured" -v lo="$lower" -v hi="$upper" 'BEGIN{print (m+0 >= lo && m+0 <= hi) ? "yes" : "no"}')
+  if [ "$ok" = "yes" ]; then
+    echo "Result: PASS"
+  else
+    echo "Result: FAIL"
+    echo "Timing test failed for rate ${rate} Hz"
+    exit 1
+  fi
+  echo
+done
+
+echo "All timing integration tests passed"
