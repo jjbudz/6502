@@ -40,21 +40,26 @@ static unsigned int rate = 0;
 
 #include <time.h>
 
-int ticker_init(unsigned int rateMhz)
+int ticker_init(unsigned int rateHz)
 {
-    rate = (kNanoSeconds / rateMhz);
+    rate = rateHz;
     return 0;
 }
 
 int ticker_wait(unsigned int cycles)
 {
     struct timespec ts;
-    // rate = nanoseconds per MHz = nanoseconds per 1,000,000 cycles
-    // So: nanoseconds = cycles * (nanoseconds per 1,000,000 cycles) / 1,000,000
-    unsigned long long nanos = ((unsigned long long)cycles * rate) / 1000000;
+    // rate = Hz (cycles per second)
+    // nanoseconds per cycle = 1,000,000,000 / rate
+    // total nanoseconds = cycles * (nanoseconds per cycle)
+    unsigned long long nanos = ((unsigned long long)cycles * kNanoSeconds) / rate;
     
     ts.tv_sec = nanos / kNanoSeconds;
     ts.tv_nsec = nanos % kNanoSeconds;
+    
+    // Debug output
+    // fprintf(stderr, "ticker_wait: cycles=%u, rate=%u, nanos=%llu, sec=%ld, nsec=%ld\n", 
+    //         cycles, rate, nanos, ts.tv_sec, ts.tv_nsec);
     
     nanosleep(&ts, NULL);
     return 0;

@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     uint16_t address = 0x4000;
     uint16_t address2 = 0x0;
     uint8_t value = 0x00;
-    unsigned int clockRate = 1; // Default 1MHz
+    unsigned int clockRate = 1000000; // Default 1MHz (1,000,000 Hz)
     bool bRun = false;
     bool bDebug = false;
     bool bDumpRegisters = false;
@@ -81,8 +81,8 @@ int main(int argc, char** argv)
                 clockRate = (unsigned int)atoi(optarg);
                 if (clockRate == 0)
                 {
-                    fprintf(stderr, "Warning: invalid clock rate specified, using default 1MHz\n");
-                    clockRate = 1;
+                    fprintf(stderr, "Warning: invalid clock rate specified, using default 1MHz (1000000 Hz)\n");
+                    clockRate = 1000000;
                 }
             }
             break;
@@ -245,7 +245,7 @@ usage:
     printf("\t-i to list assembler instructions\n");
     printf("\t-p[rfsm] to print (dump) registers, flags, stack, and memory on exit\n");
     printf("\t-v to print version information\n");
-    printf("\t--rate <mhz> to set CPU clock rate in MHz (default: 1)\n");
+    printf("\t--rate <hz> to set CPU clock rate in Hz (default: 1000000)\n");
 
     exit(0);
     return 0;

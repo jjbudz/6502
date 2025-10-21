@@ -28,7 +28,7 @@
 //   Function definitions simulation of CPU cycle timing (i.e. clock rate).
 //
 
-int ticker_init(unsigned int rateMhz); // Mhz
+int ticker_init(unsigned int rateHz); // Hz
 int ticker_wait(unsigned int cycles);
 int ticker_cleanup();
 
