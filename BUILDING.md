@@ -1,68 +1,47 @@
-Mac
----
+Building on macOS
+-----------------
 
-From a terminal:
-
-**For Intel-based Macs (x86_64):**
-
-```
-  cd 6502
-  make PLATFORM=macos_x86_64 TYPE=release
-  export PATH=$PATH:`pwd`/bin/release/macos_x86_64
-  cd test
-  sh unittest.script
-  cd ..
-```
-
-**For Apple Silicon Macs (ARM64/M1/M2/M3):**
-
-```
-  cd 6502
-  make PLATFORM=macos_arm64 TYPE=release
-  export PATH=$PATH:`pwd`/bin/release/macos_arm64
-  cd test
-  sh unittest.script
-  cd ..
-```
-
-**For older Intel-based Macs (legacy x86):**
-
-```
-  cd 6502
-  make PLATFORM=macos_x86 TYPE=release
-  export PATH=$PATH:`pwd`/bin/release/macos_x86
-  cd test
-  sh unittest.script
-  cd ..
-```
-
-Raspberry Pi (Bookworm, 64-bit)
---------------------------------
+The build system automatically detects your CPU architecture (Intel x86_64 or Apple Silicon ARM64).
 
 From a terminal:
 
 ```
   cd 6502
-  make PLATFORM=rpi_arm64 TYPE=release
-  export PATH=$PATH:`pwd`/bin/release/rpi_arm64
+  make TYPE=release
+  export PATH=$PATH:`pwd`/bin/release/macos
   cd test
-  sh unittest.script
+  make test
   cd ..
 ```
 
-Windows
--------
-
-Use Microsoft Visual 2008 to load the solution file and build the release target.
-
-After succesfully building, start a command prompt and use the following:
+Or to explicitly specify the platform:
 
 ```
   cd 6502
-  set PATH=%PATH%;%CD%\Release\
+  make PLATFORM=macos TYPE=release
+```
+
+Building on Linux
+-----------------
+
+The build system automatically detects your CPU architecture (x86_64, ARM64, etc.).
+
+From a terminal:
+
+```
+  cd 6502
+  make TYPE=release
+  export PATH=$PATH:`pwd`/bin/release/linux
   cd test
-  unittest
-  cd ..   
+  make test
+  cd ..
+```
+
+Or to explicitly specify the platform:
+
+```
+  cd 6502
+  make PLATFORM=linux TYPE=release
 ```
 
 Tests

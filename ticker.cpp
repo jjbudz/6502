@@ -38,55 +38,6 @@ const unsigned int kNanoSeconds = 1000000000;
 
 static unsigned int rate = 0;
 
-#ifdef WIN32
-
-#include <Winsock2.h>
-
-#pragma comment(lib, "ws2_32.lib")
-
-int ticker_init(unsigned int rateMhz)
-{
-    WORD wVersionRequested;
-    WSADATA wsaData;
-    int err;
-
-    /* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
-    wVersionRequested = MAKEWORD(1, 1);
-    err = WSAStartup(wVersionRequested, &wsaData);
-    rate = (kNanoSeconds / rateMhz);
-
-    return (err == SOCKET_ERROR) ? WSAGetLastError() : 0;    
-}
-
-int ticker_wait(unsigned int cycles)
-{
-    SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    static fd_set fds;
-    struct timeval stDelay;
-    int err = 0;
-
-    // rate = nanoseconds per MHz = nanoseconds per 1,000,000 cycles
-    // So: microseconds = (cycles * nanoseconds per 1,000,000 cycles) / (1,000 nanoseconds per microsecond * 1,000,000)
-    //                  = (cycles * rate) / 1,000,000,000
-    unsigned long long micros = ((unsigned long long)cycles * rate) / 1000000000;
-    
-    FD_ZERO(&fds);
-    FD_SET(s, &fds);
-    stDelay.tv_sec = micros / 1000000;
-    stDelay.tv_usec = micros % 1000000;
-    err = select(0, &fds, NULL, NULL, &stDelay);
-    err |= closesocket(s);
-
-    return (err == SOCKET_ERROR) ? WSAGetLastError() : 0;
-}
-
-int ticker_cleanup()
-{
-    return (WSACleanup() == SOCKET_ERROR) ? WSAGetLastError() : 0;    
-}
-
-#else
-
 #include <time.h>
 
 int ticker_init(unsigned int rateMhz)
@@ -113,6 +64,3 @@ int ticker_cleanup()
 {
     return 0;
 }
-
-#endif
-
