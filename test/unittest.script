@@ -29,7 +29,7 @@ TOTAL_CYCLES=$((7 * N_ITER + 1))
 TOLERANCE=0.10
 # Default EMU_CMD template; you can override EMU_CMD in the environment.
 # Template MUST include the literal {rate} which will be replaced with numeric Hz.
-: "${EMU_CMD:=6502 -c test/timing.asm --clock-rate {rate}}"
+: "${EMU_CMD:=6502 -c test/timing.asm --rate {rate}}"
 
 # Simple check for placeholder presence
 echo "Running timing integration tests (1..10 Hz), total cycles=${TOTAL_CYCLES}, tolerance=${TOLERANCE}"
