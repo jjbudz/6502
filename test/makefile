@@ -71,7 +71,7 @@ test-timing:
 	@N_ITER=15; \
 	TOTAL_CYCLES=$$((7 * N_ITER + 1)); \
 	TOLERANCE=0.10; \
-	EMU_CMD_TIMING="$(EMU) -c timing.asm --rate {rate}"; \
+	EMU_CMD_TIMING="$(EMU) -c timing.asm --rate {rate} -r 4000"; \
 	case "$$EMU_CMD_TIMING" in \
 	  *\{rate\}*) ;; \
 	  *) echo "EMU_CMD_TIMING must contain the literal {rate}"; exit 2 ;; \
