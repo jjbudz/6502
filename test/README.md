@@ -11,6 +11,15 @@ PATH=$PATH:../bin/debug/ubuntu_x86-64 bash unittest.script
 
 Note: Adjust the path based on your platform (e.g., `macos_arm64`, `win32_x86`, etc.)
 
+Alternatively, you can override the emulator command by setting the `EMU_CMD` environment variable:
+
+```bash
+cd test
+EMU_CMD=/path/to/your/6502 bash unittest.script
+```
+
+This allows you to test with different builds or wrappers around the emulator.
+
 ## Test Status
 
 ### Currently Passing Tests (6 tests)
@@ -51,8 +60,9 @@ To add a new test:
 
 1. Create a `.asm` file in the test directory
 2. Add an echo statement and test command to `unittest.script`
-3. Use the `-a` flag to specify expected memory address:value pair
-4. Example: `6502 -c mytest.asm -r 4000 -a 8000:42`
+3. Use `$EMU_CMD` to invoke the emulator instead of hardcoding `6502`
+4. Use the `-a` flag to specify expected memory address:value pair
+5. Example: `$EMU_CMD -c mytest.asm -r 4000 -a 8000:42`
 
 ## Test File Format
 
