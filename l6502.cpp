@@ -2883,6 +2883,7 @@ int assemble(const char* filename)
             char* tokens = line;
             char  token[kMaxLineLength+1];
             bool  skip = false;
+            short lastInstruction = -1;
 
             lineno++;
 
@@ -2931,9 +2932,25 @@ int assemble(const char* filename)
                         }
                         else
                         {
+                            // For 3-byte instructions, require exactly 4 hex digits
+                            if (lastInstruction >= 0 && i6502[lastInstruction].bytes == 3)
+                            {
+                                if (strlen(token+1) != 4)
+                                {
+                                    printf("Line %d: 3-byte instruction requires 4-digit hex address, got ->%s<-\n",
+                                        lineno, token);
+                                    return -2;
+                                }
+                            }
+                            
                             uint16_t hex = getHex(token+1);
+                            size_t numDigits = strlen(token+1);
                             memory[ip++] = LOBYTE(hex);
-                            if (hex > 0xff) memory[ip++] = HIBYTE(hex);
+                            // Write high byte if value > 0xFF OR if 4 digits were provided (for 3-byte instructions)
+                            if (hex > 0xff || numDigits == 4) 
+                            {
+                                memory[ip++] = HIBYTE(hex);
+                            }
 
                             FTRACE("Assembler stored address: %04x",
                                 __FILE__, __LINE__, hex);
@@ -3027,6 +3044,7 @@ int assemble(const char* filename)
                         FTRACE("Assembler storing instruction: %02x at %04x",
                             __FILE__, __LINE__, instruction,ip);
                         memory[ip++] = (uint8_t)instruction;
+                        lastInstruction = instruction;
                     }
                     else 
                     {
