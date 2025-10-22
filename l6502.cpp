@@ -934,14 +934,15 @@ INSTRUCTION(CMPIX, 0xD5, 2, 4, "Compare memory using indexed indirect addressing
  * Compare memory using indirect indexed addressing mode (see
  * http://www.obelisk.demon.co.uk/6502/addressing.html for modes)
  */
-INSTRUCTION(CMPIY, 0xF1, 2, 5, "Compare memory using indirect indexed addressing mode")
+INSTRUCTION(CMPIY, 0xD1, 2, 5, "Compare memory using indirect indexed addressing mode")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCMPIY, (uint8_t)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
-    uint8_t a = A - *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y);
-    SET_CARRY(((a&0x80)==0x80));
-    SET_ZERO(a);
-    SET_SIGN(a);
+    uint8_t m = *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y);
+    uint8_t result = A - m;
+    SET_CARRY((A >= m) ? 1 : 0);
+    SET_ZERO(result);
+    SET_SIGN(result);
     PC += 2;
 }
 
