@@ -462,16 +462,16 @@ test-LDAA:
 	$(EMU) -c LDAA.asm -r 4000 -a 8000:7f
 
 test-LDAI1:
-	@echo "Test LDAI1"
-	$(EMU) -c LDAI1.asm -r 4000 -a 8000:01
+	@echo "Test LDA1"
+	$(EMU) -c LDAI1.asm -r 4000 -a 8000:7f
 
 test-LDAI2:
-	@echo "Test LDAI2"
-	$(EMU) -c LDAI2.asm -r 4000 -a 8000:01
+	@echo "Test LDA2"
+	$(EMU) -c LDAI2.asm -r 4000 -a 8000:7f
 
 test-LDAI3:
-	@echo "Test LDAI3"
-	$(EMU) -c LDAI3.asm -r 4000 -a 8000:01
+	@echo "Test LDA3"
+	$(EMU) -c LDAI3.asm -r 4000 -a 8000:00
 
 test-LDAIX:
 	@echo "Test LDAIX"
@@ -587,7 +587,7 @@ test-ORAZX:
 
 test-PHA:
 	@echo "Test PHA"
-	$(EMU) -c PHA.asm -r 4000 -a 8000:01
+	$(EMU) -c PHA.asm -r 4000 -a 1000:ff
 
 test-PHP:
 	@echo "Test PHP"
