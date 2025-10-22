@@ -890,12 +890,13 @@ INSTRUCTION(CMPZX, 0xC1, 2, 6, "Compare memory using zero page, X addressing mod
 /**
  * Compare memory using absolute, X addressing mode.
  */
-INSTRUCTION(CMPX, 0xFD, 3, 4, "Compare memory using absolute, X addressing mode")
+INSTRUCTION(CMPX, 0xDD, 3, 4, "Compare memory using absolute, X addressing mode")
 {
     uint16_t addr16 = getAbsoluteAddress();	
     FTRACE("%s %04x", __FILE__, __LINE__, sCMPX, (uint16_t)addr16);
-    uint8_t a = A - *(BP + addr16 + X);
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP + addr16 + X);
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 3;
