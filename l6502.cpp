@@ -1112,7 +1112,7 @@ INSTRUCTION(DEY, 0x88, 1, 2, "Decrement Y register")
 INSTRUCTION(EORI, 0x49, 2, 2, "Exclusive OR accumulator with immediate value")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sEORI, (uint8_t)*(BP+PC+1));
-    A = ~((~A)|*(BP+PC+1));
+    A ^= *(BP+PC+1);
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 2;
@@ -1124,7 +1124,7 @@ INSTRUCTION(EORI, 0x49, 2, 2, "Exclusive OR accumulator with immediate value")
 INSTRUCTION(EORZ, 0x45, 2, 3, "Exclusive OR accumulator with zero page memory")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sEORZ, (uint8_t)*(BP+PC+1));
-    A = ~((~A)|*(BP+*(BP+PC+1)));
+    A ^= *(BP+*(BP+PC+1));
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 2;
@@ -1137,7 +1137,7 @@ INSTRUCTION(EORA, 0x4D, 3, 4, "Exclusive OR accumulator with absolute memory")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sEORA, (uint16_t)addr16);
-    A = ~((~A)|*(BP + addr16));
+    A ^= *(BP + addr16);
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 3;
@@ -1151,7 +1151,7 @@ INSTRUCTION(EORZX, 0x55, 2, 4, "Exclusive OR memory location at zero page addres
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sEORZX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
-    A = ~((~A)|*(BP + zx));
+    A ^= *(BP + zx);
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 2;
@@ -1164,7 +1164,7 @@ INSTRUCTION(EORX, 0x5D, 3, 4, "Exclusive OR the accumulator with the absolute ad
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sEORX, (uint16_t)addr16);
-    A = ~((~A)|*(BP + addr16 + X));
+    A ^= *(BP + addr16 + X);
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 3;
@@ -1177,7 +1177,7 @@ INSTRUCTION(EORY, 0x59, 3, 4, "Exclusive OR the accumulator with the absolute ad
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sEORY, (uint16_t)addr16);
-    A = ~((~A)|*(BP + addr16 + Y));
+    A ^= *(BP + addr16 + Y);
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 3;
@@ -1191,7 +1191,7 @@ INSTRUCTION(EORIX, 0x41, 2, 6, "Exclusive OR using indexed indirect addressing m
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sEORIX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
-    A = ~((~A)|*(BP + (*(BP + zx + 1)<<8) + *(BP + zx)));
+    A ^= *(BP + (*(BP + zx + 1)<<8) + *(BP + zx));
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 2;
@@ -1205,7 +1205,7 @@ INSTRUCTION(EORIY, 0x51, 2, 5, "Exclusive OR using indirect indexed addressing m
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sEORIY,*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
-    A = ~((~A)|*(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y));
+    A ^= *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y);
     SET_ZERO(A);
     SET_SIGN(A);
     PC += 2;

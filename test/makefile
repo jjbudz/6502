@@ -5,7 +5,7 @@ include ../include.mk
 EMU = ../$(BINDIR)/6502
 
 # Individual test targets based on unittest.script
-.PHONY: test test-ADCI test-LDAI1 test-LDAI2 test-LDAI3 test-CLC test-SEC test-NOP test-PHA test-test00 test-test01 test-test05 test-timing
+.PHONY: test test-ADCI test-LDAI1 test-LDAI2 test-LDAI3 test-CLC test-SEC test-NOP test-PHA test-EORI test-EORZ test-EORA test-EORZX test-EORX test-EORY test-test00 test-test01 test-test05 test-timing
 
 # Run all tests (using - prefix to continue on failure)
 test:
@@ -17,6 +17,12 @@ test:
 	@$(MAKE) test-SEC || true
 	@$(MAKE) test-NOP || true
 	@$(MAKE) test-PHA || true
+	@$(MAKE) test-EORI || true
+	@$(MAKE) test-EORZ || true
+	@$(MAKE) test-EORA || true
+	@$(MAKE) test-EORZX || true
+	@$(MAKE) test-EORX || true
+	@$(MAKE) test-EORY || true
 	@$(MAKE) test-test00 || true
 	@$(MAKE) test-test01 || true
 	@$(MAKE) test-test05 || true
@@ -53,6 +59,30 @@ test-NOP:
 test-PHA:
 	@echo "Test PHA"
 	$(EMU) -c PHA.asm -r 4000 -a 1000:ff
+
+test-EORI:
+	@echo "Test EORI"
+	$(EMU) -c EORI.asm -r 4000 -a 8000:01
+
+test-EORZ:
+	@echo "Test EORZ"
+	$(EMU) -c EORZ.asm -r 4000 -a 8000:01
+
+test-EORA:
+	@echo "Test EORA"
+	$(EMU) -c EORA.asm -r 4000 -a 8000:01
+
+test-EORZX:
+	@echo "Test EORZX"
+	$(EMU) -c EORZX.asm -r 4000 -a 8000:01
+
+test-EORX:
+	@echo "Test EORX"
+	$(EMU) -c EORX.asm -r 4000 -a 8000:01
+
+test-EORY:
+	@echo "Test EORY"
+	$(EMU) -c EORY.asm -r 4000 -a 8000:01
 
 test-test00:
 	@echo "Test test00"
