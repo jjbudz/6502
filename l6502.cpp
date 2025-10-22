@@ -276,8 +276,8 @@ uint16_t getAbsoluteAddress()
  */
 uint16_t getIndirectAddress()
 {
-    uint16_t pc = getAbsoluteAddress();
-    return (*(BP+pc+1)<<8) + *(BP+pc); 
+    uint8_t zpAddr = *(BP+PC+1);
+    return (*(BP+zpAddr+1)<<8) + *(BP+zpAddr); 
 }
 
 /** 
