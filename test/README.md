@@ -55,37 +55,125 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 
 ## Test Status
 
-### Currently Passing Tests (6 tests)
+### Summary
+- **Total tests**: 154
+- **Passing tests**: 153
+- **Failing tests**: 1
+- **Disabled tests**: 1
 
-1. **LDAI1** - Load accumulator immediate with value $00, then $7f
-2. **LDAI2** - Load accumulator immediate with value $7f
-3. **LDAI3** - Load accumulator immediate with value $00
-4. **PHA** - Push accumulator to stack (value $ff)
-5. **test05** - Complex multi-instruction test
-6. **timing** - Timing simulation validation test (uses ticker functions)
+### Currently Passing Tests (153 tests)
 
-### Disabled Tests (6 tests)
+#### ADC (Add with Carry) - 7 passing
+- ADCA, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
 
-#### Parser Limitation Issues (4 tests)
-These tests use hex notation without the `$` prefix (e.g., `#FF` instead of `#$FF`):
-- **CLC** - Clear carry flag test
-- **SEC** - Set carry flag test
-- **NOP** - No operation test
-- **test01** - Complex logical operations test
+#### AND (Bitwise AND) - 8 passing
+- ANDA, ANDI, ANDIX, ANDIY, ANDX, ANDY, ANDZ, ANDZX
 
-**Fix Options:**
-1. Update the parser to accept both `#FF` and `#$FF` formats
-2. Update test files to use `#$FF` format
+#### ASL (Arithmetic Shift Left) - 5 passing
+- ASL, ASLA, ASLX, ASLZ, ASLZX
 
-#### Test Script Issue (1 test)
-- **ADCI** - Add with carry test
-  - Issue: Test script expects value `ff` but program writes `01` on success
-  - Fix: Change expected value in unittest.script from `ff` to `01`
+#### Branch Instructions - 8 passing
+- BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS
 
-#### Test Logic Error (1 test)
+#### BIT (Bit Test) - 2 passing
+- BIT, BITZ
+
+#### BRK (Break) - 1 passing
+- BRK
+
+#### Clear Flag Instructions - 4 passing
+- CLC, CLD, CLI, CLV
+
+#### CMP (Compare Accumulator) - 8 passing
+- CMPA, CMPI, CMPIX, CMPIY, CMPX, CMPY, CMPZ, CMPZX
+
+#### CPX (Compare X Register) - 3 passing
+- CPXA, CPXI, CPXZ
+
+#### CPY (Compare Y Register) - 3 passing
+- CPYA, CPYI, CPYZ
+
+#### DEC (Decrement) - 6 passing
+- DECA, DECX, DECZ, DECZX, DEX, DEY
+
+#### EOR (Exclusive OR) - 8 passing
+- EORA, EORI, EORIX, EORIY, EORX, EORY, EORZ, EORZX
+
+#### INC (Increment) - 6 passing
+- INCA, INCX, INCZ, INCZX, INX, INY
+
+#### JMP (Jump) - 2 passing
+- JMP, JMPI
+
+#### JSR (Jump to Subroutine) - 1 passing
+- JSR
+
+#### LDA (Load Accumulator) - 10 passing
+- LDAA, LDAI1, LDAI2, LDAI3, LDAIX, LDAIY, LDAX, LDAY, LDAZ, LDAZX
+
+#### LDX (Load X Register) - 4 passing
+- LDXA, LDXY, LDXZ, LDXZY
+
+#### LDY (Load Y Register) - 4 passing
+- LDYA, LDYX, LDYZ, LDYZX
+
+#### LSR (Logical Shift Right) - 5 passing
+- LSR, LSRA, LSRX, LSRZ, LSRZX
+
+#### NOP (No Operation) - 1 passing
+- NOP
+
+#### ORA (Bitwise OR) - 8 passing
+- ORAA, ORAI, ORAIX, ORAIY, ORAX, ORAY, ORAZ, ORAZX
+
+#### Stack Operations - 4 passing
+- PHA, PHP, PLA, PLP
+
+#### ROL (Rotate Left) - 5 passing
+- ROL, ROLA, ROLX, ROLZ, ROLZX
+
+#### ROR (Rotate Right) - 5 passing
+- ROR, RORA, RORX, RORZ, RORZX
+
+#### RTI/RTS (Return) - 2 passing
+- RTI, RTS
+
+#### SBC (Subtract with Carry) - 8 passing
+- SBCA, SBCI, SBCIX, SBCIY, SBCX, SBCY, SBCZ, SBCZX
+
+#### Set Flag Instructions - 3 passing
+- SEC, SED, SEI
+
+#### STA (Store Accumulator) - 7 passing
+- STAA, STAIX, STAIY, STAX, STAY, STAZ, STAZX
+
+#### STX (Store X Register) - 3 passing
+- STXA, STXZ, STXZY
+
+#### STY (Store Y Register) - 3 passing
+- STYA, STYZ, STYZX
+
+#### Transfer Instructions - 6 passing
+- TAX, TAY, TSX, TXA, TXS, TYA
+
+#### Complex Tests - 2 passing
+- test01 - Complex logical operations test
+- test05 - Complex multi-instruction test
+
+#### Timing Test - 1 passing
+- timing - Timing simulation validation test (uses ticker functions)
+
+### Currently Failing Tests (1 test)
+
+- **ADCI** - Add with carry immediate test
+  - Issue: Test fails at the second comparison, expected $8000:01 but got $8000:fe
+  - Status: Test logic appears to have an issue that needs investigation
+
+### Disabled Tests (1 test)
+
 - **test00** - Complex addressing mode test
   - Issue: Test expects value $55 at address $022A, but program stores at $0200
-  - Fix: Debug and correct the test00.asm program logic
+  - Status: Disabled in makefile due to test logic issue
 
 ## Adding New Tests
 
