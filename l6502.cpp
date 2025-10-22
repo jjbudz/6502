@@ -2921,14 +2921,22 @@ int assemble(const char* filename)
                         }
                         else
                         {
-                            uint16_t hex = getHex(token+1);
-                            memory[ip++] = LOBYTE(hex);
-                            // For 3-byte instructions (opcode + 2-byte address), always write high byte
+                            // For 3-byte instructions, require exactly 4 hex digits
                             if (lastInstruction >= 0 && i6502[lastInstruction].bytes == 3)
                             {
-                                memory[ip++] = HIBYTE(hex);
+                                if (strlen(token+1) != 4)
+                                {
+                                    printf("Line %d: 3-byte instruction requires 4-digit hex address, got ->%s<-\n",
+                                        lineno, token);
+                                    return -2;
+                                }
                             }
-                            else if (hex > 0xff)
+                            
+                            uint16_t hex = getHex(token+1);
+                            size_t numDigits = strlen(token+1);
+                            memory[ip++] = LOBYTE(hex);
+                            // Write high byte if value > 0xFF OR if 4 digits were provided (for 3-byte instructions)
+                            if (hex > 0xff || numDigits == 4) 
                             {
                                 memory[ip++] = HIBYTE(hex);
                             }
