@@ -1004,7 +1004,7 @@ INSTRUCTION(CPYI, 0xC0, 2, 2, "Compare Y with immediate value")
 INSTRUCTION(CPYZ, 0xC4, 2, 3, "Compare Y with zero page memory")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCPYZ, (uint8_t)*(BP+PC+1));
-    uint8_t y = Y - *(BP+*(BP+PC+1)) - (1 - CARRYBIT);
+    uint8_t y = Y - *(BP+*(BP+PC+1));
     SET_CARRY(((y&0x80)==0x80));
     SET_ZERO(y);
     SET_SIGN(y);
