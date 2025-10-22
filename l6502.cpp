@@ -993,8 +993,8 @@ INSTRUCTION(CPYI, 0xC0, 2, 2, "Compare Y with immediate value")
     FTRACE("%s %02x", __FILE__, __LINE__, sCPYI, (uint8_t)*(BP+PC+1));
     uint8_t y = Y - *(BP+PC+1);
     SET_CARRY(((y&0x80)==0x80));
-    SET_ZERO(Y);
-    SET_SIGN(Y);
+    SET_ZERO(y);
+    SET_SIGN(y);
     PC += 2;
 }
 
