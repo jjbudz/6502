@@ -604,7 +604,7 @@ INSTRUCTION(ASLZX, 0x16, 2, 6, "Arithmetic shift left zero page address, X")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sASLZX, (uint8_t)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
-    uint8_t* addr = BP + *(BP+zx) + X;
+    uint8_t* addr = BP + zx;
     SET_CARRY(((*addr&0x80)==0x80));
     *addr = *addr<<1;
     SET_ZERO(*addr);
