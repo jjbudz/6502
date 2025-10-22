@@ -866,7 +866,7 @@ INSTRUCTION(CMPA, 0xCD, 3, 4, "Compare memory using absolute address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sCMPA, (uint16_t)addr16);
-    uint8_t a = A + *(BP + addr16);
+    uint8_t a = A - *(BP + addr16);
     SET_CARRY(((a&0x80)==0x80));
     SET_ZERO(a);
     SET_SIGN(a);
