@@ -4,16 +4,17 @@ $4000   CLC
         ADCI  #001
         CMPI  #001
         BNE   fail1
-        ADCI  #$FF
         CLC
+        ADCI  #$FF
         CMPI  #000
         BNE   fail2
-        BCS   fail3
+        BCC   fail3
         LDAI  #$7F
+        CLC
         ADCI  #$80
         CMPI  #$FF
         BNE   fail4
-        BCS   fail5
+        BCC   fail5
         JMP   pass
 fail1   LDAI  #$FF
         STAA  $8000

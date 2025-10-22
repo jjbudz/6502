@@ -320,7 +320,7 @@ unsigned char getImmediateValue()
  */ 
 INSTRUCTION(ADCI, 0x69, 2, 2, "Add with carry immediate")
 {
-    char value = getImmediateValue();
+    uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCI, (uint8_t)value);
     uint16_t a = (uint16_t)A + value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
@@ -337,7 +337,7 @@ INSTRUCTION(ADCI, 0x69, 2, 2, "Add with carry immediate")
  */
 INSTRUCTION(ADCZ, 0x65, 2, 3, "Add with carry from zero page address")
 {
-    char value = getImmediateValue();
+    uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCZ, (uint8_t)value);
     uint16_t a = (uint16_t)A + *(BP+value) + CARRYBIT;                 
     SET_CARRY((a > 0xff));
@@ -369,7 +369,7 @@ INSTRUCTION(ADCA, 0x6D, 3, 4, "Add with carry from absolute address")
  */
 INSTRUCTION(ADCZX, 0x61, 2, 6, "Add with carry from zero page indexed")
 {
-    char value = getImmediateValue();
+    uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCZX, (uint16_t)value);
     uint8_t zx = value + X;
     uint16_t a = (uint16_t)A + *(BP + zx) + CARRYBIT;                 
@@ -386,7 +386,7 @@ INSTRUCTION(ADCZX, 0x61, 2, 6, "Add with carry from zero page indexed")
  */
 INSTRUCTION(ADCIX, 0x75, 2, 4, "Add with carry from indirect, X")
 {
-    char value = getImmediateValue();
+    uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCIX, (uint8_t)value);
     uint8_t zx = value + X;
     uint16_t a = (uint16_t)A + *(BP + (*(BP + zx + 1)<<8) + *(BP + zx)) + CARRYBIT;                 
@@ -451,7 +451,7 @@ INSTRUCTION(ADCY, 0x79, 3, 4, "Add with carry from absolute, Y")
  */
 INSTRUCTION(ANDI, 0x29, 2, 2, "AND with immediate value")
 {
-    char value = getImmediateValue();
+    uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sANDI, (uint8_t)value);
     A &= value;
     SET_ZERO(A);
