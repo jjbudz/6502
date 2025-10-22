@@ -1847,7 +1847,7 @@ INSTRUCTION(ROLZX, 0x36, 2, 6, "Rotate zero page indexed memory left")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sROLZX, (uint8_t)*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X; // zero page wrap
-    uint8_t* addr = BP + *(BP+zx) + X;
+    uint8_t* addr = BP + zx;
     uint8_t c = CARRYBIT;
     SET_CARRY(((*addr&0x80)==0x80));
     *addr = *addr<<1;
