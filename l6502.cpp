@@ -839,8 +839,9 @@ INSTRUCTION(CLV, 0xB8, 1, 2, "Clear overflow bit")
 INSTRUCTION(CMPI, 0xC9, 2, 2, "Compare immediate value")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCMPI, (uint8_t)*(BP+PC+1));
-    uint8_t a = A - *(BP+PC+1);
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP+PC+1);
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 2;
@@ -852,8 +853,9 @@ INSTRUCTION(CMPI, 0xC9, 2, 2, "Compare immediate value")
 INSTRUCTION(CMPZ, 0xC5, 2, 3, "Compare zero page memory")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCMPZ, (uint8_t)*(BP+PC+1));
-    uint8_t a = A - *(BP+*(BP+PC+1));
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP+*(BP+PC+1));
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 2;
@@ -866,8 +868,9 @@ INSTRUCTION(CMPA, 0xCD, 3, 4, "Compare memory using absolute address")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sCMPA, (uint16_t)addr16);
-    uint8_t a = A - *(BP + addr16);
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP + addr16);
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 3;
@@ -876,12 +879,13 @@ INSTRUCTION(CMPA, 0xCD, 3, 4, "Compare memory using absolute address")
 /**
  * Compare memory using zero page, X addressing mode
  */
-INSTRUCTION(CMPZX, 0xC1, 2, 6, "Compare memory using zero page, X addressing mode")
+INSTRUCTION(CMPZX, 0xD5, 2, 6, "Compare memory using zero page, X addressing mode")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCMPZX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
-    uint8_t a = A - *(BP + zx);
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP + zx);
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 2;
@@ -909,8 +913,9 @@ INSTRUCTION(CMPY, 0xD9, 3, 4, "Compare memory using absolute, Y addressing mode"
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sCMPY, (uint16_t)addr16);
-    uint8_t a = A - *(BP + addr16 + Y);
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP + addr16 + Y);
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 3;
@@ -920,12 +925,13 @@ INSTRUCTION(CMPY, 0xD9, 3, 4, "Compare memory using absolute, Y addressing mode"
  * Compare memory using indexed indirect addressing mode (see 
  * http://www.obelisk.demon.co.uk/6502/addressing.html for modes)
  */
-INSTRUCTION(CMPIX, 0xD5, 2, 4, "Compare memory using indexed indirect addressing mode")
+INSTRUCTION(CMPIX, 0xC1, 2, 4, "Compare memory using indexed indirect addressing mode")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCMPIX,*(BP+PC+1));
     uint8_t zx = *(BP+PC+1)+X;
-    uint8_t a = A - *(BP + (*(BP + zx + 1)<<8) + *(BP + zx));
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP + (*(BP + zx + 1)<<8) + *(BP + zx));
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 2;
@@ -935,12 +941,13 @@ INSTRUCTION(CMPIX, 0xD5, 2, 4, "Compare memory using indexed indirect addressing
  * Compare memory using indirect indexed addressing mode (see
  * http://www.obelisk.demon.co.uk/6502/addressing.html for modes)
  */
-INSTRUCTION(CMPIY, 0xF1, 2, 5, "Compare memory using indirect indexed addressing mode")
+INSTRUCTION(CMPIY, 0xD1, 2, 5, "Compare memory using indirect indexed addressing mode")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCMPIY, (uint8_t)*(BP+PC+1));
     uint8_t zi = *(BP+PC+1);
-    uint8_t a = A - *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y);
-    SET_CARRY(((a&0x80)==0x80));
+    uint8_t m = *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y);
+    uint8_t a = A - m;
+    SET_CARRY(A >= m);
     SET_ZERO(a);
     SET_SIGN(a);
     PC += 2;
