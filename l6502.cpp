@@ -276,8 +276,8 @@ uint16_t getAbsoluteAddress()
  */
 uint16_t getIndirectAddress()
 {
-    uint8_t zpAddr = *(BP+PC+1);
-    return (*(BP+zpAddr+1)<<8) + *(BP+zpAddr); 
+    uint16_t pc = getAbsoluteAddress();
+    return (*(BP+pc+1)<<8) + *(BP+pc); 
 }
 
 /** 
@@ -2872,6 +2872,7 @@ int assemble(const char* filename)
             char* tokens = line;
             char  token[kMaxLineLength+1];
             bool  skip = false;
+            short lastInstruction = -1;
 
             lineno++;
 
@@ -2922,7 +2923,15 @@ int assemble(const char* filename)
                         {
                             uint16_t hex = getHex(token+1);
                             memory[ip++] = LOBYTE(hex);
-                            if (hex > 0xff) memory[ip++] = HIBYTE(hex);
+                            // For 3-byte instructions (opcode + 2-byte address), always write high byte
+                            if (lastInstruction >= 0 && i6502[lastInstruction].bytes == 3)
+                            {
+                                memory[ip++] = HIBYTE(hex);
+                            }
+                            else if (hex > 0xff)
+                            {
+                                memory[ip++] = HIBYTE(hex);
+                            }
 
                             FTRACE("Assembler stored address: %04x",
                                 __FILE__, __LINE__, hex);
@@ -3016,6 +3025,7 @@ int assemble(const char* filename)
                         FTRACE("Assembler storing instruction: %02x at %04x",
                             __FILE__, __LINE__, instruction,ip);
                         memory[ip++] = (uint8_t)instruction;
+                        lastInstruction = instruction;
                     }
                     else 
                     {
