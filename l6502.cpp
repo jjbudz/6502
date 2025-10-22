@@ -1018,7 +1018,7 @@ INSTRUCTION(CPYA, 0xCC, 3, 4, "Compare Y with absolute address memory")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sCPYA, (uint16_t)addr16);
-    uint8_t y = Y + *(BP + addr16);
+    uint8_t y = Y - *(BP + addr16);
     SET_CARRY(((y&0x80)==0x80));
     SET_ZERO(y);
     SET_SIGN(y);
