@@ -769,3 +769,48 @@ test-TYA:
 	@echo "Test TYA"
 	$(EMU) -c TYA.asm -r 4000 -a 8000:55
 
+test-test01:
+	@echo "Test test01"
+	$(EMU) -c test01.asm -r 4000 -a 00a9:aa
+
+test-test05:
+	@echo "Test test05"
+	$(EMU) -c test05.asm -r 4000 -a 0040:33
+
+test-timing:
+	@echo "Running timing integration tests (1..10 Hz)"
+	@N_ITER=15; \
+	TOTAL_CYCLES=$$((7 * N_ITER + 1)); \
+	TOLERANCE=0.10; \
+	EMU_CMD_TIMING="$(EMU) -c timing.asm --rate {rate} -r 4000"; \
+	case "$$EMU_CMD_TIMING" in \
+	  *\{rate\}*) ;; \
+	  *) echo "EMU_CMD_TIMING must contain the literal {rate}"; exit 2 ;; \
+	esac; \
+	for rate in $$(seq 1 10); do \
+	  echo "==== Testing rate $${rate} Hz ===="; \
+	  cmd=$$(printf "%s" "$$EMU_CMD_TIMING" | sed "s/{rate}/$$rate/g"); \
+	  echo "Command: $$cmd"; \
+	  start_time=$$(date +%s.%N); \
+	  $$cmd; \
+	  exit_status=$$?; \
+	  end_time=$$(date +%s.%N); \
+	  measured=$$(awk -v s="$$start_time" -v e="$$end_time" 'BEGIN{printf "%.6f", e - s}'); \
+	  expected=$$(awk -v c="$$TOTAL_CYCLES" -v r="$$rate" 'BEGIN{printf "%.6f", c / r}'); \
+	  lower=$$(awk -v x="$$expected" -v t="$$TOLERANCE" 'BEGIN{printf "%.6f", x * (1 - t)}'); \
+	  upper=$$(awk -v x="$$expected" -v t="$$TOLERANCE" 'BEGIN{printf "%.6f", x * (1 + t)}'); \
+	  echo "Exit status: $$exit_status"; \
+	  echo "Measured time: $${measured}s"; \
+	  echo "Expected time: $${expected}s (allowed range: $${lower}s - $${upper}s)"; \
+	  ok=$$(awk -v m="$$measured" -v lo="$$lower" -v hi="$$upper" 'BEGIN{print (m+0 >= lo && m+0 <= hi) ? "yes" : "no"}'); \
+	  if [ "$$ok" = "yes" ]; then \
+	    echo "Result: PASS"; \
+	  else \
+	    echo "Result: FAIL"; \
+	    echo "Timing test failed for rate $${rate} Hz"; \
+	    exit 1; \
+	  fi; \
+	  echo; \
+	done; \
+	echo "All timing integration tests passed"
+
