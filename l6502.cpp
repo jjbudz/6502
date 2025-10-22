@@ -1965,9 +1965,12 @@ INSTRUCTION(RORX, 0x7E, 3, 7, "Rotate absolute memory value indexed by X to the 
 }
 
 /**
- * Return from interrupt, restoring status bits
+ * Return from interrupt, restoring status bits and program counter.
+ * Pulls status register (P) and program counter (PC) from stack.
+ * Stack layout after interrupt/BRK: [P, PCL, PCH] (P on top at SP+1)
+ * PC is restored exactly as saved (no adjustment needed).
  */
-INSTRUCTION(RTI, 0x40, 3, 6, "Return from interrupt, restoring status bits")
+INSTRUCTION(RTI, 0x40, 1, 6, "Return from interrupt, restoring status bits")
 {
     FTRACE("%s", __FILE__, __LINE__, sRTI);
     P = STACK[SP+1];
@@ -1977,7 +1980,7 @@ INSTRUCTION(RTI, 0x40, 3, 6, "Return from interrupt, restoring status bits")
     OVERFLOWBIT = (P&(1<<kOVERFLOWBIT)) == (1<<kOVERFLOWBIT);
     DECIMALBIT = (P&(1<<kDECIMALBIT)) == (1<<kDECIMALBIT);
     BREAKBIT = (P&(1<<kBREAKBIT)) == (1<<kBREAKBIT);
-    PC = (uint16_t)(STACK[SP+3]<<8)+(uint16_t)STACK[SP+2] + 1;
+    PC = (uint16_t)(STACK[SP+3]<<8)+(uint16_t)STACK[SP+2];
     SP += 3;
 }
 
