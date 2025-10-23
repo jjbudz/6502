@@ -322,12 +322,13 @@ INSTRUCTION(ADCI, 0x69, 2, 2, "Add with carry immediate")
 {
     uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCI, (uint8_t)value);
+    uint8_t old_a = A;
     uint16_t a = (uint16_t)A + value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ value) & (old_a ^ A) & 0x80) >> 1));
     PC += 2;
     // !!! add decimal mode addition
 }
@@ -339,12 +340,14 @@ INSTRUCTION(ADCZ, 0x65, 2, 3, "Add with carry from zero page address")
 {
     uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCZ, (uint8_t)value);
-    uint16_t a = (uint16_t)A + *(BP+value) + CARRYBIT;                 
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP+value);
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 2;
 }
 
@@ -355,12 +358,14 @@ INSTRUCTION(ADCA, 0x6D, 3, 4, "Add with carry from absolute address")
 {
     uint16_t pc = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sADCA, (uint16_t)pc);
-    uint16_t a = (uint16_t)A + *(BP + pc) + CARRYBIT;                 
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP + pc);
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 3;
 }
 
@@ -372,12 +377,14 @@ INSTRUCTION(ADCZX, 0x61, 2, 6, "Add with carry from zero page indexed")
     uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCZX, (uint16_t)value);
     uint8_t zx = value + X;
-    uint16_t a = (uint16_t)A + *(BP + zx) + CARRYBIT;                 
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP + zx);
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 2;
 }
 
@@ -389,12 +396,14 @@ INSTRUCTION(ADCIX, 0x75, 2, 4, "Add with carry from indirect, X")
     uint8_t value = getImmediateValue();
     FTRACE("%s %02x", __FILE__, __LINE__, sADCIX, (uint8_t)value);
     uint8_t zx = value + X;
-    uint16_t a = (uint16_t)A + *(BP + (*(BP + zx + 1)<<8) + *(BP + zx)) + CARRYBIT;                 
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP + (*(BP + zx + 1)<<8) + *(BP + zx));
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 2;
 }
 
@@ -405,12 +414,14 @@ INSTRUCTION(ADCIY, 0x71, 2, 5, "Add with carry from indirect, Y")
 {
     uint8_t zi = *(BP+PC+1);
     FTRACE("%s %02x", __FILE__, __LINE__, sADCIY, (uint8_t)zi);
-    uint16_t a = (uint16_t)A + *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y) + CARRYBIT;                 
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP + (*(BP+zi+1)<<8) + *(BP+zi) + Y);
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;                 
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 2;
 }
 
@@ -421,12 +432,14 @@ INSTRUCTION(ADCX, 0x7D, 3, 4, "Add with carry from absolute, X")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sADCX, (uint16_t)addr16);
-    uint16_t a = (uint16_t)A + *(BP + addr16 + X) + CARRYBIT;
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP + addr16 + X);
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 3;
 }
 
@@ -437,12 +450,14 @@ INSTRUCTION(ADCY, 0x79, 3, 4, "Add with carry from absolute, Y")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sADCY, (uint16_t)addr16);
-    uint16_t a = (uint16_t)A + *(BP + addr16 + Y) + CARRYBIT;
+    uint8_t old_a = A;
+    uint8_t mem_value = *(BP + addr16 + Y);
+    uint16_t a = (uint16_t)A + mem_value + CARRYBIT;
     SET_CARRY((a > 0xff));
     A = (uint8_t)a;
     SET_ZERO(A);
     SET_SIGN(A);
-    SET_OVERFLOW(((((~CARRYBIT)&SIGNBIT)|(CARRYBIT&(~SIGNBIT)))<<kOVERFLOWBIT));
+    SET_OVERFLOW(((~(old_a ^ mem_value) & (old_a ^ A) & 0x80) >> 1));
     PC += 3;
 }
 
