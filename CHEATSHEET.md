@@ -65,10 +65,10 @@ Command line examples:
   6502 -c LDAI2.asm -d 4000
   
   # Compile source and save to object file
-  6502 -c LDAI2.asm -s LDAI2.6502
+  6502 -c LDAI2.asm -s LDAI2.asm
   
   # Load object file and run with assertion, dump stack, flags, and registers
-  6502 -l LDAI2.6502 -r 4000 -a 8000:7f -psfr
+  6502 -l LDAI2.asm -r 4000 -a 8000:7f -psfr
   
   # Run with trace output enabled
   6502 -c sample.asm -r 4000 -t
