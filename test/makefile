@@ -171,7 +171,7 @@ test-ADCA:
 
 test-ADCI:
 	@echo "Test ADCI"
-	$(EMU) -c ADCI.asm -r 4000 -a 8000:01
+	$(EMU) -c ADCI.asm -r 4000 -a 8000:ff
 
 test-ADCIX:
 	@echo "Test ADCIX"
