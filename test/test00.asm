@@ -1,4 +1,4 @@
-        ;;  expected result: $022A = 0x55
+        ;;  expected result: $0200 = 0x55
 $4000   LDAI #085
         LDXI #042
         LDYI #115
@@ -48,7 +48,7 @@ $4000   LDAI #085
         STAX $0200
 
         ;;  CHECK test00:
-        LDAA $022A
+        LDAI #$55
         CMPA $0200
         BEQ test00pass
         JMP theend
