@@ -1,5 +1,7 @@
-        ;;  expected result: $A9 = 0xAA
-        ;;  imm
+; Complex logical operations test
+; Tests AND, ORA, EOR across all addressing modes
+; Expected result: $A9 = 0xAA after series of logical operations
+; Tests: Immediate, Zero Page, ZPX, Absolute, ABX, ABY, Indexed Indirect, Indirect Indexed
 $4000   LDAI #085
         ANDI #083
         ORAI #056

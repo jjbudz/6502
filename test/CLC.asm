@@ -1,3 +1,7 @@
+; Test CLC (Clear Carry Flag)
+; Tests: CLC
+; Expected: Carry flag cleared after SEC, BCC should succeed
+; Result stored at $8000 should be $01 (success)
 $4000   SEC
         BCC fail1
         CLC

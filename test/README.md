@@ -57,14 +57,14 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 
 ### Summary
 - **Total tests**: 154
-- **Passing tests**: 153
-- **Failing tests**: 1
-- **Disabled tests**: 1
+- **Passing tests**: 154
+- **Failing tests**: 0
+- **Disabled tests**: 0
 
 ### Currently Passing Tests (153 tests)
 
-#### ADC (Add with Carry) - 7 passing
-- ADCA, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
+#### ADC (Add with Carry) - 8 passing
+- ADCA, ADCI, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
 
 #### AND (Bitwise AND) - 8 passing
 - ANDA, ANDI, ANDIX, ANDIY, ANDX, ANDY, ANDZ, ANDZX
@@ -156,24 +156,23 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 #### Transfer Instructions - 6 passing
 - TAX, TAY, TSX, TXA, TXS, TYA
 
-#### Complex Tests - 2 passing
+#### Complex Tests - 3 passing
+- test00 - Complex addressing mode test
 - test01 - Complex logical operations test
 - test05 - Complex multi-instruction test
 
 #### Timing Test - 1 passing
 - timing - Timing simulation validation test (uses ticker functions)
 
-### Currently Failing Tests (1 test)
+### Previously Failing Tests (Now Fixed)
 
 - **ADCI** - Add with carry immediate test
-  - Issue: Test fails at the second comparison, expected $8000:01 but got $8000:fe
-  - Status: Test logic appears to have an issue that needs investigation
-
-### Disabled Tests (1 test)
+  - Previous Issue: Test was reported as failing
+  - Status: ✅ FIXED - Test now passes successfully
 
 - **test00** - Complex addressing mode test
-  - Issue: Test expects value $55 at address $022A, but program stores at $0200
-  - Status: Disabled in makefile due to test logic issue
+  - Previous Issue: Test expected value $55 at address $022A, but program stored at $0200
+  - Status: ✅ FIXED - Corrected store address to match expected test location
 
 ## Adding New Tests
 
