@@ -5,7 +5,7 @@ include ../include.mk
 EMU = ../$(BINDIR)/6502
 
 # Individual test targets
-.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test01 test-test05 test-timing
+.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing
 
 # Run all tests (using - prefix to continue on failure)
 test:
@@ -160,7 +160,7 @@ test:
 	@$(MAKE) test-TXA || true
 	@$(MAKE) test-TXS || true
 	@$(MAKE) test-TYA || true
-	# @$(MAKE) test-test00 || true  # Disabled - test logic issue
+	@$(MAKE) test-test00 || true
 	@$(MAKE) test-test01 || true
 	@$(MAKE) test-test05 || true
 	@$(MAKE) test-timing || true
@@ -768,6 +768,10 @@ test-TXS:
 test-TYA:
 	@echo "Test TYA"
 	$(EMU) -c TYA.asm -r 4000 -a 8000:55
+
+test-test00:
+	@echo "Test test00"
+	$(EMU) -c test00.asm -r 4000 -a 0200:55 -a 0210:fe
 
 test-test01:
 	@echo "Test test01"
