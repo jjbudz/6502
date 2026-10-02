@@ -1,4 +1,8 @@
-        ;;  expected result: $0200 = 0x55
+; Complex addressing modes test
+; Tests various addressing modes across multiple instructions
+; Tests: Absolute, Zero Page, Indexed (X/Y), Indirect Indexed
+; Expected result: $0200 = 0x55 (value from X register)
+; Also checks: $0210 = 0xFE (success marker)
 $4000   LDAI #085
         LDXI #042
         LDYI #115
