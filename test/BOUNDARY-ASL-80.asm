@@ -1,13 +1,14 @@
 ; Test ASL on $80 - Shift Out Sign Bit
-; Tests: ASL $80 shifts out bit 7 into carry
-; Expected: $80 << 1 = $00, C flag set, Z flag set, N flag clear
+; Tests: ASL A with $80 gives $00, sets C=1, Z=1, N=0
+; Result stored at $8000 should be $01 (success)
 $4000   LDAI #$80
-        ASL           ; Shift left: $80 → $00, carry set
-        BCS $4008     ; Should branch (carry set)
-        BRK           ; Shouldn't reach
-$4008   BEQ $400C     ; Should branch (zero)
-        BRK           ; Shouldn't reach
-$400C   BMI $4010     ; Should not branch (not negative)
-        BRK           ; Shouldn't reach
-$4010   STAA $8000    ; Should be $00
+        ASL           ; $80 << 1 = $00, bit 7 into carry
+        BCS ok1       ; C must be set
+        BRK
+ok1     BEQ ok2       ; Z must be set
+        BRK
+ok2     BPL pass      ; N must be clear
+        BRK
+pass    LDAI #$01
+        STAA $8000
         BRK

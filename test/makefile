@@ -792,7 +792,7 @@ test-STACK-FULL-01:
 # Phase 2 Edge Case Tests - Flag Interactions
 test-FLAG-ADC-NVZ:
 	@echo "Test FLAG-ADC-NVZ"
-	$(EMU) -c FLAG-ADC-NVZ.asm -r 4000 -a 8000:80
+	$(EMU) -c FLAG-ADC-NVZ.asm -r 4000 -a 8000:01
 
 test-FLAG-SBC-BORROW:
 	@echo "Test FLAG-SBC-BORROW"
@@ -808,20 +808,20 @@ test-FLAG-OVERFLOW-02:
 
 test-FLAG-ZERO-ADC:
 	@echo "Test FLAG-ZERO-ADC"
-	$(EMU) -c FLAG-ZERO-ADC.asm -r 4000 -a 8000:00
+	$(EMU) -c FLAG-ZERO-ADC.asm -r 4000 -a 8000:01
 
 test-FLAG-ZERO-SBC:
 	@echo "Test FLAG-ZERO-SBC"
-	$(EMU) -c FLAG-ZERO-SBC.asm -r 4000 -a 8000:00
+	$(EMU) -c FLAG-ZERO-SBC.asm -r 4000 -a 8000:01
 
 # Phase 2 Edge Case Tests - Boundary Values
 test-BOUNDARY-INC-FF:
 	@echo "Test BOUNDARY-INC-FF"
-	$(EMU) -c BOUNDARY-INC-FF.asm -r 4000 -a 8000:00
+	$(EMU) -c BOUNDARY-INC-FF.asm -r 4000 -a 8000:01
 
 test-BOUNDARY-DEC-00:
 	@echo "Test BOUNDARY-DEC-00"
-	$(EMU) -c BOUNDARY-DEC-00.asm -r 4000 -a 8000:ff
+	$(EMU) -c BOUNDARY-DEC-00.asm -r 4000 -a 8000:01
 
 test-BOUNDARY-ADC-7F:
 	@echo "Test BOUNDARY-ADC-7F"
@@ -833,13 +833,13 @@ test-BOUNDARY-SBC-80:
 
 test-BOUNDARY-ASL-80:
 	@echo "Test BOUNDARY-ASL-80"
-	$(EMU) -c BOUNDARY-ASL-80.asm -r 4000 -a 8000:00
+	$(EMU) -c BOUNDARY-ASL-80.asm -r 4000 -a 8000:01
 
 test-BOUNDARY-LSR-01:
 	@echo "Test BOUNDARY-LSR-01"
-	$(EMU) -c BOUNDARY-LSR-01.asm -r 4000 -a 8000:00
+	$(EMU) -c BOUNDARY-LSR-01.asm -r 4000 -a 8000:01
 
 test-BOUNDARY-ROL-FF:
 	@echo "Test BOUNDARY-ROL-FF"
-	$(EMU) -c BOUNDARY-ROL-FF.asm -r 4000 -a 8000:ff
+	$(EMU) -c BOUNDARY-ROL-FF.asm -r 4000 -a 8000:01
 

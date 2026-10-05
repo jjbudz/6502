@@ -1,16 +1,18 @@
 ; Test Overflow Flag - Positive + Positive = Negative
-; Tests: Classic overflow case: two positive numbers sum to negative
-; Expected: $50 + $50 = $A0 (overflow, negative result)
+; Tests: $50 + $50 = $A0 sets V=1, N=1, C=0
+; Result stored at $8000 should be $01 (success)
 $4000   CLC
-        LDAI #$50     ; Positive (80 decimal)
-        ADCI #$50     ; Positive (80 decimal)
-        BVS $400C     ; Should branch (overflow)
-        BRK           ; Shouldn't reach
-$400C   BMI $4010     ; Should branch (negative result)
-        BRK           ; Shouldn't reach
-$4010   CMPI #$A0
-        BEQ $4018     ; Should branch
-        BRK           ; Shouldn't reach
-$4018   LDAI #$01
-        STAA $8000    ; Success
+        LDAI #$50     ; +80
+        ADCI #$50     ; +80 -> $A0 (-96 signed): overflow
+        BVS ok1       ; V must be set
+        BRK
+ok1     BMI ok2       ; N must be set
+        BRK
+ok2     BCC ok3       ; C must be clear (no unsigned carry)
+        BRK
+ok3     CMPI #$A0
+        BEQ pass
+        BRK
+pass    LDAI #$01
+        STAA $8000
         BRK

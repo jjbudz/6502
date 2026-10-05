@@ -1,16 +1,18 @@
 ; Test ADC Sign Bit Transition at $7F
-; Tests: Adding to $7F causes sign bit change and overflow
-; Expected: $7F + $01 = $80 (positive→negative transition, overflow)
+; Tests: $7F + $01 = $80 sets V=1, N=1, C=0
+; Result stored at $8000 should be $01 (success)
 $4000   CLC
-        LDAI #$7F     ; Maximum positive signed byte
-        ADCI #$01     ; Add 1
-        BVS $400C     ; Should branch (overflow occurred)
-        BRK           ; Shouldn't reach
-$400C   BMI $4010     ; Should branch (result is negative)
-        BRK           ; Shouldn't reach
-$4010   CMPI #$80
-        BEQ $4018     ; Should branch
-        BRK           ; Shouldn't reach
-$4018   LDAI #$01
-        STAA $8000    ; Success
+        LDAI #$7F     ; Largest positive signed byte
+        ADCI #$01     ; -> $80: positive to negative = overflow
+        BVS ok1       ; V must be set
+        BRK
+ok1     BMI ok2       ; N must be set
+        BRK
+ok2     BCC ok3       ; C must be clear
+        BRK
+ok3     CMPI #$80
+        BEQ pass
+        BRK
+pass    LDAI #$01
+        STAA $8000
         BRK

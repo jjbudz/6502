@@ -1,12 +1,13 @@
 ; Test Zero Flag - SBC Producing Zero
-; Tests: Zero flag set when SBC produces $00 result
-; Expected: $42 - $42 = $00 with no borrow, Z flag set
-$4000   SEC           ; Set carry (no borrow)
+; Tests: $42 - $42 = $00 sets Z=1, C=1 (no borrow)
+; Result stored at $8000 should be $01 (success)
+$4000   SEC           ; No borrow
         LDAI #$42
-        SBCI #$42     ; $42 - $42 = $00
-        BEQ $400C     ; Should branch (zero)
-        BRK           ; Shouldn't reach
-$400C   BCS $4010     ; Should branch (no borrow)
-        BRK           ; Shouldn't reach
-$4010   STAA $8000    ; Should be $00
+        SBCI #$42
+        BEQ ok1       ; Z must be set
+        BRK
+ok1     BCS pass      ; C must remain set
+        BRK
+pass    LDAI #$01
+        STAA $8000
         BRK

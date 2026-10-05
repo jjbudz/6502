@@ -1,16 +1,18 @@
 ; Test SBC Sign Bit Transition at $80
-; Tests: Subtracting from $80 causes overflow
-; Expected: $80 - $01 = $7F (negative→positive transition, overflow)
-$4000   SEC           ; Set carry (no borrow)
-        LDAI #$80     ; Minimum negative signed byte
-        SBCI #$01     ; Subtract 1
-        BVS $400C     ; Should branch (overflow occurred)
-        BRK           ; Shouldn't reach
-$400C   BPL $4010     ; Should branch (result is positive)
-        BRK           ; Shouldn't reach
-$4010   CMPI #$7F
-        BEQ $4018     ; Should branch
-        BRK           ; Shouldn't reach
-$4018   LDAI #$01
-        STAA $8000    ; Success
+; Tests: $80 - $01 = $7F sets V=1, N=0, C=1
+; Result stored at $8000 should be $01 (success)
+$4000   SEC           ; No borrow
+        LDAI #$80     ; Smallest negative signed byte
+        SBCI #$01     ; -> $7F: negative to positive = overflow
+        BVS ok1       ; V must be set
+        BRK
+ok1     BPL ok2       ; N must be clear
+        BRK
+ok2     BCS ok3       ; C must remain set (no borrow)
+        BRK
+ok3     CMPI #$7F
+        BEQ pass
+        BRK
+pass    LDAI #$01
+        STAA $8000
         BRK

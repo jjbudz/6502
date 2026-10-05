@@ -1,11 +1,12 @@
 ; Test LSR on $01 - Shift Out Least Significant Bit
-; Tests: LSR $01 shifts bit 0 into carry
-; Expected: $01 >> 1 = $00, C flag set, Z flag set
+; Tests: LSR A with $01 gives $00, sets C=1, Z=1
+; Result stored at $8000 should be $01 (success)
 $4000   LDAI #$01
-        LSR           ; Shift right: $01 → $00, carry set
-        BCS $4008     ; Should branch (carry set)
-        BRK           ; Shouldn't reach
-$4008   BEQ $400C     ; Should branch (zero)
-        BRK           ; Shouldn't reach
-$400C   STAA $8000    ; Should be $00
+        LSR           ; $01 >> 1 = $00, bit 0 into carry
+        BCS ok1       ; C must be set
+        BRK
+ok1     BEQ pass      ; Z must be set
+        BRK
+pass    LDAI #$01
+        STAA $8000
         BRK

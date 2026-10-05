@@ -1,30 +1,24 @@
-; Test Stack Operations with Full Stack
-; Tests: Multiple pushes and pops work correctly
-; Expected: LIFO behavior with values preserved
-$4000   LDXI #$FF     ; Initialize stack pointer
+; Test Stack LIFO Ordering
+; Tests: Three pushes then three pulls return values in reverse order
+; Result stored at $8000 should be $01 (success)
+$4000   LDXI #$FF
         TXS
         LDAI #$11
-        PHA           ; Push $11
+        PHA
         LDAI #$22
-        PHA           ; Push $22
+        PHA
         LDAI #$33
-        PHA           ; Push $33
-        PLA           ; Pull $33
-        STAA $10
-        PLA           ; Pull $22
-        STAA $11
-        PLA           ; Pull $11
-        STAA $12
-        LDAZ $10      ; Should be $33
+        PHA
+        PLA           ; Should be $33
         CMPI #$33
-        BNE $4030
-        LDAZ $11      ; Should be $22
+        BNE fail
+        PLA           ; Should be $22
         CMPI #$22
-        BNE $4030
-        LDAZ $12      ; Should be $11
+        BNE fail
+        PLA           ; Should be $11
         CMPI #$11
-        BNE $4030
-        LDAI #$01     ; Success
+        BNE fail
+        LDAI #$01
         STAA $8000
         BRK
-$4030   BRK           ; Failure
+fail    BRK

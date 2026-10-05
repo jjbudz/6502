@@ -56,12 +56,12 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 ## Test Status
 
 ### Summary
-- **Total tests**: 154
-- **Passing tests**: 154
+- **Total tests**: 197 (188 enabled, 9 disabled)
+- **Passing tests**: 188
 - **Failing tests**: 0
-- **Disabled tests**: 0
+- **Disabled tests**: 9 (BCD arithmetic, see below)
 
-### Currently Passing Tests (153 tests)
+### Currently Passing Tests (188 tests)
 
 #### ADC (Add with Carry) - 8 passing
 - ADCA, ADCI, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
@@ -164,6 +164,40 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 #### Timing Test - 1 passing
 - timing - Timing simulation validation test (uses ticker functions)
 
+#### Phase 1 Edge Cases: Page Boundary Crossing - 6 passing
+- LDAX-PAGE, LDAY-PAGE, STAIX-PAGE, LDAIY-PAGE, STAX-PAGE, STAY-PAGE
+
+#### Phase 1 Edge Cases: Zero Page Wraparound - 6 passing
+- LDAZX-WRAP, LDAZY-WRAP, STAZX-WRAP, STXZY-WRAP, STYZX-WRAP, ANDIX-WRAP
+
+#### Phase 1 Edge Cases: JMP Indirect Page Boundary Bug - 3 passing
+- JMPI-BUG-01, JMPI-BUG-02, JMPI-BUG-03
+
+#### Phase 2 Edge Cases: Stack Operations - 5 passing
+- STACK-WRAP-01, STACK-WRAP-02 - Stack pointer wraparound at $00/$FF
+- STACK-JSR-01 - JSR/RTS with stack pointer near bottom
+- STACK-PRESERVE-01 - PHP/PLP flag preservation
+- STACK-FULL-01 - LIFO ordering across multiple push/pull
+
+#### Phase 2 Edge Cases: Flag Interactions - 6 passing
+- FLAG-ADC-NVZ - N, V and Z set together by one ADC
+- FLAG-SBC-BORROW - Carry as inverted borrow in SBC
+- FLAG-OVERFLOW-01, FLAG-OVERFLOW-02 - Signed overflow in both directions
+- FLAG-ZERO-ADC, FLAG-ZERO-SBC - Zero flag from arithmetic wrap
+
+#### Phase 2 Edge Cases: Boundary Values - 7 passing
+- BOUNDARY-INC-FF, BOUNDARY-DEC-00 - Wrap at $FF/$00
+- BOUNDARY-ADC-7F, BOUNDARY-SBC-80 - Sign bit transitions
+- BOUNDARY-ASL-80, BOUNDARY-LSR-01, BOUNDARY-ROL-FF - Shift/rotate carry edges
+
+### Disabled Tests (9 tests)
+
+#### BCD (Decimal Mode) Arithmetic - 9 disabled
+- BCD-ADC-01 through BCD-ADC-06, BCD-SBC-01 through BCD-SBC-03
+- Reason: the emulator does not implement decimal mode (SED/CLD set the flag
+  but ADC/SBC always perform binary arithmetic). Commented out in
+  `run_tests.sh`; see `BCD-MODE-README.md`. Re-enable once BCD is implemented.
+
 ### Previously Failing Tests (Now Fixed)
 
 - **ADCI** - Add with carry immediate test
@@ -173,6 +207,15 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 - **test00** - Complex addressing mode test
   - Previous Issue: Test expected value $55 at address $022A, but program stored at $0200
   - Status: ✅ FIXED - Corrected store address to match expected test location
+
+- **SBC carry/overflow flags** (emulator bug found by Phase 2 tests)
+  - Previous Issue: All SBC variants set C to the result's sign bit and V to
+    C xor N, so C was clear after any non-negative subtraction and V was
+    almost never correct. Results were right, so the original SBC tests
+    (which only assert the result) never caught it.
+  - Status: ✅ FIXED - SBC now computes C (no borrow) and V like ADC of the
+    one's complement, verified by FLAG-SBC-BORROW, FLAG-ZERO-SBC and
+    BOUNDARY-SBC-80
 
 ## Adding New Tests
 
@@ -185,9 +228,19 @@ To add a new test:
        @echo "Test mytest"
        $(EMU) -c mytest.asm -r 4000 -a 8000:42
    ```
-3. Add the new test target to the `test` target's dependency list
-4. Optionally add to `unittest.script` for legacy compatibility
+3. Add the target name to the `.PHONY` list in `test/makefile`
+4. Add a `run_test test-mytest` line to `run_tests.sh`
 5. Use the `-a` flag to specify expected memory address:value pair
+6. Run it before committing: `make test-mytest`
+
+To debug a failing test, run the emulator directly with tracing and a
+register/flag dump, which prints PC, opcode, A/X/Y/SP and every flag
+after each instruction:
+
+```bash
+cd test
+../bin/debug/linux/6502 -c mytest.asm -r 4000 -t -prf
+```
 
 ## Test File Format
 
@@ -196,3 +249,11 @@ Test files should:
 - End with a BRK instruction
 - Store test result at a predictable memory location
 - Use proper hex notation (`#$XX` for immediate hex values)
+- Use **labels** for branch targets (`BEQ pass` ... `pass    LDAI #$01`).
+  A literal address such as `BEQ $400C` is assembled as a 16-bit absolute
+  operand, but the CPU reads branches as 8-bit relative offsets, so the
+  program will jump to the wrong place and usually crash on an unimplemented
+  opcode.
+- Prefer a success sentinel (store `$01` only after every check passes) over
+  asserting a result of `$00`, since unwritten memory already reads as `$00`
+  and an early `BRK` would then pass by accident.
