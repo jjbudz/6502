@@ -210,6 +210,30 @@ run_test test-JMPI-BUG-01
 run_test test-JMPI-BUG-02
 run_test test-JMPI-BUG-03
 
+# Phase 2 Edge Case Tests - Stack Operations
+run_test test-STACK-WRAP-01
+run_test test-STACK-WRAP-02
+run_test test-STACK-JSR-01
+run_test test-STACK-PRESERVE-01
+run_test test-STACK-FULL-01
+
+# Phase 2 Edge Case Tests - Flag Interactions
+run_test test-FLAG-ADC-NVZ
+run_test test-FLAG-SBC-BORROW
+run_test test-FLAG-OVERFLOW-01
+run_test test-FLAG-OVERFLOW-02
+run_test test-FLAG-ZERO-ADC
+run_test test-FLAG-ZERO-SBC
+
+# Phase 2 Edge Case Tests - Boundary Values
+run_test test-BOUNDARY-INC-FF
+run_test test-BOUNDARY-DEC-00
+run_test test-BOUNDARY-ADC-7F
+run_test test-BOUNDARY-SBC-80
+run_test test-BOUNDARY-ASL-80
+run_test test-BOUNDARY-LSR-01
+run_test test-BOUNDARY-ROL-FF
+
 # Print summary
 echo ""
 echo "========================================="
