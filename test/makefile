@@ -5,7 +5,7 @@ include ../include.mk
 EMU = ../$(BINDIR)/6502
 
 # Individual test targets
-.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing
+.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing test-BCD-ADC-01 test-BCD-ADC-02 test-BCD-ADC-03 test-BCD-ADC-04 test-BCD-ADC-05 test-BCD-ADC-06 test-BCD-SBC-01 test-BCD-SBC-02 test-BCD-SBC-03 test-LDAX-PAGE test-LDAY-PAGE test-STAIX-PAGE test-LDAIY-PAGE test-STAX-PAGE test-STAY-PAGE test-LDAZX-WRAP test-LDAZY-WRAP test-STAZX-WRAP test-STXZY-WRAP test-STYZX-WRAP test-ANDIX-WRAP test-JMPI-BUG-01 test-JMPI-BUG-02 test-JMPI-BUG-03
 
 # Run all tests using the test runner script
 test:
@@ -666,4 +666,105 @@ test-timing:
 	  echo; \
 	done; \
 	echo "All timing integration tests passed"
+
+
+# Phase 1 Edge Case Tests - BCD Arithmetic
+test-BCD-ADC-01:
+	@echo "Test BCD-ADC-01"
+	$(EMU) -c BCD-ADC-01.asm -r 4000 -a 8000:10
+
+test-BCD-ADC-02:
+	@echo "Test BCD-ADC-02"
+	$(EMU) -c BCD-ADC-02.asm -r 4000 -a 8000:00
+
+test-BCD-ADC-03:
+	@echo "Test BCD-ADC-03"
+	$(EMU) -c BCD-ADC-03.asm -r 4000 -a 8000:04
+
+test-BCD-ADC-04:
+	@echo "Test BCD-ADC-04"
+	$(EMU) -c BCD-ADC-04.asm -r 4000 -a 8000:41
+
+test-BCD-ADC-05:
+	@echo "Test BCD-ADC-05"
+	$(EMU) -c BCD-ADC-05.asm -r 4000 -a 8000:00
+
+test-BCD-ADC-06:
+	@echo "Test BCD-ADC-06"
+	$(EMU) -c BCD-ADC-06.asm -r 4000 -a 8000:98
+
+test-BCD-SBC-01:
+	@echo "Test BCD-SBC-01"
+	$(EMU) -c BCD-SBC-01.asm -r 4000 -a 8000:09
+
+test-BCD-SBC-02:
+	@echo "Test BCD-SBC-02"
+	$(EMU) -c BCD-SBC-02.asm -r 4000 -a 8000:97
+
+test-BCD-SBC-03:
+	@echo "Test BCD-SBC-03"
+	$(EMU) -c BCD-SBC-03.asm -r 4000 -a 8000:00
+
+# Phase 1 Edge Case Tests - Page Boundary Crossing
+test-LDAX-PAGE:
+	@echo "Test LDAX-PAGE"
+	$(EMU) -c LDAX-PAGE.asm -r 4000 -a 8000:42
+
+test-LDAY-PAGE:
+	@echo "Test LDAY-PAGE"
+	$(EMU) -c LDAY-PAGE.asm -r 4000 -a 8000:55
+
+test-STAIX-PAGE:
+	@echo "Test STAIX-PAGE"
+	$(EMU) -c STAIX-PAGE.asm -r 4000 -a 8000:aa
+
+test-LDAIY-PAGE:
+	@echo "Test LDAIY-PAGE"
+	$(EMU) -c LDAIY-PAGE.asm -r 4000 -a 8000:66
+
+test-STAX-PAGE:
+	@echo "Test STAX-PAGE"
+	$(EMU) -c STAX-PAGE.asm -r 4000 -a 8000:77
+
+test-STAY-PAGE:
+	@echo "Test STAY-PAGE"
+	$(EMU) -c STAY-PAGE.asm -r 4000 -a 8000:88
+
+# Phase 1 Edge Case Tests - Zero Page Wraparound
+test-LDAZX-WRAP:
+	@echo "Test LDAZX-WRAP"
+	$(EMU) -c LDAZX-WRAP.asm -r 4000 -a 8000:33
+
+test-LDAZY-WRAP:
+	@echo "Test LDAZY-WRAP"
+	$(EMU) -c LDAZY-WRAP.asm -r 4000 -a 8000:44
+
+test-STAZX-WRAP:
+	@echo "Test STAZX-WRAP"
+	$(EMU) -c STAZX-WRAP.asm -r 4000 -a 8000:55
+
+test-STXZY-WRAP:
+	@echo "Test STXZY-WRAP"
+	$(EMU) -c STXZY-WRAP.asm -r 4000 -a 8000:66
+
+test-STYZX-WRAP:
+	@echo "Test STYZX-WRAP"
+	$(EMU) -c STYZX-WRAP.asm -r 4000 -a 8000:77
+
+test-ANDIX-WRAP:
+	@echo "Test ANDIX-WRAP"
+	$(EMU) -c ANDIX-WRAP.asm -r 4000 -a 8000:aa
+
+# Phase 1 Edge Case Tests - JMP Indirect Bug
+test-JMPI-BUG-01:
+	@echo "Test JMPI-BUG-01"
+	$(EMU) -c JMPI-BUG-01.asm -r 4000 -a 8000:01
+
+test-JMPI-BUG-02:
+	@echo "Test JMPI-BUG-02"
+	$(EMU) -c JMPI-BUG-02.asm -r 4000 -a 8000:01
+
+test-JMPI-BUG-03:
+	@echo "Test JMPI-BUG-03"
+	$(EMU) -c JMPI-BUG-03.asm -r 4000 -a 8000:01
 

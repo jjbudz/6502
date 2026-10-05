@@ -174,6 +174,38 @@ run_test test-test01
 run_test test-test05
 run_test test-timing
 
+# Phase 1 Edge Case Tests - BCD Arithmetic (NOTE: Will fail until BCD mode is implemented)
+run_test test-BCD-ADC-01
+run_test test-BCD-ADC-02
+run_test test-BCD-ADC-03
+run_test test-BCD-ADC-04
+run_test test-BCD-ADC-05
+run_test test-BCD-ADC-06
+run_test test-BCD-SBC-01
+run_test test-BCD-SBC-02
+run_test test-BCD-SBC-03
+
+# Phase 1 Edge Case Tests - Page Boundary Crossing
+run_test test-LDAX-PAGE
+run_test test-LDAY-PAGE
+run_test test-STAIX-PAGE
+run_test test-LDAIY-PAGE
+run_test test-STAX-PAGE
+run_test test-STAY-PAGE
+
+# Phase 1 Edge Case Tests - Zero Page Wraparound
+run_test test-LDAZX-WRAP
+run_test test-LDAZY-WRAP
+run_test test-STAZX-WRAP
+run_test test-STXZY-WRAP
+run_test test-STYZX-WRAP
+run_test test-ANDIX-WRAP
+
+# Phase 1 Edge Case Tests - JMP Indirect Bug
+run_test test-JMPI-BUG-01
+run_test test-JMPI-BUG-02
+run_test test-JMPI-BUG-03
+
 # Print summary
 echo ""
 echo "========================================="
