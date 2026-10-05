@@ -1,15 +1,15 @@
-; Test AND Indexed Indirect - Wraparound in pointer calculation
-; Tests: AND ($nn,X) wraps in zero page when calculating pointer
-; Expected: $FE + $04 = $02 in zero page for pointer lookup
-; Result: AND operation uses correct pointer
+; Test AND Indexed Indirect - Wraparound in zero page pointer calculation
+; Tests: AND ($nn,X) when X causes wraparound in zero page address calculation
+; Expected: $FE + $02 wraps to $00 in zero page, not $100
+; On 6502, zero page indexed wraps: base $FE + X $02 = $00 (not $100)
 $4000   LDAI #$34     ; Low byte of data address
-        STAZ $02
+        STAZ $00      ; Pointer low byte at $00
         LDAI #$80     ; High byte
-        STAZ $03      ; Pointer at $02-$03 points to $8034
+        STAZ $01      ; Pointer high byte at $01 -> points to $8034
         LDAI #$AA
-        STAA $8034    ; Store data value
-        LDXI #$04     ; X = $04, so ($FA,X) uses $FE+$04=$02 (wrap)
+        STAA $8034    ; Store test data at $8034
+        LDXI #$02     ; X = $02
         LDAI #$FF
-        ANDIX $FA     ; AND with value at ($FA,X) = ($02) = $8034
+        ANDIX $FE     ; ($FE,X) = ($00) because $FE+$02 wraps to $00
         STAA $8000    ; Result should be $FF AND $AA = $AA
         BRK
