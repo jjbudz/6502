@@ -317,12 +317,32 @@ unsigned char getImmediateValue()
 static void addWithCarry(uint8_t value)
 {
     uint8_t old_a = A;
-    uint16_t a = (uint16_t)A + value + CARRYBIT;
-    SET_CARRY((a > 0xff));
-    A = (uint8_t)a;
-    SET_ZERO(A);
-    SET_SIGN(A);
-    SET_OVERFLOW(((~(old_a ^ value) & (old_a ^ A) & 0x80) >> 1));
+    uint16_t binary = (uint16_t)A + value + CARRYBIT;
+
+    if (!DECIMALBIT)
+    {
+        SET_CARRY((binary > 0xff));
+        A = (uint8_t)binary;
+        SET_ZERO(A);
+        SET_SIGN(A);
+        SET_OVERFLOW(((~(old_a ^ value) & (old_a ^ A) & 0x80) >> 1));
+        return;
+    }
+
+    // NMOS 6502 decimal mode: Z reflects the binary sum, N and V the
+    // intermediate sum before the high-nibble adjust, C and A the final sum.
+    uint16_t lo = (old_a & 0x0f) + (value & 0x0f) + CARRYBIT;
+    if (lo >= 0x0a)
+        lo = ((lo + 0x06) & 0x0f) + 0x10;
+    uint16_t sum = (old_a & 0xf0) + (value & 0xf0) + lo;
+    int signedSum = (int8_t)(old_a & 0xf0) + (int8_t)(value & 0xf0) + (int)lo;
+    SET_ZERO((uint8_t)binary);
+    SET_SIGN((uint8_t)sum);
+    SET_OVERFLOW(((signedSum < -128 || signedSum > 127) << kOVERFLOWBIT));
+    if (sum >= 0xa0)
+        sum += 0x60;
+    A = (uint8_t)sum;
+    SET_CARRY((sum >= 0x100));
 }
 
 /**
@@ -332,12 +352,26 @@ static void addWithCarry(uint8_t value)
 static void subtractWithCarry(uint8_t value)
 {
     uint8_t old_a = A;
-    uint16_t a = (uint16_t)A + (uint8_t)~value + CARRYBIT;
-    SET_CARRY((a > 0xff));
-    A = (uint8_t)a;
+    uint8_t carry_in = CARRYBIT;
+    uint16_t binary = (uint16_t)A + (uint8_t)~value + CARRYBIT;
+    SET_CARRY((binary > 0xff));
+    A = (uint8_t)binary;
     SET_ZERO(A);
     SET_SIGN(A);
     SET_OVERFLOW((((old_a ^ value) & (old_a ^ A) & 0x80) >> 1));
+
+    if (DECIMALBIT)
+    {
+        // NMOS 6502 decimal mode: all flags come from the binary subtraction
+        // above; only the accumulator is adjusted.
+        int lo = (old_a & 0x0f) - (value & 0x0f) + carry_in - 1;
+        if (lo < 0)
+            lo = ((lo - 0x06) & 0x0f) - 0x10;
+        int result = (old_a & 0xf0) - (value & 0xf0) + lo;
+        if (result < 0)
+            result -= 0x60;
+        A = (uint8_t)result;
+    }
 }
 
 //

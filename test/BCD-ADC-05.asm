@@ -1,22 +1,20 @@
-; Test BCD Addition - Edge case with zeros
-; Tests: ADC in decimal mode with zero
-; Expected: $00 + $00 = $00 in BCD
-; Result stored at $8000 should be $00
+; Test BCD ADC zero edge case
+; Tests: SED; $00 + $00 = $00 with no carry
+; Note: carry is checked before CMPI, since CMP itself sets C when A >= M
+; Expected: A=$00, C=0, Z=1
+; Result stored at $8000 should be $01 (success)
 $4000   SED
         CLC
         LDAI #$00
         ADCI #$00
-        CMPI #$00
-        BNE fail
-        BCS fail2     ; No carry should be generated
-        STAA $8000
-        CLD
+        BCC ok1       ; C must be clear
         BRK
-fail    LDAI #$FE
-        STAA $8000
-        CLD
+ok1     BEQ ok2       ; Z must be set (binary sum is zero)
         BRK
-fail2   LDAI #$FD
+ok2     CMPI #$00
+        BEQ pass
+        BRK
+pass    CLD
+        LDAI #$01
         STAA $8000
-        CLD
         BRK

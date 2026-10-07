@@ -5,7 +5,7 @@ include ../include.mk
 EMU = ../$(BINDIR)/6502
 
 # Individual test targets
-.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing test-BCD-ADC-01 test-BCD-ADC-02 test-BCD-ADC-03 test-BCD-ADC-04 test-BCD-ADC-05 test-BCD-ADC-06 test-BCD-SBC-01 test-BCD-SBC-02 test-BCD-SBC-03 test-LDAX-PAGE test-LDAY-PAGE test-STAIX-PAGE test-LDAIY-PAGE test-STAX-PAGE test-STAY-PAGE test-LDAZX-WRAP test-LDAZY-WRAP test-STAZX-WRAP test-STXZY-WRAP test-STYZX-WRAP test-ANDIX-WRAP test-JMPI-BUG-01 test-JMPI-BUG-02 test-JMPI-BUG-03 test-STACK-WRAP-01 test-STACK-WRAP-02 test-STACK-JSR-01 test-STACK-PRESERVE-01 test-STACK-FULL-01 test-FLAG-ADC-NVZ test-FLAG-SBC-BORROW test-FLAG-OVERFLOW-01 test-FLAG-OVERFLOW-02 test-FLAG-ZERO-ADC test-FLAG-ZERO-SBC test-BOUNDARY-INC-FF test-BOUNDARY-DEC-00 test-BOUNDARY-ADC-7F test-BOUNDARY-SBC-80 test-BOUNDARY-ASL-80 test-BOUNDARY-LSR-01 test-BOUNDARY-ROL-FF
+.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing test-BCD-ADC-01 test-BCD-ADC-02 test-BCD-ADC-03 test-BCD-ADC-04 test-BCD-ADC-05 test-BCD-ADC-06 test-BCD-SBC-01 test-BCD-SBC-02 test-BCD-SBC-03 test-LDAX-PAGE test-LDAY-PAGE test-STAIX-PAGE test-LDAIY-PAGE test-STAX-PAGE test-STAY-PAGE test-LDAZX-WRAP test-LDAZY-WRAP test-STAZX-WRAP test-STXZY-WRAP test-STYZX-WRAP test-ANDIX-WRAP test-JMPI-BUG-01 test-JMPI-BUG-02 test-JMPI-BUG-03 test-STACK-WRAP-01 test-STACK-WRAP-02 test-STACK-JSR-01 test-STACK-PRESERVE-01 test-STACK-FULL-01 test-FLAG-ADC-NVZ test-FLAG-SBC-BORROW test-FLAG-OVERFLOW-01 test-FLAG-OVERFLOW-02 test-FLAG-ZERO-ADC test-FLAG-ZERO-SBC test-BOUNDARY-INC-FF test-BOUNDARY-DEC-00 test-BOUNDARY-ADC-7F test-BOUNDARY-SBC-80 test-BOUNDARY-ASL-80 test-BOUNDARY-LSR-01 test-BOUNDARY-ROL-FF test-BCD-SBC-04 test-BCD-ADC-ZP test-BCD-FLAG-NV-01 test-BCD-FLAG-NV-02 test-BCD-FLAG-Z test-BCD-SBC-FLAGS
 
 # Run all tests using the test runner script
 test:
@@ -687,7 +687,7 @@ test-BCD-ADC-04:
 
 test-BCD-ADC-05:
 	@echo "Test BCD-ADC-05"
-	$(EMU) -c BCD-ADC-05.asm -r 4000 -a 8000:00
+	$(EMU) -c BCD-ADC-05.asm -r 4000 -a 8000:01
 
 test-BCD-ADC-06:
 	@echo "Test BCD-ADC-06"
@@ -704,6 +704,31 @@ test-BCD-SBC-02:
 test-BCD-SBC-03:
 	@echo "Test BCD-SBC-03"
 	$(EMU) -c BCD-SBC-03.asm -r 4000 -a 8000:00
+
+test-BCD-SBC-04:
+	@echo "Test BCD-SBC-04"
+	$(EMU) -c BCD-SBC-04.asm -r 4000 -a 8000:01
+
+test-BCD-ADC-ZP:
+	@echo "Test BCD-ADC-ZP"
+	$(EMU) -c BCD-ADC-ZP.asm -r 4000 -a 8000:01
+
+# NMOS 6502 decimal mode flag quirks
+test-BCD-FLAG-NV-01:
+	@echo "Test BCD-FLAG-NV-01"
+	$(EMU) -c BCD-FLAG-NV-01.asm -r 4000 -a 8000:01
+
+test-BCD-FLAG-NV-02:
+	@echo "Test BCD-FLAG-NV-02"
+	$(EMU) -c BCD-FLAG-NV-02.asm -r 4000 -a 8000:01
+
+test-BCD-FLAG-Z:
+	@echo "Test BCD-FLAG-Z"
+	$(EMU) -c BCD-FLAG-Z.asm -r 4000 -a 8000:01
+
+test-BCD-SBC-FLAGS:
+	@echo "Test BCD-SBC-FLAGS"
+	$(EMU) -c BCD-SBC-FLAGS.asm -r 4000 -a 8000:01
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 test-LDAX-PAGE:

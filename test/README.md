@@ -56,12 +56,12 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 ## Test Status
 
 ### Summary
-- **Total tests**: 197 (188 enabled, 9 disabled)
-- **Passing tests**: 188
+- **Total tests**: 203
+- **Passing tests**: 203
 - **Failing tests**: 0
-- **Disabled tests**: 9 (BCD arithmetic, see below)
+- **Disabled tests**: 0
 
-### Currently Passing Tests (188 tests)
+### Currently Passing Tests (203 tests)
 
 #### ADC (Add with Carry) - 8 passing
 - ADCA, ADCI, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
@@ -173,6 +173,15 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 #### Phase 1 Edge Cases: JMP Indirect Page Boundary Bug - 3 passing
 - JMPI-BUG-01, JMPI-BUG-02, JMPI-BUG-03
 
+#### Phase 1 Edge Cases: BCD (Decimal Mode) Arithmetic - 15 passing
+- BCD-ADC-01 through BCD-ADC-06, BCD-ADC-ZP - Decimal addition, carry generation
+- BCD-SBC-01 through BCD-SBC-04 - Decimal subtraction, borrow in and out
+- BCD-FLAG-NV-01, BCD-FLAG-NV-02, BCD-FLAG-Z, BCD-SBC-FLAGS - NMOS 6502 flag
+  quirks: ADC takes N and V from the intermediate sum and Z from the binary
+  sum; SBC takes every flag from the binary subtraction. (65C02 behaves
+  differently and is not emulated.) Results for invalid BCD digits (A-F) are
+  undefined on real hardware and are not tested.
+
 #### Phase 2 Edge Cases: Stack Operations - 5 passing
 - STACK-WRAP-01, STACK-WRAP-02 - Stack pointer wraparound at $00/$FF
 - STACK-JSR-01 - JSR/RTS with stack pointer near bottom
@@ -189,14 +198,6 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 - BOUNDARY-INC-FF, BOUNDARY-DEC-00 - Wrap at $FF/$00
 - BOUNDARY-ADC-7F, BOUNDARY-SBC-80 - Sign bit transitions
 - BOUNDARY-ASL-80, BOUNDARY-LSR-01, BOUNDARY-ROL-FF - Shift/rotate carry edges
-
-### Disabled Tests (9 tests)
-
-#### BCD (Decimal Mode) Arithmetic - 9 disabled
-- BCD-ADC-01 through BCD-ADC-06, BCD-SBC-01 through BCD-SBC-03
-- Reason: the emulator does not implement decimal mode (SED/CLD set the flag
-  but ADC/SBC always perform binary arithmetic). Commented out in
-  `run_tests.sh`; see `BCD-MODE-README.md`. Re-enable once BCD is implemented.
 
 ### Previously Failing Tests (Now Fixed)
 
@@ -216,6 +217,20 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
   - Status: ✅ FIXED - SBC now computes C (no borrow) and V like ADC of the
     one's complement, verified by FLAG-SBC-BORROW, FLAG-ZERO-SBC and
     BOUNDARY-SBC-80
+
+- **BCD (decimal mode) arithmetic** (9 tests were disabled)
+  - Previous Issue: SED/CLD maintained the D flag but ADC/SBC always
+    performed binary arithmetic, so all BCD tests failed.
+  - Status: ✅ FIXED - Decimal mode implemented with NMOS 6502 semantics in
+    the shared `addWithCarry()`/`subtractWithCarry()` helpers; all 15 BCD
+    tests enabled
+
+- **SEI** (emulator bug found while scoping decimal mode)
+  - Previous Issue: SEI cleared the interrupt-disable flag instead of
+    setting it. The SEI and CLI tests only checked that an unrelated store
+    ran, so neither could see the flag.
+  - Status: ✅ FIXED - SEI sets I; both tests now read P back via PHP/PLA
+    and assert bit 2 directly
 
 ## Adding New Tests
 
