@@ -79,3 +79,7 @@ Ankh.NoLoad
 
 # Office Temp Files
 ~$*
+
+# JetBrains IDE #
+#################
+.idea/
