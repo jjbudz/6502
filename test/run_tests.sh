@@ -208,6 +208,7 @@ run_test test-ADDRWRAP-STAX
 run_test test-ADDRWRAP-INCX
 run_test test-ADDRWRAP-LDAIY
 run_test test-ADDRWRAP-STAIY
+run_test test-DATA-PREFIX
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE

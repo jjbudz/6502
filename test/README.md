@@ -56,12 +56,12 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 ## Test Status
 
 ### Summary
-- **Total tests**: 221
-- **Passing tests**: 221
+- **Total tests**: 222
+- **Passing tests**: 222
 - **Failing tests**: 0
 - **Disabled tests**: 0
 
-### Currently Passing Tests (221 tests)
+### Currently Passing Tests (222 tests)
 
 #### ADC (Add with Carry) - 8 passing
 - ADCA, ADCI, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
@@ -217,6 +217,10 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
   ADDRWRAP-LDAIY, ADDRWRAP-STAIY - Indexed effective addresses past $FFFF
   ($FFF0 + $20) must wrap to $0010 on the 16-bit address bus.
 
+#### Assembler - 1 passing
+- DATA-PREFIX - `.DATA` accepts `$`-prefixed and bare hex, stores 4-digit
+  values low byte first, and ignores a trailing comment
+
 ### Previously Failing Tests (Now Fixed)
 
 - **ADCI** - Add with carry immediate test
@@ -270,6 +274,14 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
     truncated to 16 bits, so an address past $FFFF indexed beyond the end
     of the 64K memory array (undefined behaviour) instead of wrapping.
   - Status: ✅ FIXED - verified by the ADDRWRAP-* tests
+
+- **`.DATA` with `$` prefix** (assembler bug)
+  - Previous Issue: `.DATA` passed each token straight to `getHex()`, which
+    does not strip `$`, so `.DATA $12` (the form used in sample.asm and
+    CHEATSHEET.md) stored garbage. A trailing comment was also stored as
+    data, and invalid hex was silently accepted.
+  - Status: ✅ FIXED - `$` is optional, comments end the data list, and
+    invalid values are an assembler error; verified by DATA-PREFIX
 
 ## Adding New Tests
 
