@@ -78,7 +78,8 @@ about instruction sizes.
 
 ## Phases
 
-Each phase is one pull request.
+Each phase is one pull request. Status: phases 1-3 are done (PRs #55, #56
+and the phase 3 PR); 4 and 5 remain.
 
 | # | PR | Done when |
 |---|----|-----------|

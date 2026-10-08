@@ -13,23 +13,30 @@
  *    +-- lexLine()      text  -> vector<Token>
  *    |                  Splits the line into words and classifies each one
  *    |                  by its first character: a number ($hex or decimal),
- *    |                  an identifier (mnemonic or label), a directive
- *    |                  (.DATA) or '#'. Drops comments. Remembers the
- *    |                  column of every token for error messages.
+ *    |                  an identifier (mnemonic, label or register), a
+ *    |                  directive (.DATA), '#', or punctuation ( ) , :.
+ *    |                  Drops comments. Remembers the column of every token
+ *    |                  for error messages.
  *    |
  *    +-- parseLine()    vector<Token> -> Statement (appended to statements_)
  *    |     |            Recognises the line shape
- *    |     |                [$addr] [label] MNEMONIC [operand]
- *    |     |                [$addr] [label] .DATA value ...
+ *    |     |                [$addr] [label[:]] MNEMONIC [operand]
+ *    |     |                [$addr] [label[:]] .DATA value ...
  *    |     |            A leading $addr moves the location counter (pc_).
- *    |     |            A label in column 1 is recorded in labels_ at pc_.
- *    |     |            The statement is stamped with pc_, then pc_ is
- *    |     |            advanced by the statement's size.
+ *    |     |            A label is recorded in labels_ at pc_. The statement
+ *    |     |            is stamped with pc_, then pc_ is advanced by the
+ *    |     |            statement's size.
  *    |     |
- *    |     +-- parseOperand()  checks the operand matches the instruction
- *    |     |                   (immediate / address / label) and the width
- *    |     |                   the instruction needs
- *    |     +-- parseData()     converts .DATA values to bytes
+ *    |     +-- parseOperandShape()  reads the operand's punctuation into a
+ *    |     |                        Shape: #v, v, v,X, v,Y, (v,X), (v),Y, (v)
+ *    |     |                        or A, with v a number or a label
+ *    |     +-- encodeLegacy()       for a suffixed mnemonic (LDAZX, ...):
+ *    |     |                        the mode is in the name; check the
+ *    |     |                        operand is the right width
+ *    |     +-- encodeStandard()     for a bare mnemonic (LDA, ...): choose
+ *    |     |                        the mode from the shape and the value,
+ *    |     |                        then look up (mnemonic, mode) -> opcode
+ *    |     +-- parseData()          converts .DATA values to bytes
  *    |
  *    |  after the whole file has been read (pass 2):
  *    |
@@ -38,21 +45,40 @@
  *                       Label operands are looked up here, which is why a
  *                       branch can refer to a label defined further down.
  *
- * Why two passes: an instruction's size never depends on a label's value
- * (the mnemonic fixes it), so pass 1 can assign every address without
- * knowing any label. Pass 2 then has the complete label table.
+ * Why two passes: an instruction's size is settled in pass 1 (by the
+ * mnemonic for the legacy form; by the operand's shape and, for zero page
+ * vs. absolute, by whether its value is already known for the standard
+ * form), so pass 1 can assign every address. Pass 2 then has the complete
+ * label table.
  *
  * Errors do not stop assembly. error() prints "file:line:col: error: ..."
  * and counts; parseLine() abandons the offending line and run() moves on,
  * so one run reports everything wrong with a file. run() returns the count.
  *
- * SYNTAX ACCEPTED (legacy form; see docs/ASSEMBLER_PLAN.md for what follows)
+ * SYNTAX ACCEPTED
  *
- *   [$addr] [label] MNEMONIC [operand]   ; comment
- *   [$addr] [label] .DATA value ...      ; comment
+ *   [$addr] [label[:]] MNEMONIC [operand]   ; comment
+ *   [$addr] [label[:]] .DATA value ...      ; comment
  *
- * The addressing mode is spelled in the mnemonic (LDAI, LDAZ, STAA, ...).
- * Operands are #$hh or #ddd (immediate), $hh or $hhhh (address), or a label.
+ * Two mnemonic styles are accepted and may be mixed in one file:
+ *
+ *   Standard   The bare 6502 mnemonic; the operand's shape selects the
+ *              addressing mode, as in any 6502 assembler:
+ *                LDA #$10   LDA $10     LDA $10,X    LDA $1234   LDA $1234,X
+ *                LDA $1234,Y   LDA ($10,X)   LDA ($10),Y   JMP ($1234)
+ *                LSR A      BNE LOOP    BNE $4010
+ *              A value under $100 written with fewer than four hex digits
+ *              selects zero page when the instruction has a zero page form;
+ *              a label selects zero page only if it was defined earlier in
+ *              the file and is under $100. Branch targets may be labels or
+ *              literal addresses and must be within -128..+127.
+ *
+ *   Legacy     The addressing mode is spelled in the mnemonic (LDAI, LDAZ,
+ *              LDAZX, LDAIX, STAA, ...) and the operand is #$hh, #ddd, $hh,
+ *              $hhhh or a label. A 3-byte instruction requires a 4-digit
+ *              address; a 2-byte one a value under $100 in fewer digits.
+ *
+ * A label is an identifier in column 1, or any identifier followed by ':'.
  * .DATA values are hex, with or without a '$' prefix; a value above $FF is
  * stored as two bytes, low byte first. Source is case-insensitive.
  */
@@ -82,6 +108,126 @@ namespace
 
 /*
  * ---------------------------------------------------------------------------
+ * Addressing modes and the (mnemonic, mode) -> opcode table
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * The 6502 addressing modes. kImplied also covers the accumulator mode of
+ * ASL/LSR/ROL/ROR, which is one byte like the implied instructions.
+ */
+enum Mode
+{
+    kImplied,
+    kImmediate,
+    kZeroPage,
+    kZeroPageX,
+    kZeroPageY,
+    kAbsolute,
+    kAbsoluteX,
+    kAbsoluteY,
+    kIndirect,
+    kIndirectX,
+    kIndirectY,
+    kRelative,
+    kModeCount
+};
+
+const char* kModeNames[kModeCount] =
+{
+    "implied", "immediate", "zero page", "zero page,X", "zero page,Y",
+    "absolute", "absolute,X", "absolute,Y", "(indirect)", "(indirect,X)",
+    "(indirect),Y", "relative"
+};
+
+/**
+ * Operand bytes for each mode.
+ */
+const uint8_t kModeWidth[kModeCount] = { 0, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1 };
+
+/**
+ * Opcodes for one bare mnemonic (e.g. "LDA"), one per mode; -1 where the
+ * 6502 has no such form.
+ */
+struct OpcodeSet
+{
+    int opcode[kModeCount];
+};
+
+typedef std::map<std::string, OpcodeSet> OpcodeTable;
+
+/**
+ * Work out the addressing mode a legacy mnemonic spells. The emulator's
+ * table names each opcode as a three-letter base plus a suffix:
+ *
+ *   (none)  implied if 1 byte, relative if 2 (the branches), absolute if 3
+ *           (JMP, JSR, BIT)
+ *   I       immediate if 2 bytes, (indirect) if 3 (JMPI)
+ *   Z ZX ZY zero page, zero page,X, zero page,Y
+ *   A X Y   absolute, absolute,X, absolute,Y
+ *   IX IY   (indirect,X), (indirect),Y
+ *
+ * Returns kModeCount for a suffix it does not recognise.
+ */
+Mode modeFromSuffix(const char* suffix, uint8_t bytes)
+{
+    if (bytes == 1) return kImplied;
+
+    if (strcmp(suffix, "") == 0)   return (bytes == 2) ? kRelative : kAbsolute;
+    if (strcmp(suffix, "I") == 0)  return (bytes == 2) ? kImmediate : kIndirect;
+    if (strcmp(suffix, "Z") == 0)  return kZeroPage;
+    if (strcmp(suffix, "ZX") == 0) return kZeroPageX;
+    if (strcmp(suffix, "ZY") == 0) return kZeroPageY;
+    if (strcmp(suffix, "A") == 0)  return kAbsolute;
+    if (strcmp(suffix, "X") == 0)  return kAbsoluteX;
+    if (strcmp(suffix, "Y") == 0)  return kAbsoluteY;
+    if (strcmp(suffix, "IX") == 0) return kIndirectX;
+    if (strcmp(suffix, "IY") == 0) return kIndirectY;
+
+    return kModeCount;
+}
+
+/**
+ * Build the standard-syntax table from the emulator's instruction table,
+ * once. Every legacy name LDAZX, LDAI, ... contributes one (LDA, mode)
+ * entry, so the two syntaxes can never disagree about an opcode.
+ */
+const OpcodeTable& opcodeTable()
+{
+    static OpcodeTable table;
+    static bool built = false;
+
+    if (built) return table;
+    built = true;
+
+    for (int op = 0; op < 256; op++)
+    {
+        uint8_t bytes = asmInstructionBytes((uint8_t)op);
+        const char* symbol = asmInstructionSymbol((uint8_t)op);
+
+        if (bytes == 0 || strlen(symbol) < 3) continue;
+
+        std::string base(symbol, 3);
+        Mode mode = modeFromSuffix(symbol + 3, bytes);
+
+        if (mode == kModeCount) continue;
+
+        OpcodeTable::iterator it = table.find(base);
+        if (it == table.end())
+        {
+            OpcodeSet empty;
+            for (int m = 0; m < kModeCount; m++) empty.opcode[m] = -1;
+            it = table.insert(std::make_pair(base, empty)).first;
+        }
+
+        if (it->second.opcode[mode] < 0) it->second.opcode[mode] = op;
+    }
+
+    return table;
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Data passed between the stages
  * ---------------------------------------------------------------------------
  */
@@ -90,17 +236,19 @@ namespace
  * One word of a source line, as produced by lexLine().
  *
  * The lexer only classifies; it does not know whether an identifier is a
- * mnemonic or a label, or whether a number is a sensible size. Those are
- * the parser's decisions, which is why text, hex and value are all kept.
+ * mnemonic, a label or the register X, or whether a number is a sensible
+ * size. Those are the parser's decisions, which is why text, hex and value
+ * are all kept.
  */
 struct Token
 {
     enum Kind
     {
         kNumber,     // $hex or decimal digits
-        kIdentifier, // mnemonic or label
+        kIdentifier, // mnemonic, label, or A/X/Y
         kDirective,  // .DATA
-        kHash        // '#', introduces an immediate value
+        kHash,       // '#', introduces an immediate value
+        kPunct       // one of ( ) , :
     };
 
     Kind          kind;
@@ -111,29 +259,52 @@ struct Token
 };
 
 /**
- * An instruction's operand, as produced by parseOperand().
- *
- * For kImmediate and kAddress the value is final. For kLabel only the name
- * is known in pass 1; emit() looks it up and decides how to encode it
- * (relative offset for a branch, address otherwise).
+ * The punctuation pattern of an operand, as read by parseOperandShape(),
+ * before any decision about addressing mode. 'v' is a number or label.
+ */
+struct Shape
+{
+    enum Kind
+    {
+        kNone,         //
+        kAccumulator,  // A
+        kImmediate,    // #v
+        kDirect,       // v
+        kDirectX,      // v,X
+        kDirectY,      // v,Y
+        kIndirect,     // (v)
+        kIndirectX,    // (v,X)
+        kIndirectY     // (v),Y
+    };
+
+    Kind  kind;
+    Token value;  // the v token; meaningful unless kNone/kAccumulator
+
+    Shape() : kind(kNone) {}
+};
+
+/**
+ * An instruction's encoded operand, as produced by encodeLegacy() or
+ * encodeStandard(). width and relative are final; the value is final for
+ * kLiteral, and for kLabel is looked up by emit().
  */
 struct Operand
 {
     enum Kind
     {
         kNone,
-        kImmediate, // #value, one byte
-        kAddress,   // $addr literal, one or two bytes
-        kLabel      // symbolic, resolved in pass 2
+        kLiteral, // value is known
+        kLabel    // value is labels_[label], resolved in pass 2
     };
 
     Kind        kind;
     uint16_t    value;
-    uint8_t     width; // bytes occupied; for kLabel decided by the instruction
     std::string label;
-    int         col;   // for error messages in pass 2
+    uint8_t     width;    // operand bytes: 0, 1 or 2
+    bool        relative; // encode as a branch offset from the next instruction
+    int         col;      // for error messages in pass 2
 
-    Operand() : kind(kNone), value(0), width(0), col(0) {}
+    Operand() : kind(kNone), value(0), width(0), relative(false), col(0) {}
 };
 
 /**
@@ -158,8 +329,8 @@ struct Statement
 
 /**
  * The eight relative branch instructions (BPL BMI BVC BVS BCC BCS BNE BEQ)
- * are the opcodes xxx10000; they are the only ones whose label operand is
- * encoded as an offset rather than an address.
+ * are the opcodes xxx10000; they are the only ones whose operand is encoded
+ * as an offset rather than an address.
  */
 bool isBranch(uint8_t opcode)
 {
@@ -187,8 +358,13 @@ private:
     // Pass 1: text -> tokens -> statements, addresses and labels
     bool lexLine(const char* line, int lineno, std::vector<Token>& tokens);
     void parseLine(const std::vector<Token>& tokens, int lineno);
-    bool parseOperand(const std::vector<Token>& tokens, size_t first,
-                      uint8_t opcode, int lineno, Operand& operand);
+    bool parseOperandShape(const std::vector<Token>& tokens, size_t first,
+                           int lineno, Shape& shape);
+    bool encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
+                      Operand& operand);
+    bool encodeStandard(const Shape& shape, const std::string& mnemonic,
+                        const OpcodeSet& set, int lineno, int col,
+                        uint8_t& opcode, Operand& operand);
     bool parseData(const std::vector<Token>& tokens, size_t first,
                    int lineno, std::vector<uint8_t>& data);
 
@@ -243,12 +419,13 @@ void Assembler::error(int line, int col, const char* fmt, ...)
  * ends the line. The first character of a word decides its kind:
  *
  *   '#'              kHash (a one-character token)
+ *   ( ) , :          kPunct (one-character tokens, so "($10),Y" lexes
+ *                    without spaces)
  *   '$' or digit     kNumber; the digits that follow are validated against
  *                    the radix here so later stages can trust token.value
  *   '.'              kDirective
  *   letter or '_'    kIdentifier
- *   anything else    error (for example ',' or '(' from standard 6502
- *                    syntax, which this version does not accept)
+ *   anything else    error
  *
  * Text is uppercased so the rest of the assembler is case-insensitive.
  * Returns false after reporting an error; the caller skips the line.
@@ -279,6 +456,12 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
         {
             token.kind = Token::kHash;
             token.text = "#";
+            i++;
+        }
+        else if (c == '(' || c == ')' || c == ',' || c == ':')
+        {
+            token.kind = Token::kPunct;
+            token.text = std::string(1, c);
             i++;
         }
         else if (c == '$' || isdigit((unsigned char)c))
@@ -341,12 +524,145 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
 }
 
 /**
- * Parse the operand tokens (tokens[first..]) for an instruction.
+ * Read the operand tokens (tokens[first..]) into a Shape: which of the
+ * 6502 operand patterns they form, and the value token inside it.
  *
- * The instruction's total length (asmInstructionBytes) says how many
- * operand bytes it needs: 0, 1 or 2. This function checks that the operand
- * written in the source is of that size, so the emitted code can never be
- * misaligned by an operand that is too short or too long:
+ *   (nothing)          kNone
+ *   A                  kAccumulator
+ *   # v                kImmediate
+ *   v                  kDirect
+ *   v , X   /  v , Y   kDirectX / kDirectY
+ *   ( v )              kIndirect
+ *   ( v , X )          kIndirectX
+ *   ( v ) , Y          kIndirectY
+ *
+ * where v is a number or an identifier. This is pure syntax: whether the
+ * instruction supports the pattern is decided by encodeLegacy() or
+ * encodeStandard(). Returns false after reporting an error.
+ */
+bool Assembler::parseOperandShape(const std::vector<Token>& tokens, size_t first,
+                                  int lineno, Shape& shape)
+{
+    size_t i = first;
+    size_t n = tokens.size();
+
+    if (i >= n)
+    {
+        shape.kind = Shape::kNone;
+        return true;
+    }
+
+    // Helpers expressed as small lambdas would be neater, but this file is
+    // kept to the C++ the rest of the project uses.
+    #define IS_PUNCT(idx, ch) ((idx) < n && tokens[idx].kind == Token::kPunct && tokens[idx].text[0] == (ch))
+    #define IS_REG(idx, name) ((idx) < n && tokens[idx].kind == Token::kIdentifier && tokens[idx].text == (name))
+    #define IS_VALUE(idx)     ((idx) < n && (tokens[idx].kind == Token::kNumber || tokens[idx].kind == Token::kIdentifier))
+
+    if (IS_REG(i, "A") && i + 1 == n)
+    {
+        shape.kind = Shape::kAccumulator;
+        shape.value = tokens[i];
+        return true;
+    }
+
+    if (tokens[i].kind == Token::kHash) // # v
+    {
+        if (!IS_VALUE(i + 1))
+        {
+            error(lineno, tokens[i].col, "expected a value after #");
+            return false;
+        }
+        shape.kind = Shape::kImmediate;
+        shape.value = tokens[i + 1];
+        i += 2;
+    }
+    else if (IS_PUNCT(i, '(')) // ( v ...
+    {
+        if (!IS_VALUE(i + 1))
+        {
+            error(lineno, tokens[i].col, "expected a value after (");
+            return false;
+        }
+        shape.value = tokens[i + 1];
+
+        if (IS_PUNCT(i + 2, ',')) // ( v , X )
+        {
+            if (!IS_REG(i + 3, "X") || !IS_PUNCT(i + 4, ')'))
+            {
+                error(lineno, tokens[i].col, "expected (value,X)");
+                return false;
+            }
+            shape.kind = Shape::kIndirectX;
+            i += 5;
+        }
+        else if (IS_PUNCT(i + 2, ')'))
+        {
+            if (IS_PUNCT(i + 3, ',')) // ( v ) , Y
+            {
+                if (!IS_REG(i + 4, "Y"))
+                {
+                    error(lineno, tokens[i + 3].col, "expected (value),Y");
+                    return false;
+                }
+                shape.kind = Shape::kIndirectY;
+                i += 5;
+            }
+            else // ( v )
+            {
+                shape.kind = Shape::kIndirect;
+                i += 3;
+            }
+        }
+        else
+        {
+            error(lineno, tokens[i].col, "unbalanced parenthesis in operand");
+            return false;
+        }
+    }
+    else if (IS_VALUE(i)) // v [, X|Y]
+    {
+        shape.value = tokens[i];
+        shape.kind = Shape::kDirect;
+        i++;
+
+        if (IS_PUNCT(i, ','))
+        {
+            if (IS_REG(i + 1, "X"))      shape.kind = Shape::kDirectX;
+            else if (IS_REG(i + 1, "Y")) shape.kind = Shape::kDirectY;
+            else
+            {
+                error(lineno, tokens[i].col, "expected ,X or ,Y");
+                return false;
+            }
+            i += 2;
+        }
+    }
+    else
+    {
+        error(lineno, tokens[i].col, "unexpected token ->%s<-", tokens[i].text.c_str());
+        return false;
+    }
+
+    #undef IS_PUNCT
+    #undef IS_REG
+    #undef IS_VALUE
+
+    // Anything left over is a second operand, which no 6502 instruction has
+    if (i < n)
+    {
+        error(lineno, tokens[i].col, "unexpected token after operand ->%s<-",
+              tokens[i].text.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Encode the operand for a legacy mnemonic, whose addressing mode is spelled
+ * in its name (LDAZX is always zero page,X). All that remains is to check
+ * the operand written in the source is the width the instruction needs, so
+ * the emitted code can never be misaligned:
  *
  *   #$hh / #ddd   one byte, must be <= 255
  *   $hh           one byte: for 2-byte instructions, value <= $FF and
@@ -357,134 +673,270 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
  *                 filled in by emit()
  *
  * These are the rules the original assembler applied to its test programs,
- * kept so existing sources assemble to identical bytes.
+ * kept so existing sources assemble to identical bytes. The standard forms
+ * v,X  (v)  and so on are not accepted here: the suffix already said that.
  *
  * Returns false after reporting an error.
  */
-bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
-                             uint8_t opcode, int lineno, Operand& operand)
+bool Assembler::encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
+                             Operand& operand)
 {
     uint8_t bytes = asmInstructionBytes(opcode);
-    size_t  count = tokens.size() - first;
+    const Token& tok = shape.value;
 
-    // No operand written
-    if (count == 0)
+    if (shape.kind == Shape::kNone)
     {
         if (bytes > 1)
         {
-            error(lineno, tokens.back().col + (int)tokens.back().text.size(),
-                  "missing operand");
+            error(lineno, 0, "missing operand");
             return false;
         }
         return true;
     }
 
-    // Operand written for an implied-mode instruction
     if (bytes == 1)
     {
-        error(lineno, tokens[first].col, "instruction takes no operand");
+        error(lineno, tok.col, "instruction takes no operand");
         return false;
     }
 
-    const Token& tok = tokens[first];
     operand.col = tok.col;
+    operand.width = bytes - 1;
+    operand.relative = isBranch(opcode);
 
-    if (tok.kind == Token::kHash) // immediate value: '#' then a number
+    if (shape.kind == Shape::kImmediate)
     {
-        if (count < 2 || tokens[first+1].kind != Token::kNumber)
+        if (tok.kind != Token::kNumber)
         {
             error(lineno, tok.col, "expected a value after #");
             return false;
         }
-
-        const Token& num = tokens[first+1];
-
-        if (num.hex && num.text.size() > 2)
-        {
-            error(lineno, num.col, "wrong number of digits in hex value, ->$%s<-",
-                  num.text.c_str());
-            return false;
-        }
-        if (!num.hex && num.text.size() > 3)
-        {
-            error(lineno, num.col, "wrong number of digits in decimal value, ->%s<-",
-                  num.text.c_str());
-            return false;
-        }
-        if (num.value > 0xff)
-        {
-            error(lineno, num.col, "immediate value out of range, ->%s<-",
-                  num.text.c_str());
-            return false;
-        }
-
-        operand.kind = Operand::kImmediate;
-        operand.value = (uint16_t)num.value;
-        operand.width = 1;
-        count -= 2;
-        first += 2;
-    }
-    else if (tok.kind == Token::kNumber) // address literal
-    {
-        if (!tok.hex)
-        {
-            error(lineno, tok.col, "address must be hex, ->%s<-", tok.text.c_str());
-            return false;
-        }
-        if (tok.text.size() > 4)
+        if (tok.hex && tok.text.size() > 2)
         {
             error(lineno, tok.col, "wrong number of digits in hex value, ->$%s<-",
                   tok.text.c_str());
             return false;
         }
-
-        // Four digits always mean a two-byte address, even $0040; fewer
-        // digits mean one byte as long as the value fits.
-        bool wide = (tok.text.size() == 4 || tok.value > 0xff);
-
-        if (bytes == 3 && tok.text.size() != 4)
+        if (!tok.hex && tok.text.size() > 3)
         {
-            error(lineno, tok.col,
-                  "3-byte instruction requires 4-digit hex address, got ->$%s<-",
+            error(lineno, tok.col, "wrong number of digits in decimal value, ->%s<-",
                   tok.text.c_str());
             return false;
         }
-        if (bytes == 2 && wide)
+        if (tok.value > 0xff)
         {
-            error(lineno, tok.col,
-                  "2-byte instruction requires 1-byte address, got ->$%s<-",
+            error(lineno, tok.col, "immediate value out of range, ->%s<-",
                   tok.text.c_str());
             return false;
         }
 
-        operand.kind = Operand::kAddress;
+        operand.kind = Operand::kLiteral;
         operand.value = (uint16_t)tok.value;
-        operand.width = bytes - 1;
-        count--;
-        first++;
+        operand.width = 1;
+        return true;
     }
-    else if (tok.kind == Token::kIdentifier) // label, resolved in pass 2
+
+    if (shape.kind != Shape::kDirect)
+    {
+        error(lineno, tok.col,
+              "%s spells its addressing mode; use the bare mnemonic for standard syntax",
+              asmInstructionSymbol(opcode));
+        return false;
+    }
+
+    if (tok.kind == Token::kIdentifier) // label, resolved in pass 2
     {
         operand.kind = Operand::kLabel;
         operand.label = tok.text;
-        operand.width = bytes - 1;
-        count--;
-        first++;
+        return true;
     }
-    else
+
+    // Address literal
+    if (!tok.hex)
     {
-        error(lineno, tok.col, "unexpected token ->%s<-", tok.text.c_str());
+        error(lineno, tok.col, "address must be hex, ->%s<-", tok.text.c_str());
+        return false;
+    }
+    if (tok.text.size() > 4)
+    {
+        error(lineno, tok.col, "wrong number of digits in hex value, ->$%s<-",
+              tok.text.c_str());
         return false;
     }
 
-    // Anything left over is a second operand, which no 6502 instruction has
-    if (count > 0)
+    // Four digits always mean a two-byte address, even $0040; fewer digits
+    // mean one byte as long as the value fits.
+    bool wide = (tok.text.size() == 4 || tok.value > 0xff);
+
+    if (bytes == 3 && tok.text.size() != 4)
     {
-        error(lineno, tokens[first].col, "unexpected token after operand ->%s<-",
-              tokens[first].text.c_str());
+        error(lineno, tok.col,
+              "3-byte instruction requires 4-digit hex address, got ->$%s<-",
+              tok.text.c_str());
+        return false;
+    }
+    if (bytes == 2 && wide)
+    {
+        error(lineno, tok.col,
+              "2-byte instruction requires 1-byte address, got ->$%s<-",
+              tok.text.c_str());
         return false;
     }
 
+    operand.kind = Operand::kLiteral;
+    operand.value = (uint16_t)tok.value;
+    return true;
+}
+
+/**
+ * Encode the operand for a bare mnemonic by choosing the addressing mode
+ * from the operand's shape and value, then looking up (mnemonic, mode).
+ *
+ *   shape           candidate modes
+ *   (none) / A      implied
+ *   #v              immediate
+ *   v               relative if the mnemonic is a branch; else zero page
+ *                   or absolute
+ *   v,X   v,Y       zero page,X or absolute,X;  zero page,Y or absolute,Y
+ *   (v)             (indirect)
+ *   (v,X)  (v),Y    (indirect,X)  (indirect),Y
+ *
+ * Zero page is chosen over absolute when the mnemonic has a zero page form
+ * and the value is known to fit: a literal under $100 written with fewer
+ * than four digits, or a label already defined at an address under $100.
+ * A label defined later in the file is assumed absolute, so that pass 1
+ * can fix the instruction's size without knowing the label. When only the
+ * zero page form exists (STX v,Y; every (indirect,X) and (indirect),Y) the
+ * value must fit in a byte, which emit() checks for labels.
+ *
+ * Returns false after reporting an error.
+ */
+bool Assembler::encodeStandard(const Shape& shape, const std::string& mnemonic,
+                               const OpcodeSet& set, int lineno, int col,
+                               uint8_t& opcode, Operand& operand)
+{
+    const Token& tok = shape.value;
+
+    // Is the value known now, and does it fit in zero page?
+    unsigned long value = 0;
+    bool fitsZeroPage = false;
+
+    if (shape.kind != Shape::kNone && shape.kind != Shape::kAccumulator)
+    {
+        if (tok.kind == Token::kNumber)
+        {
+            if (tok.hex && tok.text.size() > 4)
+            {
+                error(lineno, tok.col, "wrong number of digits in hex value, ->$%s<-",
+                      tok.text.c_str());
+                return false;
+            }
+            if (tok.value > 0xffff)
+            {
+                error(lineno, tok.col, "value out of range, ->%s<-", tok.text.c_str());
+                return false;
+            }
+            value = tok.value;
+            fitsZeroPage = (value <= 0xff) && !(tok.hex && tok.text.size() == 4);
+        }
+        else
+        {
+            std::map<std::string, uint16_t>::const_iterator it = labels_.find(tok.text);
+            if (it != labels_.end())
+            {
+                value = it->second;
+                fitsZeroPage = (value <= 0xff);
+            }
+        }
+    }
+
+    // Pick the mode from the shape
+    Mode mode = kModeCount;
+
+    switch (shape.kind)
+    {
+    case Shape::kNone:
+    case Shape::kAccumulator:
+        mode = kImplied;
+        break;
+
+    case Shape::kImmediate:
+        mode = kImmediate;
+        break;
+
+    case Shape::kIndirect:
+        mode = kIndirect;
+        break;
+
+    case Shape::kIndirectX:
+        mode = kIndirectX;
+        break;
+
+    case Shape::kIndirectY:
+        mode = kIndirectY;
+        break;
+
+    case Shape::kDirect:
+    case Shape::kDirectX:
+    case Shape::kDirectY:
+        {
+            Mode zp  = (shape.kind == Shape::kDirect) ? kZeroPage :
+                       (shape.kind == Shape::kDirectX) ? kZeroPageX : kZeroPageY;
+            Mode abs = (shape.kind == Shape::kDirect) ? kAbsolute :
+                       (shape.kind == Shape::kDirectX) ? kAbsoluteX : kAbsoluteY;
+
+            if (shape.kind == Shape::kDirect && set.opcode[kRelative] >= 0)
+            {
+                mode = kRelative;
+            }
+            else if (fitsZeroPage && set.opcode[zp] >= 0)
+            {
+                mode = zp;
+            }
+            else if (set.opcode[abs] >= 0)
+            {
+                mode = abs;
+            }
+            else
+            {
+                mode = zp; // only form there is; emit() checks the value fits
+            }
+        }
+        break;
+    }
+
+    if (mode == kModeCount || set.opcode[mode] < 0)
+    {
+        error(lineno, tok.col ? tok.col : col, "%s has no %s form",
+              mnemonic.c_str(), kModeNames[mode == kModeCount ? kImplied : mode]);
+        return false;
+    }
+
+    opcode = (uint8_t)set.opcode[mode];
+    operand.width = kModeWidth[mode];
+    operand.relative = (mode == kRelative);
+    operand.col = tok.col;
+
+    if (operand.width == 0) return true;
+
+    if (tok.kind == Token::kIdentifier)
+    {
+        // A label is always resolved in pass 2 (even if known now) so that
+        // one code path checks ranges and computes branch offsets.
+        operand.kind = Operand::kLabel;
+        operand.label = tok.text;
+        return true;
+    }
+
+    if (operand.width == 1 && !operand.relative && value > 0xff)
+    {
+        error(lineno, tok.col, "%s %s takes a 1-byte value, got ->%s%s<-",
+              mnemonic.c_str(), kModeNames[mode], tok.hex ? "$" : "", tok.text.c_str());
+        return false;
+    }
+
+    operand.kind = Operand::kLiteral;
+    operand.value = (uint16_t)value;
     return true;
 }
 
@@ -538,19 +990,21 @@ bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
  *
  * Works left to right through the line shape
  *
- *     [$addr] [label] MNEMONIC [operand]
- *     [$addr] [label] .DATA value ...
+ *     [$addr] [label[:]] MNEMONIC [operand]
+ *     [$addr] [label[:]] .DATA value ...
  *
- *   1. A leading $addr sets the location counter. (A label and a $addr
- *      cannot both appear: the label must be in column 1, and a $addr
- *      first on the line occupies it.)
- *   2. An identifier in column 1 defines a label at the current location.
- *      Column 1 is the rule, not "first word", so an indented mnemonic is
- *      never mistaken for a label and a label is never confused with an
- *      operand elsewhere on the line.
- *   3. What remains is a directive or a mnemonic. The mnemonic is looked
- *      up in the emulator's instruction table (asmLookupInstruction); an
- *      unknown one is an error rather than a guess.
+ *   1. A leading $addr sets the location counter.
+ *   2. An identifier in column 1, or any identifier followed by ':',
+ *      defines a label at the current location. Column 1 is the rule for
+ *      the colon-less form so an indented mnemonic is never mistaken for a
+ *      label and a label is never confused with an operand elsewhere on
+ *      the line.
+ *   3. What remains is a directive or a mnemonic. The operand's shape is
+ *      read first (parseOperandShape), then:
+ *        - a name in the emulator's table with a mode suffix (LDAZX) is a
+ *          legacy mnemonic: encodeLegacy()
+ *        - a three-letter name in the standard table (LDA): encodeStandard()
+ *        - anything else is an error rather than a guess.
  *
  * The statement is stamped with the current pc_, then pc_ advances by the
  * statement's size, which is why every later label gets the right address
@@ -559,8 +1013,9 @@ bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
 void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
 {
     size_t i = 0;
+    size_t n = tokens.size();
 
-    if (tokens.empty()) return; // blank or comment-only line
+    if (n == 0) return; // blank or comment-only line
 
     // 1. Optional location: a $addr token first on the line
     if (tokens[0].kind == Token::kNumber && tokens[0].hex)
@@ -574,25 +1029,32 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
         pc_ = (uint16_t)tokens[0].value;
         i++;
     }
-    // 2. Optional label: an identifier in column 1
-    else if (tokens[0].kind == Token::kIdentifier && tokens[0].col == 1)
+
+    // 2. Optional label: an identifier in column 1, or one followed by ':'
+    if (i < n && tokens[i].kind == Token::kIdentifier)
     {
-        const std::string& label = tokens[0].text;
+        bool colon = (i + 1 < n && tokens[i+1].kind == Token::kPunct &&
+                      tokens[i+1].text == ":");
 
-        if (labels_.find(label) != labels_.end())
+        if (colon || tokens[i].col == 1)
         {
-            error(lineno, tokens[0].col, "label %s is already defined", label.c_str());
-            return;
+            const std::string& label = tokens[i].text;
+
+            if (labels_.find(label) != labels_.end())
+            {
+                error(lineno, tokens[i].col, "label %s is already defined", label.c_str());
+                return;
+            }
+
+            FTRACE("Assembler recording label: %s at %04x",
+                __FILE__, __LINE__, label.c_str(), pc_);
+
+            labels_[label] = pc_;
+            i += colon ? 2 : 1;
         }
-
-        FTRACE("Assembler recording label: %s at %04x",
-            __FILE__, __LINE__, label.c_str(), pc_);
-
-        labels_[label] = pc_;
-        i++;
     }
 
-    if (i >= tokens.size()) return; // just a location or a label on its own
+    if (i >= n) return; // just a location or a label on its own
 
     // 3. The statement itself
     Statement statement;
@@ -616,17 +1078,31 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
     }
     else if (tok.kind == Token::kIdentifier)
     {
-        int opcode = asmLookupInstruction(tok.text.c_str());
+        Shape shape;
+        if (!parseOperandShape(tokens, i + 1, lineno, shape)) return;
 
-        if (opcode < 0)
+        statement.kind = Statement::kInstruction;
+
+        int legacy = asmLookupInstruction(tok.text.c_str());
+        const OpcodeTable& table = opcodeTable();
+        OpcodeTable::const_iterator standard = table.find(tok.text);
+
+        if (legacy >= 0 && tok.text.size() > 3) // suffixed legacy mnemonic
+        {
+            statement.opcode = (uint8_t)legacy;
+            if (!encodeLegacy(shape, statement.opcode, lineno, statement.operand)) return;
+        }
+        else if (standard != table.end()) // bare mnemonic
+        {
+            if (!encodeStandard(shape, tok.text, standard->second, lineno, tok.col,
+                                statement.opcode, statement.operand)) return;
+        }
+        else
         {
             error(lineno, tok.col, "unknown instruction %s", tok.text.c_str());
             return;
         }
 
-        statement.kind = Statement::kInstruction;
-        statement.opcode = (uint8_t)opcode;
-        if (!parseOperand(tokens, i + 1, statement.opcode, lineno, statement.operand)) return;
         pc_ += asmInstructionBytes(statement.opcode);
     }
     else
@@ -649,18 +1125,17 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
  * Emitter: write every statement's bytes into memory (pass 2).
  *
  * By now labels_ is complete, so this is where a label operand becomes a
- * number:
+ * number. Then, for a label or a literal alike:
  *
- *   branch (BNE, BEQ, ...)   one byte: the signed distance from the address
- *                            after the operand byte to the label, which
+ *   relative (branches)      one byte: the signed distance from the address
+ *                            after the operand byte to the target, which
  *                            must be within -128..127
- *   2-byte instruction       one byte: the label's address, which must be
- *                            in zero page
- *   3-byte instruction       two bytes: the label's address, low byte first
+ *   one-byte operand         the value must fit in a byte (zero page, or
+ *                            an immediate given as a label)
+ *   two-byte operand         low byte first
  *
- * Immediate and literal-address operands were finished in pass 1 and are
- * written as they are. An unresolvable label is reported at the line and
- * column of the operand and that statement's operand is left unwritten.
+ * An unresolvable or out-of-range operand is reported at the line and
+ * column of the operand and left unwritten.
  */
 void Assembler::emit()
 {
@@ -699,34 +1174,29 @@ void Assembler::emit()
                 continue;
             }
 
-            uint16_t target = it->second;
+            value = it->second;
+        }
 
-            if (isBranch(statement.opcode))
-            {
-                // The CPU adds the offset to the PC after it has fetched
-                // the whole two-byte instruction, i.e. to ip + 1 here.
-                int delta = (int)target - (int)(uint16_t)(ip + 1);
+        if (operand.relative)
+        {
+            // The CPU adds the offset to the PC after it has fetched the
+            // whole two-byte instruction, i.e. to ip + 1 here.
+            int delta = (int)value - (int)(uint16_t)(ip + 1);
 
-                if (delta < -128 || delta > 127)
-                {
-                    error(statement.line, operand.col,
-                          "branch to %s ($%04x) from $%04x is out of range (%d bytes)",
-                          operand.label.c_str(), target, statement.address, delta);
-                    continue;
-                }
-                value = (uint16_t)(delta & 0xff);
-            }
-            else if (operand.width == 1 && target > 0xff)
+            if (delta < -128 || delta > 127)
             {
                 error(statement.line, operand.col,
-                      "label %s ($%04x) does not fit in a 1-byte operand",
-                      operand.label.c_str(), target);
+                      "branch to $%04x from $%04x is out of range (%d bytes)",
+                      value, statement.address, delta);
                 continue;
             }
-            else
-            {
-                value = target;
-            }
+            value = (uint16_t)(delta & 0xff);
+        }
+        else if (operand.width == 1 && value > 0xff)
+        {
+            error(statement.line, operand.col,
+                  "value $%04x does not fit in a 1-byte operand", value);
+            continue;
         }
 
         memory_[ip++] = LOBYTE(value);
