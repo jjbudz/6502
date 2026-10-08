@@ -1,5 +1,5 @@
 
-LIBSOURCE = l6502.cpp ftrace.cpp ticker.cpp util.cpp
+LIBSOURCE = l6502.cpp asm6502.cpp ftrace.cpp ticker.cpp util.cpp
 
 LIBNAME = 6502
 LIBNAMES =
