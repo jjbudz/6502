@@ -202,6 +202,12 @@ run_test test-ZPWRAP-ADCIY
 run_test test-ZPWRAP-SBCIX
 run_test test-ZPWRAP-STAIY
 run_test test-ZPWRAP-STAIX
+run_test test-ADDRWRAP-LDAX
+run_test test-ADDRWRAP-LDAY
+run_test test-ADDRWRAP-STAX
+run_test test-ADDRWRAP-INCX
+run_test test-ADDRWRAP-LDAIY
+run_test test-ADDRWRAP-STAIY
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE

@@ -56,12 +56,12 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 ## Test Status
 
 ### Summary
-- **Total tests**: 215
-- **Passing tests**: 215
+- **Total tests**: 221
+- **Passing tests**: 221
 - **Failing tests**: 0
 - **Disabled tests**: 0
 
-### Currently Passing Tests (215 tests)
+### Currently Passing Tests (221 tests)
 
 #### ADC (Add with Carry) - 8 passing
 - ADCA, ADCI, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
@@ -212,6 +212,11 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
   ZPWRAP-STAIY - A (zp,X) or (zp),Y pointer at $FF must take its high byte
   from $00, not $0100. A decoy high byte at $0100 makes the bug visible.
 
+#### 16-bit Address Wraparound - 6 passing
+- ADDRWRAP-LDAX, ADDRWRAP-LDAY, ADDRWRAP-STAX, ADDRWRAP-INCX,
+  ADDRWRAP-LDAIY, ADDRWRAP-STAIY - Indexed effective addresses past $FFFF
+  ($FFF0 + $20) must wrap to $0010 on the 16-bit address bus.
+
 ### Previously Failing Tests (Now Fixed)
 
 - **ADCI** - Add with carry immediate test
@@ -259,6 +264,12 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
     high byte from zp+1 computed as int, so a pointer at $FF used $0100.
   - Status: ✅ FIXED - the high byte address wraps within zero page,
     verified by the ZPWRAP-* tests
+
+- **16-bit address wraparound**
+  - Previous Issue: abs,X, abs,Y and (zp),Y effective addresses were not
+    truncated to 16 bits, so an address past $FFFF indexed beyond the end
+    of the 64K memory array (undefined behaviour) instead of wrapping.
+  - Status: ✅ FIXED - verified by the ADDRWRAP-* tests
 
 ## Adding New Tests
 
