@@ -3008,7 +3008,25 @@ int assemble(const char* filename)
 
                     while (strlen(getToken(token,&tokens)))
                     {
-                        uint16_t hex = getHex(token);
+                        if (token[0] == ';') // trailing comment
+                        {
+                            skip = true;
+                            break;
+                        }
+
+                        // Accept $-prefixed hex like operands do, and bare hex
+                        const char* digits = (token[0] == '$') ? token+1 : token;
+                        size_t numDigits = strlen(digits);
+
+                        if (numDigits == 0 || numDigits > 4 ||
+                            strspn(digits, "0123456789ABCDEF") != numDigits)
+                        {
+                            printf("Line %d: invalid hex value in data section, ->%s<-\n",
+                                lineno, token);
+                            return -7; // @todo change to error value
+                        }
+
+                        uint16_t hex = getHex(digits);
                         memory[ip++] = LOBYTE(hex);
                         if (hex > 0xff) memory[ip++] = HIBYTE(hex);
 
