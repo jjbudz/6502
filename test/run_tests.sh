@@ -216,6 +216,12 @@ run_test test-STD-ACC-INDIRECT
 run_test test-STD-LABEL-COLON
 run_test test-STD-BRANCH-LITERAL
 run_test test-STD-ADC-MODES
+run_test test-CONST-LITERALS
+run_test test-DIR-TEXT
+run_test test-DIR-ORG-BYTE-WORD
+run_test test-EXPR-STAR
+run_test test-EXPR-LOHI
+run_test test-EXPR-ARITH
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE

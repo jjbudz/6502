@@ -181,11 +181,49 @@ A line is:
 Source is case-insensitive. A leading `$addr` sets the address at which the following code is placed.
 
 #### Numbers
-Hexadecimal values are prefixed with `$`; decimal values are bare digits:
+Hexadecimal values are prefixed with `$`, binary with `%`, decimal values are bare digits, and a character in single quotes is its ASCII code:
 ```asm
 STA $8000     ; hex address
 LDA #59       ; decimal immediate
 LDA #$5A      ; hex immediate
+AND #%00001111
+LDA #'A'      ; $41
+```
+
+#### Expressions
+Wherever a value is expected, an expression may be written instead. Expressions combine numbers, labels, constants and `*` (the address of the current instruction) with `+` and `-`, and the unary operators `<` (low byte), `>` (high byte) and `-` (negate). Arithmetic is 16-bit.
+```asm
+LDA TABLE+1       ; the byte after TABLE
+LDA #<TARGET      ; low byte of TARGET's address
+LDA #>TARGET      ;  high byte
+JMP *+6           ; six bytes past this instruction
+LDA #-1           ; an immediate may be a negative byte: $FF
+LDA #10-3
+```
+Labels used in an expression may be defined later in the file. The exceptions are `.ORG` and constant definitions, which must be computable where they appear.
+
+#### Constants
+`NAME = expression` defines a constant; it can be used anywhere a label can, and a constant under `$100` selects zero page like a label would. `* = expression` is the same as `.ORG`.
+```asm
+BASE = $50
+MASK = %00001111
+* = $4000
+        LDA BASE+2    ; zero page $52
+```
+
+#### Directives
+| Directive | Effect |
+|-----------|--------|
+| `.ORG e` | Set the address for the code that follows (same as a leading `$addr` or `* = e`) |
+| `.BYTE e, e, ...` | One byte per expression |
+| `.WORD e, e, ...` | Two bytes per expression, low byte first |
+| `.TEXT "s", e, ...` | The characters of each string (case preserved), one byte per expression; `.TEXT "Hi", 0` is a terminated string |
+| `.DATA h h ...` | Legacy: space-separated hex values, with or without `$`, one byte each or two (low first) above `$FF` |
+
+```asm
+TABLE   .BYTE 1, 2, 3
+PTR     .WORD $1234, TABLE
+MSG     .TEXT "Hello", 0
 ```
 
 #### Labels
@@ -324,9 +362,9 @@ Key conventions:
 
 Current known limitations (see `docs/ASSEMBLER_PLAN.md` for what is planned):
 1. **Hex Format**: Requires `#$XX` for hex immediate values, not `#XX`
-2. **No Expressions**: an operand is a single number or label; no `LABEL+1`, `<LABEL`/`>LABEL` (low/high byte), or `*` (current address)
-3. **No Directives** beyond `.DATA`: no `.ORG`, `.BYTE`, `.WORD`, `.TEXT`, or `NAME = value` constants
-4. **Forward references are absolute**: a label defined later in the file is encoded with a 16-bit operand even if it turns out to be in zero page
+2. **Expressions** have only `+`, `-`, `<`, `>` and unary `-`: no multiplication, shifts, bitwise operators or parentheses for grouping
+3. **Forward references are absolute**: a label defined later in the file is encoded with a 16-bit operand even if it turns out to be in zero page (write `<LABEL` to force a byte)
+4. **No listing output**: there is no way to see the address and bytes generated for each source line other than `-pm`
 
 Errors are reported with file, line and column, and all errors in a file are reported in one run. Unknown mnemonics, duplicate labels, and operands of the wrong size for their instruction are errors.
 
