@@ -58,9 +58,17 @@ This project is a 6502 CPU emulator written in C++ that includes:
   - CPU state (registers: A, X, Y, PC, SP, P)
   - Memory (64KB addressable space)
   - Instruction set implementation (~150+ opcodes)
-  - Assembler/parser
   - Debugger
   - Execution engine
+
+- **`asm6502.cpp` / `asm6502.h`**: Two-pass assembler
+  - Lexer and line parser (`lexLine`, `parseLine`)
+  - Pass 1 assigns addresses and records labels; pass 2 emits bytes and
+    resolves label operands
+  - Reports every error as `file:line:col: error: message` and continues
+  - `assemble()` in `l6502.cpp` is the entry point; it clears memory and
+    calls `asmAssemble()`
+  - See `docs/ASSEMBLER_PLAN.md` for the rework this is part of
 
 - **`ftrace.cpp` / `ftrace.h`**: Function tracing/debugging utility
   - Conditional tracing via FTRACE environment variable
@@ -180,7 +188,7 @@ LDAI #$5A     ; Load hex $5A into accumulator
 **Important**: For hexadecimal immediate values, you must use both `#` and `$` prefixes (e.g., `#$FF`). The parser currently does not accept `#FF` format.
 
 #### Labels and Jumps
-Labels are defined by placing an identifier before an instruction. They can be used as jump/branch targets:
+Labels are defined by placing an identifier in the first column of a line, before an instruction. They can be used as jump/branch targets, and may be defined after the instruction that refers to them. Defining a label twice is an error.
 
 ```asm
 foo   JMP bar       ; Jump to label 'bar'
@@ -284,17 +292,18 @@ $4000   LDAI #$35      ; Load value
 Key conventions:
 - First line often specifies start address (e.g., `$4000`)
 - Instructions can be indented for readability
-- Comments start with `;` (though parser support may be limited)
+- Comments start with `;` and run to the end of the line
 - Programs should end with `BRK`
 
 ### Assembler Limitations
 
 Current known limitations:
 1. **Hex Format**: Requires `#$XX` for hex immediate values, not `#XX`
-2. **Non-standard Mnemonics**: Uses suffixed mnemonics (e.g., `LDAI`, `LDAA`) instead of standard 6502 syntax
-3. **Limited Comments**: Comment parsing may be inconsistent
-4. **Parser Robustness**: Parser is sensitive to formatting and may need refinement
-5. **Error Messages**: Error reporting could be more descriptive
+2. **Non-standard Mnemonics**: Uses suffixed mnemonics (e.g., `LDAI`, `LDAA`) instead of standard 6502 syntax; standard operand syntax (`LDA $1234,X`) is planned (see `docs/ASSEMBLER_PLAN.md`)
+3. **Branch Operands**: Branches take a label, not a literal address
+4. **No Expressions or Directives** beyond `.DATA`: no `LABEL+1`, `.ORG`, `.BYTE`, `.WORD`, or constants
+
+Errors are reported with file, line and column, and all errors in a file are reported in one run. Unknown mnemonics, duplicate labels, and operands of the wrong size for their instruction are errors.
 
 ### Using the Assembler
 

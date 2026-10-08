@@ -36,6 +36,7 @@
 #include "ftrace.h"
 #include "ticker.h"
 #include "util.h"
+#include "asm6502.h"
 
 /**
  * Version string
@@ -138,16 +139,6 @@ typedef struct
 } INST_DESCRIPTOR;
 
 /**
- * Association for symbols to addresses used by assembler.
- */
-typedef std::map<std::string, uint16_t> SymbolAddressMap;
-
-/**
- * Association for addresses to symbols used by assembler.
- */
-typedef std::map<uint16_t, std::string> AddressSymbolMap;
-
-/**
  * Association for active breakpoints.
  */
 typedef std::map<uint16_t, bool> BreakpointMap;
@@ -181,16 +172,6 @@ static uint8_t  P;  /// Status register
  * Program stack
  */
 static uint8_t STACK[kStackSize]; 
-
-/**
- * Program labels used by the assembler
- */
-static SymbolAddressMap labels;
-
-/**
- * Branches to labels used by the assembler
- */
-static AddressSymbolMap branches;
 
 //
 // 6502 instruction set table (indexed by opcode)
@@ -2483,56 +2464,6 @@ char* getToken(char* token, char** tokens)
 }
 
 /**
- * Add a symbolic label for the specified address.
- */
-void addLabel(const char* label, uint16_t address)
-{
-    assert(label);
-    labels[label] = address;
-}
-
-#include <map>
-#include <string>
-
-/*
- * Return the address of the given label.
- */
-uint16_t findLabel(const char* label)
-{
-    assert(label);
-
-    SymbolAddressMap::iterator it = labels.find(std::string(label));
-
-    return (it != labels.end()) ? it->second : 0;
-}			
-
-/*
- * Returns the offset between two addresses.
- */
-uint8_t calcOffset(uint16_t from, uint16_t to)
-{
-    short delta = to - from;
-
-    if (delta > 127 || delta < -128)
-    {
-        printf("Error: Offset from $%04x to $%04x out of range.", from, to);
-        exit(-5); // @fixme shouldn't really exit
-    }
-
-    return (uint8_t)delta;
-}
-
-/**
- * Adds an unresolved branch label to the table for resolution after the
- * entire program has been assembled and all label addresses are know.
- */
-void addBranch(const char* branch, uint16_t address)
-{
-    assert(branch);
-    branches[address] = branch;
-}
-
-/**
  * Initializes the instruction table and corresponding
  * functions, data structures, etc.
  *
@@ -2753,8 +2684,6 @@ int save(const char* filename)
 void prepare()
 {
     memset(memory, 0, k64K);
-    labels.clear();
-    branches.clear();
     breakpoints.clear();
 }
 
@@ -2782,319 +2711,37 @@ short lookup(const char* str)
     return index;
 }
 
-/**
- * Resolve all branches/jumps as part of the assembly process.
+
+/*
+ * Instruction table access for the assembler (see asm6502.h).
  */
-int resolve()
+int asmLookupInstruction(const char* symbol)
 {
-    FTRACE("Resolving %d branches\n", __FILE__, __LINE__, branches.size());
+    return lookup(symbol);
+}
 
-    // 
-    // Resolve branches/jumps
-    //
-    for (AddressSymbolMap::iterator it=branches.begin(); 
-        it != branches.end(); 
-        it++)
-    {
-        uint16_t brAddress = it->first; // address of unresolved branch
-        const std::string& brLabel = it->second; // label to branch to
-
-        FTRACE("Resolving branch %s at %04x\n", __FILE__, __LINE__,
-            brLabel.c_str(), brAddress);
-
-        //
-        // For each branch, get the address for the destination label
-        //
-        uint16_t address = findLabel(brLabel.c_str());
-
-        FTRACE("Resolved label %s to %04x\n", __FILE__, __LINE__,
-            brLabel.c_str(), address);
-
-        if (address)
-        {
-            //
-            // Look for JSR or JMP instructions
-            //
-            if (i6502[memory[brAddress-1]].symbol[0] == 'J')
-            {
-                //
-                // Store the destination address after the JMP/JSR
-                //
-                memory[brAddress] = LOBYTE(address);
-                memory[brAddress+1] = HIBYTE(address);
-            }
-            else // branch
-            {
-                //
-                // Branches are relative, so caculate the offset and store
-                //
-                memory[brAddress] = calcOffset(brAddress+1, address);
-            }
-        }
-        else
-        {
-            printf("Unresolved branch to label %s\n", brLabel.c_str());
-            return -1;
-        }
-    }
-    return 0;
+uint8_t asmInstructionBytes(uint8_t opcode)
+{
+    return i6502[opcode].bytes;
 }
 
 /*
  * Load the assembly program from the named file and attempt to
- * assemble it.
+ * assemble it into memory. The assembler itself lives in asm6502.cpp.
  */
 int assemble(const char* filename)
 {
     assert(filename);
 
-    // @todo add trace statements
-    // @todo this whole block and related functions need to be refactored
-    // @todo bestow award for worlds longest function
-
     if (bInitialized == false) return -1;
-
-    FILE* fp = fopen(filename, "r");
-
-    if (fp == NULL) return errno; // @todo correct insufficient info passed to caller
 
     prepare();
 
-    char line[kMaxLineLength+1];
-    int  lineno = 0;
-    int  done = 0;
-    uint16_t ip = 0;
+    int status = asmAssemble(filename, memory);
 
-    while (!done)
-    {
-        if (fgets(line, kMaxLineLength,fp) != NULL)
-        {
-            unsigned int tokeno = 0;
-            char* tokens = line;
-            char  token[kMaxLineLength+1];
-            bool  skip = false;
-            short lastInstruction = -1;
+    if (status < 0) return errno; // could not open the file
 
-            lineno++;
-
-            uppercase(line);
-
-            FTRACE("Assembler read line: %s",
-                __FILE__, __LINE__, line);
-            
-            // !!! refactor the following assembler to functions
-
-            while (strlen(getToken(token,&tokens)) && skip == false)
-            {
-                tokeno++;
-
-                FTRACE("Assembler got token (#%02x): %s",
-                    __FILE__, __LINE__, tokeno, token);
-
-                if (token[0] == ';') // comment
-                {
-                    skip = true;
-                    FTRACE("Ignoring comment line: %s",
-                        __FILE__, __LINE__, line);
-                }
-                else if (token[0] == '$') // address 
-                {
-                    if (tokeno == 1) // @todo fix lame state machine
-                    {
-                        if (strlen(token+1) > 4)
-                        {
-                            printf("Line %d: wrong number of digits in hex value, ->%s<-\n",
-                                lineno, token);
-                            return -1; // @todo change to constant (or actually would prefer exceptions everywhere)
-                        }
-                        else
-                        {
-                            ip = getHex(token+1);
-                        }
-                    }
-                    else
-                    {
-                        if (strlen(token+1) > 4)
-                        {
-                            printf("Line %d: wrong number of digits in hex value, ->%s<-\n",
-                                lineno, token);
-                            return -2; // @todo change to error value
-                        }
-                        else
-                        {
-                            // For 3-byte instructions, require exactly 4 hex digits
-                            if (lastInstruction >= 0 && i6502[lastInstruction].bytes == 3)
-                            {
-                                if (strlen(token+1) != 4)
-                                {
-                                    printf("Line %d: 3-byte instruction requires 4-digit hex address, got ->%s<-\n",
-                                        lineno, token);
-                                    return -2;
-                                }
-                            }
-                            
-                            uint16_t hex = getHex(token+1);
-                            size_t numDigits = strlen(token+1);
-                            memory[ip++] = LOBYTE(hex);
-                            // Write high byte if value > 0xFF OR if 4 digits were provided (for 3-byte instructions)
-                            if (hex > 0xff || numDigits == 4) 
-                            {
-                                memory[ip++] = HIBYTE(hex);
-                            }
-
-                            FTRACE("Assembler stored address: %04x",
-                                __FILE__, __LINE__, hex);
-                        }
-                    }
-                }
-                else if (token[0] == '#') // value 
-                {
-                    if (token[1] == '$') // hex value
-                    {
-                        if (strlen(token+2) > 2)
-                        {
-                            printf("Line %d: wrong number of digits in hex value, ->%s<-\n",
-                                lineno, token);
-                            return -3; // @todo change to error value
-                        }
-                        else
-                        {
-                            uint16_t hex = getHex(token+2);
-                            memory[ip++] = LOBYTE(hex);
-
-                            FTRACE("Assembler stored value: %02x",
-                                __FILE__, __LINE__, hex);
-                        }
-                    }
-                    else // decimal value
-                    {
-                        if (strlen(token+1) > 3)
-                        {
-                            printf("Line %d: wrong number of digits in decimal value, ->%s<-\n",
-                                lineno, token);
-                            return -4; // @todo change to error value
-                        }
-                        else
-                        {
-                            char* next = token+1;
-                            uint16_t value = (uint16_t)strtol(token+1, &next, 10);
-
-                            if (next == token+1)
-                            {
-                                printf("Line %d: unexpected decimal value, ->%s<-\n",
-                                    lineno, token);
-                                return -5; // @todo change to error value
-                            }
-                            else if (errno == ERANGE)
-                            {
-                                printf("Line %d: decimal value out of range, ->%s<-\n",
-                                    lineno, token);
-                                return -6; // @todo change to error value
-                            }
-                            else
-                            {
-                                memory[ip++] = LOBYTE(value);
-
-                                FTRACE("Assembler stored value: %02x (%03d)",
-                                    __FILE__, __LINE__, value, value);
-                            }
-                        }
-                    }
-                }
-                else if (strcmp(token, ".DATA") == 0)
-                {
-                    FTRACE("Assembler processing data section",
-                        __FILE__, __LINE__);
-
-                    while (strlen(getToken(token,&tokens)))
-                    {
-                        if (token[0] == ';') // trailing comment
-                        {
-                            skip = true;
-                            break;
-                        }
-
-                        // Accept $-prefixed hex like operands do, and bare hex
-                        const char* digits = (token[0] == '$') ? token+1 : token;
-                        size_t numDigits = strlen(digits);
-
-                        if (numDigits == 0 || numDigits > 4 ||
-                            strspn(digits, "0123456789ABCDEF") != numDigits)
-                        {
-                            printf("Line %d: invalid hex value in data section, ->%s<-\n",
-                                lineno, token);
-                            return -7; // @todo change to error value
-                        }
-
-                        uint16_t hex = getHex(digits);
-                        memory[ip++] = LOBYTE(hex);
-                        if (hex > 0xff) memory[ip++] = HIBYTE(hex);
-
-                        FTRACE("Assembler stored data section value: %04x",
-                            __FILE__, __LINE__, hex);
-                    }
-                }
-                else if (strncmp(token, line, strlen(token)) == 0)
-                {
-                    addLabel(token, ip);
-                    FTRACE("Assembler recording label: %s at %04x",
-                        __FILE__, __LINE__, token, ip);
-                }
-                else
-                {
-                    short instruction = lookup(token);
-
-                    FTRACE("Assembler looking up token: %s resolves to opcode %02x",
-                        __FILE__, __LINE__, token,instruction);
-
-                    if (instruction >= 0)
-                    {
-                        FTRACE("Assembler storing instruction: %02x at %04x",
-                            __FILE__, __LINE__, instruction,ip);
-                        memory[ip++] = (uint8_t)instruction;
-                        lastInstruction = instruction;
-                    }
-                    else 
-                    {
-                        // 
-                        // Assuming here that the token is a label for a
-                        // branch or jump. 
-                        //
-
-                        FTRACE("Assembler adding branch to: %s at %04x",
-                            __FILE__, __LINE__, token, ip);
-
-                        //
-                        // @todo fix this assumption to validate or error out
-                        //
-                        addBranch(token, ip);
-
-                        //
-                        // hack to distinguish between absolute and relative destinations
-                        //
-                        ip += (i6502[memory[ip-1]].symbol[0] == 'J') ? 2:1;
-
-                        //printf("Line %d: unrecognized instruction, ->%s<-", __FILE__, __LINE__, lineno, token);
-                        //exit(-3);
-                    }
-                }
-            }
-        }
-        else if (feof(fp) != 0)
-        {
-            done = 1;
-            if (0 != fclose(fp)) return errno;
-        }
-        else
-        {
-            return errno;
-        }
-    };
-
-    //
-    // Resolve all jumps and branches to their destination addresses or offets
-    //
-    return resolve();
+    return status; // number of errors, 0 on success
 }
 
 /*
