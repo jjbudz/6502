@@ -342,11 +342,13 @@ Test files should:
 - End with a BRK instruction
 - Store test result at a predictable memory location
 - Use proper hex notation (`#$XX` for immediate hex values)
-- Use **labels** for branch targets (`BEQ pass` ... `pass    LDAI #$01`).
-  A literal address such as `BEQ $400C` is assembled as a 16-bit absolute
-  operand, but the CPU reads branches as 8-bit relative offsets, so the
-  program will jump to the wrong place and usually crash on an unimplemented
-  opcode.
+- Prefer **labels** for branch targets (`BEQ pass` ... `pass    LDAI #$01`)
+  so the test survives edits that move code. A literal address (`BEQ $400C`)
+  also works and is encoded as a relative offset; the assembler rejects a
+  target outside -128..+127 bytes.
+- Either syntax is fine: legacy suffixed mnemonics (`LDAI #$01`) or standard
+  6502 syntax (`LDA #$01`, `LDA ($40),Y`). The `STD-*` tests cover the
+  standard forms.
 - Prefer a success sentinel (store `$01` only after every check passes) over
   asserting a result of `$00`, since unwritten memory already reads as `$00`
   and an early `BRK` would then pass by accident.

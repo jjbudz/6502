@@ -210,6 +210,12 @@ run_test test-ADDRWRAP-LDAIY
 run_test test-ADDRWRAP-STAIY
 run_test test-DATA-PREFIX
 run_test test-LABEL-PREFIX
+run_test test-STD-MIXED-LEGACY
+run_test test-STD-ZP-VS-ABS
+run_test test-STD-ACC-INDIRECT
+run_test test-STD-LABEL-COLON
+run_test test-STD-BRANCH-LITERAL
+run_test test-STD-ADC-MODES
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE

@@ -1,30 +1,27 @@
-The 6502 program supports a barebone assembler, loader, and debugger. However, the
-assembler's parser is a bit rough and requires different symbols to access each of
-the various addressing modes. Use the "-i" flag to get a list of known instructions.
+The 6502 program supports a small two-pass assembler, loader, and debugger. The
+assembler accepts standard 6502 syntax (`LDA $1234,X`) and a legacy syntax in which
+the addressing mode is a suffix on the mnemonic (`LDAX $1234`); the two can be
+mixed. Use the "-i" flag to get a list of the legacy instruction names.
 
-Hexidecimal address values must be prefixed with $, e.g.:
+Hexadecimal values must be prefixed with $; decimal values are bare digits:
 
 ```
-  STAA $8000
-  STAZ $80
+  STA $8000
+  STA $80
+  LDA #59
+  LDA #$5A
 ```
 
-Immediate values are denoted using #, e.g.:
-
-```asm
-  LDAI #59
-  LDAI #$5A
-```
-
-Jumps and branch destinations may be specified using labels as follows:
+Jump and branch destinations may be labels or literal addresses. A label is an
+identifier in the first column, or any identifier followed by a colon:
 
 ```asm
   foo JMP bar
-      LDAI #00
-      STAA $8000
+      LDA #00
+      STA $8000
       BRK
-  bar LDAI #01
-      STAA $8000
+  bar: LDA #01
+      STA $8000
       BRK
 ```
 
@@ -87,7 +84,29 @@ Command line examples:
 
 ### Addressing Modes
 
-The assembler uses non-standard instruction suffixes to denote addressing modes:
+With a bare mnemonic the operand's shape selects the addressing mode, as in any
+6502 assembler:
+
+```asm
+LDA #$42         ; Immediate
+LDA $80          ; Zero page ($80 has fewer than four digits and is under $100)
+LDA $80,X        ; Zero page,X
+LDX $80,Y        ; Zero page,Y
+LDA $8000        ; Absolute ($0080 would also be absolute: four digits)
+LDA $8000,X      ; Absolute,X
+LDA $8000,Y      ; Absolute,Y
+LDA ($40,X)      ; (Indirect,X): pointer at $40+X
+LDA ($40),Y      ; (Indirect),Y: pointer at $40, plus Y
+JMP ($1234)      ; (Indirect) jump through the pointer at $1234
+LSR A            ; Accumulator
+BNE loop         ; Relative branch to a label
+BEQ $4010        ; Relative branch to a literal address
+```
+
+A label used before it is defined is encoded as an absolute address. Using a mode
+an instruction does not have (`LDX $10,X`) is an error.
+
+The legacy syntax instead spells the mode in the mnemonic:
 
 ```asm
 ; Immediate addressing - suffix 'I'
@@ -98,7 +117,7 @@ LDYI #$FF        ; Load Y register with $FF
 ; Absolute addressing - suffix 'A'
 LDAA $8000       ; Load accumulator from address $8000
 STAA $8001       ; Store accumulator to address $8001
-JMPA $4020       ; Jump to absolute address $4020
+JMP $4020        ; Jump to absolute address $4020 (JMP has no suffix)
 
 ; Zero page addressing - suffix 'Z'
 LDAZ $80         ; Load accumulator from zero page $80

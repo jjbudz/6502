@@ -2725,6 +2725,11 @@ uint8_t asmInstructionBytes(uint8_t opcode)
     return i6502[opcode].bytes;
 }
 
+const char* asmInstructionSymbol(uint8_t opcode)
+{
+    return i6502[opcode].symbol;
+}
+
 /*
  * Load the assembly program from the named file and attempt to
  * assemble it into memory. The assembler itself lives in asm6502.cpp.

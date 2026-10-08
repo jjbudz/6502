@@ -35,4 +35,10 @@ int asmLookupInstruction(const char* symbol);
  */
 uint8_t asmInstructionBytes(uint8_t opcode);
 
+/**
+ * @return the mnemonic for this opcode as the table spells it (e.g. "LDAZX"),
+ *         or "" for an unimplemented opcode.
+ */
+const char* asmInstructionSymbol(uint8_t opcode);
+
 #endif

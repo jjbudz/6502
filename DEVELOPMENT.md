@@ -167,51 +167,72 @@ The emulator maintains the following 6502 CPU state:
 ## Assembler Guide
 
 ### Overview
-The project includes a basic assembler that converts assembly source files (`.asm`) into executable object code. The assembler has a simplified syntax and requires specific formatting.
+The project includes a two-pass assembler (`asm6502.cpp`) that converts assembly source files (`.asm`) into a 64K memory image. It accepts standard 6502 syntax and, for compatibility with the existing test programs, a legacy syntax in which the addressing mode is spelled in the mnemonic. The two may be mixed in one file.
 
 ### Syntax Rules
 
-#### Address Specification
-Hexadecimal addresses must be prefixed with `$`:
-```asm
-STAA $8000    ; Store accumulator to address $8000
-STAZ $80      ; Store accumulator to zero page $80
+A line is:
+
+```
+[$addr] [label[:]] MNEMONIC [operand]   ; comment
+[$addr] [label[:]] .DATA value ...      ; comment
 ```
 
-#### Immediate Values
-Immediate values are denoted with `#`:
+Source is case-insensitive. A leading `$addr` sets the address at which the following code is placed.
+
+#### Numbers
+Hexadecimal values are prefixed with `$`; decimal values are bare digits:
 ```asm
-LDAI #59      ; Load decimal 59 into accumulator
-LDAI #$5A     ; Load hex $5A into accumulator
+STA $8000     ; hex address
+LDA #59       ; decimal immediate
+LDA #$5A      ; hex immediate
 ```
 
-**Important**: For hexadecimal immediate values, you must use both `#` and `$` prefixes (e.g., `#$FF`). The parser currently does not accept `#FF` format.
-
-#### Labels and Jumps
-Labels are defined by placing an identifier in the first column of a line, before an instruction. They can be used as jump/branch targets, and may be defined after the instruction that refers to them. Defining a label twice is an error.
+#### Labels
+A label is an identifier in the first column of a line, or any identifier followed by `:` (which may be indented). Labels can be used wherever a value is expected, including as jump and branch targets, and may be defined after the instruction that refers to them. Defining a label twice is an error.
 
 ```asm
 foo   JMP bar       ; Jump to label 'bar'
-      LDAI #00
-      STAA $8000
+      LDA #00
+      STA $8000
       BRK
-bar   LDAI #01      ; Label 'bar' definition
-      STAA $8000
+bar:  LDA #01       ; Label 'bar' definition
+      STA $8000
       BRK
 ```
 
-#### Addressing Modes
-The assembler uses different instruction mnemonics for different addressing modes (not standard 6502 syntax):
+#### Addressing Modes: Standard Syntax
+With a bare mnemonic, the operand's shape selects the addressing mode, as in any 6502 assembler:
 
-| Mode | Example | Description |
-|------|---------|-------------|
-| Immediate | `LDAI #$42` | Load immediate value |
-| Absolute | `LDAA $8000` | Load from absolute address |
-| Zero Page | `LDAZ $80` | Load from zero page |
-| Indexed X | `LDXI #$10` | Load X register immediate |
-| Indexed Y | `LDYI #$20` | Load Y register immediate |
+| Mode | Example | Bytes |
+|------|---------|-------|
+| Implied / Accumulator | `INX`, `LSR A` | 1 |
+| Immediate | `LDA #$42` | 2 |
+| Zero page | `LDA $80` | 2 |
+| Zero page,X / ,Y | `LDA $80,X`, `LDX $80,Y` | 2 |
+| Absolute | `LDA $8000` | 3 |
+| Absolute,X / ,Y | `LDA $8000,X`, `LDA $8000,Y` | 3 |
+| (Indirect) | `JMP ($1234)` | 3 |
+| (Indirect,X) | `LDA ($40,X)` | 2 |
+| (Indirect),Y | `LDA ($40),Y` | 2 |
+| Relative | `BNE loop`, `BEQ $4010` | 2 |
 
-**Note**: This is non-standard syntax. Standard 6502 assemblers use the same mnemonic (e.g., `LDA`) for all addressing modes, with the mode determined by the operand format.
+Zero page is chosen over absolute when the instruction has a zero page form and the value is known to fit: a literal under `$100` written with fewer than four hex digits (`$80` is zero page, `$0080` is absolute), or a label already defined at an address under `$100`. A label defined later in the file is assumed absolute. Branch targets may be labels or literal addresses and must lie within -128..+127 bytes of the next instruction.
+
+Using a mode the instruction does not have (`LDX $10,X`) is an error that names the instruction and the mode.
+
+#### Addressing Modes: Legacy Syntax
+Each opcode also has a suffixed name that fixes its addressing mode (`6502 -i` lists them):
+
+| Suffix | Mode | Example |
+|--------|------|---------|
+| `I` | Immediate | `LDAI #$42` |
+| `Z`, `ZX`, `ZY` | Zero page, zero page,X, zero page,Y | `LDAZ $80`, `LDAZX $80`, `LDXZY $80` |
+| `A`, `X`, `Y` | Absolute, absolute,X, absolute,Y | `LDAA $8000`, `LDAX $8000`, `LDAY $8000` |
+| `IX`, `IY` | (Indirect,X), (indirect),Y | `LDAIX $40`, `LDAIY $40` |
+| (none) | Implied, relative, or absolute (`JMP`, `JSR`, `BIT`) | `INX`, `BNE loop`, `JMP $4000` |
+
+With a legacy mnemonic the operand is a plain value (`#$hh`, `#ddd`, `$hh`, `$hhhh` or a label) and must be the width the instruction needs: a 3-byte instruction requires a 4-digit address, a 2-byte one a value under `$100` written in fewer digits.
 
 ### Common Instructions
 
@@ -270,6 +291,10 @@ CLV           ; Clear overflow flag
 #### Control Flow
 ```asm
 JMP label     ; Jump to label
+JMP ($0010)   ; Jump to the address stored at $0010/$0011
+JSR sub       ; Call subroutine; RTS returns
+BNE loop      ; Branch to label (relative, within -128..+127 bytes)
+BEQ $4010     ; Branch to a literal address
 BRK           ; Break (halt execution)
 NOP           ; No operation
 ```
@@ -297,11 +322,11 @@ Key conventions:
 
 ### Assembler Limitations
 
-Current known limitations:
+Current known limitations (see `docs/ASSEMBLER_PLAN.md` for what is planned):
 1. **Hex Format**: Requires `#$XX` for hex immediate values, not `#XX`
-2. **Non-standard Mnemonics**: Uses suffixed mnemonics (e.g., `LDAI`, `LDAA`) instead of standard 6502 syntax; standard operand syntax (`LDA $1234,X`) is planned (see `docs/ASSEMBLER_PLAN.md`)
-3. **Branch Operands**: Branches take a label, not a literal address
-4. **No Expressions or Directives** beyond `.DATA`: no `LABEL+1`, `.ORG`, `.BYTE`, `.WORD`, or constants
+2. **No Expressions**: an operand is a single number or label; no `LABEL+1`, `<LABEL`/`>LABEL` (low/high byte), or `*` (current address)
+3. **No Directives** beyond `.DATA`: no `.ORG`, `.BYTE`, `.WORD`, `.TEXT`, or `NAME = value` constants
+4. **Forward references are absolute**: a label defined later in the file is encoded with a 16-bit operand even if it turns out to be in zero page
 
 Errors are reported with file, line and column, and all errors in a file are reported in one run. Unknown mnemonics, duplicate labels, and operands of the wrong size for their instruction are errors.
 
