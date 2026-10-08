@@ -1,20 +1,52 @@
 /**
  * Two-pass assembler for the 6502 emulator.
  *
- * Each source line goes through:
+ * HOW TO READ THIS FILE
  *
- *   lexLine()    splits the line into typed tokens (numbers, identifiers,
- *                directives, '#'), dropping comments and recording columns
- *   parseLine()  turns the tokens into a Statement: an optional location
- *                ($addr at the start of the line), an optional label (an
- *                identifier in column 1), then an instruction with its
- *                operand or a .DATA list
+ * Start at asmAssemble() at the bottom; it constructs an Assembler and calls
+ * Assembler::run(). run() drives everything:
  *
- * Pass 1 is the parse: every statement is given an address and every label
- * is recorded. Pass 2 (emit()) writes the bytes, which is when label
- * operands are resolved, so forward references work.
+ *   run()
+ *    |
+ *    |  for each line of the source file (pass 1):
+ *    |
+ *    +-- lexLine()      text  -> vector<Token>
+ *    |                  Splits the line into words and classifies each one
+ *    |                  by its first character: a number ($hex or decimal),
+ *    |                  an identifier (mnemonic or label), a directive
+ *    |                  (.DATA) or '#'. Drops comments. Remembers the
+ *    |                  column of every token for error messages.
+ *    |
+ *    +-- parseLine()    vector<Token> -> Statement (appended to statements_)
+ *    |     |            Recognises the line shape
+ *    |     |                [$addr] [label] MNEMONIC [operand]
+ *    |     |                [$addr] [label] .DATA value ...
+ *    |     |            A leading $addr moves the location counter (pc_).
+ *    |     |            A label in column 1 is recorded in labels_ at pc_.
+ *    |     |            The statement is stamped with pc_, then pc_ is
+ *    |     |            advanced by the statement's size.
+ *    |     |
+ *    |     +-- parseOperand()  checks the operand matches the instruction
+ *    |     |                   (immediate / address / label) and the width
+ *    |     |                   the instruction needs
+ *    |     +-- parseData()     converts .DATA values to bytes
+ *    |
+ *    |  after the whole file has been read (pass 2):
+ *    |
+ *    +-- emit()         vector<Statement> -> bytes in memory_
+ *                       Writes each statement at its recorded address.
+ *                       Label operands are looked up here, which is why a
+ *                       branch can refer to a label defined further down.
  *
- * Syntax accepted (see docs/ASSEMBLER_PLAN.md for where this is going):
+ * Why two passes: an instruction's size never depends on a label's value
+ * (the mnemonic fixes it), so pass 1 can assign every address without
+ * knowing any label. Pass 2 then has the complete label table.
+ *
+ * Errors do not stop assembly. error() prints "file:line:col: error: ..."
+ * and counts; parseLine() abandons the offending line and run() moves on,
+ * so one run reports everything wrong with a file. run() returns the count.
+ *
+ * SYNTAX ACCEPTED (legacy form; see docs/ASSEMBLER_PLAN.md for what follows)
  *
  *   [$addr] [label] MNEMONIC [operand]   ; comment
  *   [$addr] [label] .DATA value ...      ; comment
@@ -48,8 +80,18 @@ namespace
 #define LOBYTE(w) ((uint8_t)((w) & 0xff))
 #define HIBYTE(w) ((uint8_t)(((w) >> 8) & 0xff))
 
+/*
+ * ---------------------------------------------------------------------------
+ * Data passed between the stages
+ * ---------------------------------------------------------------------------
+ */
+
 /**
- * One word of a source line, classified by its first character.
+ * One word of a source line, as produced by lexLine().
+ *
+ * The lexer only classifies; it does not know whether an identifier is a
+ * mnemonic or a label, or whether a number is a sensible size. Those are
+ * the parser's decisions, which is why text, hex and value are all kept.
  */
 struct Token
 {
@@ -69,7 +111,11 @@ struct Token
 };
 
 /**
- * An instruction's operand.
+ * An instruction's operand, as produced by parseOperand().
+ *
+ * For kImmediate and kAddress the value is final. For kLabel only the name
+ * is known in pass 1; emit() looks it up and decides how to encode it
+ * (relative offset for a branch, address otherwise).
  */
 struct Operand
 {
@@ -85,13 +131,14 @@ struct Operand
     uint16_t    value;
     uint8_t     width; // bytes occupied; for kLabel decided by the instruction
     std::string label;
-    int         col;
+    int         col;   // for error messages in pass 2
 
     Operand() : kind(kNone), value(0), width(0), col(0) {}
 };
 
 /**
- * One assembled item: an instruction or a run of data bytes.
+ * One assembled item, as produced by parseLine(): an instruction with its
+ * operand, or a run of data bytes. address is where emit() will write it.
  */
 struct Statement
 {
@@ -103,19 +150,27 @@ struct Statement
 
     Kind                 kind;
     uint16_t             address;
-    int                  line;
+    int                  line;    // for error messages in pass 2
     uint8_t              opcode;  // kInstruction
     Operand              operand; // kInstruction
     std::vector<uint8_t> data;    // kData
 };
 
 /**
- * The eight relative branch instructions share the low five opcode bits.
+ * The eight relative branch instructions (BPL BMI BVC BVS BCC BCS BNE BEQ)
+ * are the opcodes xxx10000; they are the only ones whose label operand is
+ * encoded as an offset rather than an address.
  */
 bool isBranch(uint8_t opcode)
 {
     return (opcode & 0x1f) == 0x10;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * The assembler
+ * ---------------------------------------------------------------------------
+ */
 
 class Assembler
 {
@@ -123,13 +178,13 @@ public:
     Assembler(const char* filename, uint8_t* memory);
 
     /**
-     * Assemble the whole file. Returns the error count, or -1 if the file
-     * could not be opened.
+     * Assemble the whole file into memory. Returns the error count, or -1
+     * if the file could not be opened.
      */
     int run();
 
 private:
-    // Pass 1
+    // Pass 1: text -> tokens -> statements, addresses and labels
     bool lexLine(const char* line, int lineno, std::vector<Token>& tokens);
     void parseLine(const std::vector<Token>& tokens, int lineno);
     bool parseOperand(const std::vector<Token>& tokens, size_t first,
@@ -137,17 +192,17 @@ private:
     bool parseData(const std::vector<Token>& tokens, size_t first,
                    int lineno, std::vector<uint8_t>& data);
 
-    // Pass 2
+    // Pass 2: statements -> bytes, labels resolved
     void emit();
 
     void error(int line, int col, const char* fmt, ...);
 
-    const char*                     filename_;
-    uint8_t*                        memory_;
-    uint16_t                        pc_;      // location counter
+    const char*                     filename_;   // for error messages
+    uint8_t*                        memory_;     // the emulator's 64K image
+    uint16_t                        pc_;         // location counter during pass 1
     int                             errors_;
-    std::map<std::string, uint16_t> labels_;
-    std::vector<Statement>          statements_;
+    std::map<std::string, uint16_t> labels_;     // name -> address, filled in pass 1
+    std::vector<Statement>          statements_; // in source order, filled in pass 1
 };
 
 Assembler::Assembler(const char* filename, uint8_t* memory)
@@ -158,7 +213,9 @@ Assembler::Assembler(const char* filename, uint8_t* memory)
 }
 
 /**
- * Report an error. Assembly continues so every error in the file is seen.
+ * Report an error at a source position and count it. Nothing is thrown or
+ * exited; the caller decides how much of the current line to abandon, and
+ * run() reports the total.
  */
 void Assembler::error(int line, int col, const char* fmt, ...)
 {
@@ -173,9 +230,28 @@ void Assembler::error(int line, int col, const char* fmt, ...)
     errors_++;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Pass 1
+ * ---------------------------------------------------------------------------
+ */
+
 /**
- * Split a line into tokens. Comments (';' to end of line) are dropped.
- * Returns false after reporting an error.
+ * Lexer: split one line into tokens.
+ *
+ * Walks the line character by character. Whitespace separates tokens; ';'
+ * ends the line. The first character of a word decides its kind:
+ *
+ *   '#'              kHash (a one-character token)
+ *   '$' or digit     kNumber; the digits that follow are validated against
+ *                    the radix here so later stages can trust token.value
+ *   '.'              kDirective
+ *   letter or '_'    kIdentifier
+ *   anything else    error (for example ',' or '(' from standard 6502
+ *                    syntax, which this version does not accept)
+ *
+ * Text is uppercased so the rest of the assembler is case-insensitive.
+ * Returns false after reporting an error; the caller skips the line.
  */
 bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens)
 {
@@ -192,7 +268,7 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
             continue;
         }
 
-        if (c == ';') break; // comment
+        if (c == ';') break; // comment runs to end of line
 
         Token token;
         token.col = (int)i + 1;
@@ -209,8 +285,10 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
         {
             token.kind = Token::kNumber;
             token.hex = (c == '$');
-            if (token.hex) i++;
+            if (token.hex) i++; // the '$' itself is not part of the text
 
+            // Collect every alphanumeric so that a malformed number such
+            // as $12G4 is reported as one bad value rather than split in two.
             size_t start = i;
             while (i < len && isalnum((unsigned char)line[i]))
             {
@@ -228,8 +306,9 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
                 return false;
             }
 
-            // Digit count is validated by the parser, so cap the value here
-            // rather than overflow on an absurdly long literal.
+            // The parser checks digit counts (2 for a byte, 4 for an
+            // address) and reports them; here just avoid overflowing on an
+            // absurdly long literal.
             if (token.text.size() <= 8)
             {
                 token.value = strtoul(token.text.c_str(), NULL, token.hex ? 16 : 10);
@@ -262,7 +341,24 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
 }
 
 /**
- * Parse the operand tokens for the instruction with the given opcode.
+ * Parse the operand tokens (tokens[first..]) for an instruction.
+ *
+ * The instruction's total length (asmInstructionBytes) says how many
+ * operand bytes it needs: 0, 1 or 2. This function checks that the operand
+ * written in the source is of that size, so the emitted code can never be
+ * misaligned by an operand that is too short or too long:
+ *
+ *   #$hh / #ddd   one byte, must be <= 255
+ *   $hh           one byte: for 2-byte instructions, value <= $FF and
+ *                 written with fewer than four digits
+ *   $hhhh         two bytes: for 3-byte instructions, exactly four digits
+ *                 (so $0040 is an absolute address and $40 is zero page)
+ *   label         width is whatever the instruction needs; the value is
+ *                 filled in by emit()
+ *
+ * These are the rules the original assembler applied to its test programs,
+ * kept so existing sources assemble to identical bytes.
+ *
  * Returns false after reporting an error.
  */
 bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
@@ -271,6 +367,7 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
     uint8_t bytes = asmInstructionBytes(opcode);
     size_t  count = tokens.size() - first;
 
+    // No operand written
     if (count == 0)
     {
         if (bytes > 1)
@@ -282,6 +379,7 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
         return true;
     }
 
+    // Operand written for an implied-mode instruction
     if (bytes == 1)
     {
         error(lineno, tokens[first].col, "instruction takes no operand");
@@ -291,7 +389,7 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
     const Token& tok = tokens[first];
     operand.col = tok.col;
 
-    if (tok.kind == Token::kHash) // immediate value
+    if (tok.kind == Token::kHash) // immediate value: '#' then a number
     {
         if (count < 2 || tokens[first+1].kind != Token::kNumber)
         {
@@ -326,7 +424,7 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
         count -= 2;
         first += 2;
     }
-    else if (tok.kind == Token::kNumber) // address
+    else if (tok.kind == Token::kNumber) // address literal
     {
         if (!tok.hex)
         {
@@ -340,8 +438,8 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
             return false;
         }
 
-        // A 3-byte instruction needs all four digits; a 2-byte one needs a
-        // value that fits in a byte and is not written with four digits.
+        // Four digits always mean a two-byte address, even $0040; fewer
+        // digits mean one byte as long as the value fits.
         bool wide = (tok.text.size() == 4 || tok.value > 0xff);
 
         if (bytes == 3 && tok.text.size() != 4)
@@ -379,6 +477,7 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
         return false;
     }
 
+    // Anything left over is a second operand, which no 6502 instruction has
     if (count > 0)
     {
         error(lineno, tokens[first].col, "unexpected token after operand ->%s<-",
@@ -390,8 +489,13 @@ bool Assembler::parseOperand(const std::vector<Token>& tokens, size_t first,
 }
 
 /**
- * Parse the values of a .DATA directive. Each is 1-4 hex digits with an
- * optional '$' prefix; values above $FF take two bytes, low byte first.
+ * Parse the values of a .DATA directive (tokens[first..]) into bytes.
+ *
+ * Each value is 1-4 hex digits with an optional '$' prefix. A value above
+ * $FF produces two bytes, low byte first; otherwise one byte. So
+ * ".DATA $06 $1234" produces 06 34 12.
+ *
+ * Returns false after reporting an error.
  */
 bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
                           int lineno, std::vector<uint8_t>& data)
@@ -406,8 +510,9 @@ bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
     {
         const Token& tok = tokens[i];
 
-        // Bare hex such as AB lexes as an identifier and 55 as a decimal
-        // number; .DATA treats both as hex digits.
+        // The lexer does not know it is inside .DATA, so bare hex arrives
+        // in two forms: "55" as a decimal kNumber and "AB" as a kIdentifier.
+        // Both are accepted here by re-reading the text as hex digits.
         bool ok = (tok.kind == Token::kNumber || tok.kind == Token::kIdentifier) &&
                   !tok.text.empty() && tok.text.size() <= 4 &&
                   strspn(tok.text.c_str(), "0123456789ABCDEF") == tok.text.size();
@@ -429,15 +534,35 @@ bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
 }
 
 /**
- * Parse one line's tokens into a statement (pass 1).
+ * Parser: turn one line's tokens into a Statement (pass 1).
+ *
+ * Works left to right through the line shape
+ *
+ *     [$addr] [label] MNEMONIC [operand]
+ *     [$addr] [label] .DATA value ...
+ *
+ *   1. A leading $addr sets the location counter. (A label and a $addr
+ *      cannot both appear: the label must be in column 1, and a $addr
+ *      first on the line occupies it.)
+ *   2. An identifier in column 1 defines a label at the current location.
+ *      Column 1 is the rule, not "first word", so an indented mnemonic is
+ *      never mistaken for a label and a label is never confused with an
+ *      operand elsewhere on the line.
+ *   3. What remains is a directive or a mnemonic. The mnemonic is looked
+ *      up in the emulator's instruction table (asmLookupInstruction); an
+ *      unknown one is an error rather than a guess.
+ *
+ * The statement is stamped with the current pc_, then pc_ advances by the
+ * statement's size, which is why every later label gets the right address
+ * without emitting anything yet. On error the line contributes nothing.
  */
 void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
 {
     size_t i = 0;
 
-    if (tokens.empty()) return;
+    if (tokens.empty()) return; // blank or comment-only line
 
-    // Optional location: a $addr token first on the line
+    // 1. Optional location: a $addr token first on the line
     if (tokens[0].kind == Token::kNumber && tokens[0].hex)
     {
         if (tokens[0].text.size() > 4)
@@ -449,7 +574,7 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
         pc_ = (uint16_t)tokens[0].value;
         i++;
     }
-    // Optional label: an identifier in column 1
+    // 2. Optional label: an identifier in column 1
     else if (tokens[0].kind == Token::kIdentifier && tokens[0].col == 1)
     {
         const std::string& label = tokens[0].text;
@@ -467,8 +592,9 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
         i++;
     }
 
-    if (i >= tokens.size()) return;
+    if (i >= tokens.size()) return; // just a location or a label on its own
 
+    // 3. The statement itself
     Statement statement;
     statement.address = pc_;
     statement.line = lineno;
@@ -513,8 +639,28 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
     statements_.push_back(statement);
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Pass 2
+ * ---------------------------------------------------------------------------
+ */
+
 /**
- * Write every statement's bytes into memory, resolving labels (pass 2).
+ * Emitter: write every statement's bytes into memory (pass 2).
+ *
+ * By now labels_ is complete, so this is where a label operand becomes a
+ * number:
+ *
+ *   branch (BNE, BEQ, ...)   one byte: the signed distance from the address
+ *                            after the operand byte to the label, which
+ *                            must be within -128..127
+ *   2-byte instruction       one byte: the label's address, which must be
+ *                            in zero page
+ *   3-byte instruction       two bytes: the label's address, low byte first
+ *
+ * Immediate and literal-address operands were finished in pass 1 and are
+ * written as they are. An unresolvable label is reported at the line and
+ * column of the operand and that statement's operand is left unwritten.
  */
 void Assembler::emit()
 {
@@ -557,7 +703,8 @@ void Assembler::emit()
 
             if (isBranch(statement.opcode))
             {
-                // Relative to the address following the operand byte
+                // The CPU adds the offset to the PC after it has fetched
+                // the whole two-byte instruction, i.e. to ip + 1 here.
                 int delta = (int)target - (int)(uint16_t)(ip + 1);
 
                 if (delta < -128 || delta > 127)
@@ -587,8 +734,19 @@ void Assembler::emit()
     }
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Driver
+ * ---------------------------------------------------------------------------
+ */
+
 /**
- * Read and assemble the file.
+ * Read the file line by line through pass 1, then run pass 2.
+ *
+ * A line that fails to lex or parse is dropped and the next line is read,
+ * so all of a file's errors are reported together. Pass 2 still runs after
+ * pass 1 errors (it may find undefined labels too), but the caller should
+ * treat any nonzero return as "do not run this program".
  */
 int Assembler::run()
 {
@@ -628,6 +786,10 @@ int Assembler::run()
 
 } // namespace
 
+/**
+ * Entry point; see asm6502.h. assemble() in l6502.cpp calls this after
+ * clearing the emulator's memory.
+ */
 int asmAssemble(const char* filename, uint8_t* memory)
 {
     Assembler assembler(filename, memory);
