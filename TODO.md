@@ -2,7 +2,8 @@ A partial list of things that don't work or are in need of enhancement:
 
 1. Unit tests - a bunch have been generated but more complex tests are needed.
 1. Some non-nominal tests of the assembler would be useful.
-1. The assembler/parser code is in bad need of refactoring
+1. The assembler/parser code is in bad need of refactoring. The plan is in
+   [docs/ASSEMBLER_PLAN.md](docs/ASSEMBLER_PLAN.md); items 2, 4 and 5 here are folded into it.
 1. The assembler should accept a literal address as a branch operand (e.g. `BEQ $400C`).
    Today only symbolic labels work: a literal is assembled as a 16-bit absolute operand,
    while the CPU reads branches as an 8-bit relative offset, so the branch lands in the
