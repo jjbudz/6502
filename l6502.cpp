@@ -3094,9 +3094,7 @@ int assemble(const char* filename)
     //
     // Resolve all jumps and branches to their destination addresses or offets
     //
-    resolve();
-
-    return 0;
+    return resolve();
 }
 
 /*

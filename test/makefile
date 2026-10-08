@@ -7,12 +7,28 @@ EMU = ../$(BINDIR)/6502
 # Individual test targets
 .PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing test-BCD-ADC-01 test-BCD-ADC-02 test-BCD-ADC-03 test-BCD-ADC-04 test-BCD-ADC-05 test-BCD-ADC-06 test-BCD-SBC-01 test-BCD-SBC-02 test-BCD-SBC-03 test-LDAX-PAGE test-LDAY-PAGE test-STAIX-PAGE test-LDAIY-PAGE test-STAX-PAGE test-STAY-PAGE test-LDAZX-WRAP test-LDAZY-WRAP test-STAZX-WRAP test-STXZY-WRAP test-STYZX-WRAP test-ANDIX-WRAP test-JMPI-BUG-01 test-JMPI-BUG-02 test-JMPI-BUG-03 test-STACK-WRAP-01 test-STACK-WRAP-02 test-STACK-JSR-01 test-STACK-PRESERVE-01 test-STACK-FULL-01 test-FLAG-ADC-NVZ test-FLAG-SBC-BORROW test-FLAG-OVERFLOW-01 test-FLAG-OVERFLOW-02 test-FLAG-ZERO-ADC test-FLAG-ZERO-SBC test-BOUNDARY-INC-FF test-BOUNDARY-DEC-00 test-BOUNDARY-ADC-7F test-BOUNDARY-SBC-80 test-BOUNDARY-ASL-80 test-BOUNDARY-LSR-01 test-BOUNDARY-ROL-FF test-BCD-SBC-04 test-BCD-ADC-ZP test-BCD-FLAG-NV-01 test-BCD-FLAG-NV-02 test-BCD-FLAG-Z test-BCD-SBC-FLAGS test-OPCODE-ADC-61 test-OPCODE-ADC-75 test-OPCODE-AND-21 test-OPCODE-AND-35 test-OPCODE-SBC-E1 test-OPCODE-SBC-F5 test-ZPWRAP-LDAIY test-ZPWRAP-LDAIX test-ZPWRAP-ADCIY test-ZPWRAP-SBCIX test-ZPWRAP-STAIY test-ZPWRAP-STAIX test-ADDRWRAP-LDAX test-ADDRWRAP-LDAY test-ADDRWRAP-STAX test-ADDRWRAP-INCX test-ADDRWRAP-LDAIY test-ADDRWRAP-STAIY test-DATA-PREFIX
 
-# Run all tests using the test runner script
-test:
+# Run all tests: the instruction tests, then the assembler golden-file and
+# negative tests
+test: golden fail
 	@echo "========================================="
 	@echo "Running 6502 Emulator Test Suite"
 	@echo "========================================="
 	@bash run_tests.sh
+
+# Assembler golden files: every *.asm must assemble to the bytes recorded in
+# golden/<name>.hex. Use golden-update after an intentional output change.
+.PHONY: golden golden-update fail
+golden:
+	@echo "Checking assembler golden files"
+	@EMU=$(EMU) bash golden.sh check
+
+golden-update:
+	@EMU=$(EMU) bash golden.sh update
+
+# Assembler negative tests: every fail/*.asm must fail to assemble
+fail:
+	@echo "Running assembler negative tests"
+	@EMU=$(EMU) bash fail.sh
 
 test-ADCA:
 	@echo "Test ADCA"

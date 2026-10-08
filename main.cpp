@@ -220,8 +220,9 @@ int main(int argc, char** argv)
 
     if (bAssert)
     {
-        nStatus = !assertmem(address2, value); // 0 for true
-        fprintf(stderr, "Assert $%04x:%02x=%02x %s\n", address2, value,inspect(address2), (nStatus==0?"true":"false"));
+        bool bPassed = assertmem(address2, value);
+        fprintf(stderr, "Assert $%04x:%02x=%02x %s\n", address2, value,inspect(address2), (bPassed?"true":"false"));
+        if (!bPassed) nStatus = 1; // an earlier failure (e.g. assembly) is not masked by a passing assert
     }
 
     cleanup();
