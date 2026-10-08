@@ -190,6 +190,18 @@ run_test test-BCD-FLAG-NV-01
 run_test test-BCD-FLAG-NV-02
 run_test test-BCD-FLAG-Z
 run_test test-BCD-SBC-FLAGS
+run_test test-OPCODE-ADC-61
+run_test test-OPCODE-ADC-75
+run_test test-OPCODE-AND-21
+run_test test-OPCODE-AND-35
+run_test test-OPCODE-SBC-E1
+run_test test-OPCODE-SBC-F5
+run_test test-ZPWRAP-LDAIY
+run_test test-ZPWRAP-LDAIX
+run_test test-ZPWRAP-ADCIY
+run_test test-ZPWRAP-SBCIX
+run_test test-ZPWRAP-STAIY
+run_test test-ZPWRAP-STAIX
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE

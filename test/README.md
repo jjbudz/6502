@@ -56,12 +56,12 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 ## Test Status
 
 ### Summary
-- **Total tests**: 203
-- **Passing tests**: 203
+- **Total tests**: 215
+- **Passing tests**: 215
 - **Failing tests**: 0
 - **Disabled tests**: 0
 
-### Currently Passing Tests (203 tests)
+### Currently Passing Tests (215 tests)
 
 #### ADC (Add with Carry) - 8 passing
 - ADCA, ADCI, ADCIX, ADCIY, ADCX, ADCY, ADCZ, ADCZX
@@ -199,6 +199,19 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
 - BOUNDARY-ADC-7F, BOUNDARY-SBC-80 - Sign bit transitions
 - BOUNDARY-ASL-80, BOUNDARY-LSR-01, BOUNDARY-ROL-FF - Shift/rotate carry edges
 
+#### Opcode Decoding - 6 passing
+- OPCODE-ADC-61, OPCODE-ADC-75, OPCODE-AND-21, OPCODE-AND-35,
+  OPCODE-SBC-E1, OPCODE-SBC-F5 - Raw opcode bytes (emitted with `.DATA`, so
+  the assembler's mnemonic table is bypassed) must decode as the real NMOS
+  addressing mode: $61/$21/$E1 are (zp,X), $75/$35/$F5 are zp,X. Pointer
+  and zero page byte hold different values so the two modes give different
+  results.
+
+#### Zero Page Pointer Wraparound - 6 passing
+- ZPWRAP-LDAIX, ZPWRAP-LDAIY, ZPWRAP-ADCIY, ZPWRAP-SBCIX, ZPWRAP-STAIX,
+  ZPWRAP-STAIY - A (zp,X) or (zp),Y pointer at $FF must take its high byte
+  from $00, not $0100. A decoy high byte at $0100 makes the bug visible.
+
 ### Previously Failing Tests (Now Fixed)
 
 - **ADCI** - Add with carry immediate test
@@ -231,6 +244,21 @@ EMU_CMD=/path/to/your/6502 bash unittest.script
     ran, so neither could see the flag.
   - Status: ✅ FIXED - SEI sets I; both tests now read P back via PHP/PLA
     and assert bit 2 directly
+
+- **(zp,X)/zp,X opcode swap** (emulator bug found while reviewing the assembler)
+  - Previous Issue: ADC, AND and SBC had their zero page,X and (zp,X)
+    opcodes swapped ($61/$75, $21/$35, $E1/$F5), along with the cycle
+    counts; CMPZX/CMPIX had the right opcodes but swapped cycle counts.
+    Because the assembler maps each mnemonic to the same constant, the
+    mnemonic-based tests could not see it.
+  - Status: ✅ FIXED - opcodes and cycles match the NMOS 6502, verified by
+    the OPCODE-* tests
+
+- **Zero page pointer wraparound** (emulator bug found while reviewing the assembler)
+  - Previous Issue: every (zp,X) and (zp),Y instruction read the pointer's
+    high byte from zp+1 computed as int, so a pointer at $FF used $0100.
+  - Status: ✅ FIXED - the high byte address wraps within zero page,
+    verified by the ZPWRAP-* tests
 
 ## Adding New Tests
 
