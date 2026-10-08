@@ -53,6 +53,31 @@ cd test
 EMU_CMD=/path/to/your/6502 bash unittest.script
 ```
 
+### Assembler Tests
+
+`make test` also runs two checks on the assembler itself. Both can be run on
+their own from the test directory.
+
+**Golden files** (`make golden`): every `*.asm` here and `../sample*.asm` is
+assembled and the resulting 64K image is dumped with `xxd -a`, then compared
+against `golden/<name>.hex`. This pins the assembler's exact output, so a
+refactor that changes a single byte is caught even when the program still
+runs correctly. When the output changes on purpose, or when a new `.asm` is
+added, regenerate the files and commit them:
+
+```bash
+cd test
+make golden-update
+```
+
+Review the diff of `golden/` before committing; it should contain only the
+changes you expected.
+
+**Negative tests** (`make fail`): every `fail/*.asm` must *fail* to assemble
+(nonzero exit from `6502 -c`). If `fail/<name>.err` exists, its contents must
+also appear in the assembler's output. Add one of these whenever the assembler
+gains a new error check.
+
 ## Test Status
 
 ### Summary
@@ -298,6 +323,8 @@ To add a new test:
 4. Add a `run_test test-mytest` line to `run_tests.sh`
 5. Use the `-a` flag to specify expected memory address:value pair
 6. Run it before committing: `make test-mytest`
+7. Record its golden file: `make golden-update`, then commit `golden/mytest.hex`
+   along with the test (see "Assembler Tests" above)
 
 To debug a failing test, run the emulator directly with tracing and a
 register/flag dump, which prints PC, opcode, A/X/Y/SP and every flag

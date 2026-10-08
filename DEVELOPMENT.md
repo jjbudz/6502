@@ -552,6 +552,13 @@ The project uses a makefile-based test system with two complementary approaches:
 
 1. **Makefile targets**: Modern, structured test execution
 2. **unittest.script**: Legacy shell script for compatibility
+3. **Assembler golden files** (`make golden`): every `.asm` must assemble to
+   the exact bytes recorded in `test/golden/`; regenerate with
+   `make golden-update` after an intentional change
+4. **Assembler negative tests** (`make fail`): every `test/fail/*.asm` must
+   fail to assemble
+
+See `test/README.md` for details on the last two.
 
 ### Test Organization
 
@@ -570,6 +577,10 @@ test/
 ├── test01.asm       # Complex logical operations
 ├── test05.asm       # Multiple register ops
 ├── timing.asm       # Timing validation
+├── golden/          # Expected assembler output (xxd dumps), one per .asm
+├── fail/            # Sources that must fail to assemble
+├── golden.sh        # Golden-file check/update
+├── fail.sh          # Negative test runner
 ├── makefile         # Test runner
 └── unittest.script  # Legacy test script
 ```
