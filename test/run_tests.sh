@@ -229,6 +229,10 @@ run_test test-PLP-I-CLEAR
 run_test test-PLP-I-SET
 run_test test-RTI-I-CLEAR
 run_test test-RTI-I-SET
+run_test test-STACK-PAGE1
+run_test test-STACK-PUSHED-B
+run_test test-STACK-PLP-B
+run_test test-STACK-PULL-WRAP
 run_test test-CYCLES-PAGE
 run_test test-TIMING-MHZ
 
