@@ -76,9 +76,8 @@ This project is a 6502 CPU emulator written in C++ that includes:
   - Enable with: `export FTRACE=1`
 
 - **`ticker.cpp` / `ticker.h`**: CPU timing/clock simulation
-  - Simulates CPU clock cycles
-  - Configurable clock rate (default 1 MHz)
-  - Used for timing-accurate emulation
+  - Throttles execution to a configurable clock rate (default 1 MHz, 0 = unthrottled)
+  - Sleeps once per ~1 ms batch of cycles against a wall-clock deadline
 
 - **`util.cpp` / `util.h`**: Utility functions
   - String manipulation
@@ -582,17 +581,32 @@ value = memory[0x0100 + SP];
 
 ### Timing Simulation
 
-The `ticker` module provides CPU clock simulation:
+`step()` charges each instruction its base cycle count from the instruction
+table plus any state-dependent penalty from `extraCycles()`:
+
+- +1 for a read through abs,X, abs,Y or (zp),Y that crosses a page
+- +1 for a taken branch, +2 if it lands on a different page
+
+Stores and read-modify-write instructions always take the long path, so their
+table counts already include it. The running total is available from
+`cycles()`, is cleared by `reset()`, and is printed as `CYCLES=` by `-pr`.
+
+The `ticker` module then throttles execution to the `--rate` clock:
 
 ```cpp
-initialize(1000000);  // Initialize with 1 MHz clock
+initialize(1000000);  // 1 MHz; 0 runs unthrottled
 
-// In instruction:
-addCycles(cycles);    // Add instruction cycle count
-ticker_wait_for_cycles();  // Wait for real-time equivalent
+// In step():
+ticker_wait(cycles);  // account for the cycles, sleeping when a batch is due
 ```
 
-This enables timing-accurate emulation for applications that depend on CPU speed.
+Sleeping after each instruction cannot hold a realistic rate, since a 2-7
+microsecond sleep is far below the OS timer resolution. Instead the ticker
+sleeps once per ~1 ms batch of cycles until the wall-clock time those cycles
+should have taken, so oversleeps are absorbed by the next batch. If the
+emulator falls more than 100 ms behind (for example, while the debugger waits
+for input), the schedule restarts rather than running flat out to catch up.
+`run()` calls `ticker_flush()` on exit so the final partial batch is honored.
 
 ### Iteration Workflow
 

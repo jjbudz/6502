@@ -28,8 +28,10 @@
 //   Function definitions simulation of CPU cycle timing (i.e. clock rate).
 //
 
-int ticker_init(unsigned int rateHz); // Hz
-int ticker_wait(unsigned int cycles);
+int ticker_init(unsigned int rateHz); // Hz; 0 runs unthrottled
+void ticker_reset(); // restart the schedule from now, e.g. on CPU reset
+int ticker_wait(unsigned int cycles); // account for cycles, sleeping as needed
+int ticker_flush(); // sleep off cycles not yet covered by a batch
 int ticker_cleanup();
 
 #endif

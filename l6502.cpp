@@ -168,6 +168,8 @@ static uint16_t PC; /// Program counter
 static uint8_t  SP; /// Stack pointer
 static uint8_t  P;  /// Status register
 
+static uint64_t CYCLES; /// Cycles executed since reset, not part of 6502
+
 /**
  * Program stack
  */
@@ -307,6 +309,62 @@ static void setFlagsFromP()
     BREAKBIT = (P&(1<<kBREAKBIT)) == (1<<kBREAKBIT);
     OVERFLOWBIT = (P&(1<<kOVERFLOWBIT)) == (1<<kOVERFLOWBIT);
     SIGNBIT = (P&(1<<kSIGNBIT)) == (1<<kSIGNBIT);
+}
+
+/**
+ * Return 1 if indexing base by index lands on a different 256-byte page.
+ */
+static uint8_t pageCrossed(uint16_t base, uint8_t index)
+{
+    return (((uint16_t)(base + index) ^ base) & 0xff00) ? 1 : 0;
+}
+
+/**
+ * Return the cycles the instruction at PC costs beyond its base count in the
+ * instruction table. These depend on machine state, so the table cannot hold
+ * them: a taken branch costs 1 more, or 2 if it lands on a different page,
+ * and a read through abs,X, abs,Y or (zp),Y costs 1 more when indexing
+ * crosses a page. Stores and read-modify-write instructions always take the
+ * long path, so their table counts already include it. Must be called before
+ * the instruction executes, while PC and the registers are unchanged.
+ */
+static uint8_t extraCycles(uint8_t opcode)
+{
+    switch (opcode)
+    {
+    // Branches: bits 7-6 of the opcode select the flag (N, V, C, Z) and
+    // bit 5 the value of it that takes the branch.
+    case 0x10: case 0x30: case 0x50: case 0x70:
+    case 0x90: case 0xb0: case 0xd0: case 0xf0:
+        {
+            const uint8_t flags[] = { SIGNBIT, OVERFLOWBIT, CARRYBIT, ZEROBIT };
+            if (flags[opcode >> 6] != ((opcode >> 5) & 1)) return 0;
+            uint16_t next = PC + 2;
+            return ((getRelativeAddress() ^ next) & 0xff00) ? 2 : 1;
+        }
+
+    // ADC, AND, CMP, EOR, LDA, LDY, ORA, SBC abs,X
+    case 0x7d: case 0x3d: case 0xdd: case 0x5d:
+    case 0xbd: case 0xbc: case 0x1d: case 0xfd:
+        return pageCrossed(getAbsoluteAddress(), X);
+
+    // ADC, AND, CMP, EOR, LDA, LDX, ORA, SBC abs,Y
+    case 0x79: case 0x39: case 0xd9: case 0x59:
+    case 0xb9: case 0xbe: case 0x19: case 0xf9:
+        return pageCrossed(getAbsoluteAddress(), Y);
+
+    // ADC, AND, CMP, EOR, LDA, ORA, SBC (zp),Y
+    case 0x71: case 0x31: case 0xd1: case 0x51:
+    case 0xb1: case 0x11: case 0xf1:
+        {
+            uint8_t zp = *(BP+PC+1);
+            uint16_t base = (*(BP+(uint8_t)(zp+1))<<8) + *(BP+zp);
+            return pageCrossed(base, Y);
+        }
+
+    default:
+        return 0;
+    }
 }
 
 /**
@@ -2403,6 +2461,14 @@ uint8_t sign()
 }
 
 /**
+ * Return the number of CPU cycles executed since the last reset.
+ */
+uint64_t cycles()
+{
+    return CYCLES;
+}
+
+/**
  * Return the value of the accumulator.
  */
 uint8_t a()
@@ -2787,6 +2853,9 @@ void reset(uint16_t address)
     X = 0;
     Y = 0;
     P = 0;
+
+    CYCLES = 0;
+    ticker_reset();
 }
 
 /*
@@ -2794,8 +2863,8 @@ void reset(uint16_t address)
  */
 void dumpRegisters()
 {
-    fprintf(stderr, "PC=%04x SP=%02x A=%02x X=%02x Y=%02x P=%02x\n",
-        PC, (int)SP, (int)A, (int)X, ( int)Y, (int)P);
+    fprintf(stderr, "PC=%04x SP=%02x A=%02x X=%02x Y=%02x P=%02x CYCLES=%llu\n",
+        PC, (int)SP, (int)A, (int)X, ( int)Y, (int)P, (unsigned long long)CYCLES);
 }
 
 /*
@@ -2908,8 +2977,10 @@ int step()
     assert(i6502[*(BP+PC)].pFunc);
 
     uint8_t opcode = *(BP+PC);
+    uint8_t cycles = i6502[opcode].cycles + extraCycles(opcode);
     i6502[opcode].pFunc();
-    ticker_wait(i6502[opcode].cycles);
+    CYCLES += cycles;
+    ticker_wait(cycles);
 
     return 0;
 }
@@ -2927,6 +2998,8 @@ int run(uint16_t address)
     {
         step();
     }
+
+    ticker_flush();
 
     return 0;
 }

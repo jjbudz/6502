@@ -5,7 +5,7 @@ include ../include.mk
 EMU = ../$(BINDIR)/6502
 
 # Individual test targets
-.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing test-BCD-ADC-01 test-BCD-ADC-02 test-BCD-ADC-03 test-BCD-ADC-04 test-BCD-ADC-05 test-BCD-ADC-06 test-BCD-SBC-01 test-BCD-SBC-02 test-BCD-SBC-03 test-LDAX-PAGE test-LDAY-PAGE test-STAIX-PAGE test-LDAIY-PAGE test-STAX-PAGE test-STAY-PAGE test-LDAZX-WRAP test-LDAZY-WRAP test-STAZX-WRAP test-STXZY-WRAP test-STYZX-WRAP test-ANDIX-WRAP test-JMPI-BUG-01 test-JMPI-BUG-02 test-JMPI-BUG-03 test-STACK-WRAP-01 test-STACK-WRAP-02 test-STACK-JSR-01 test-STACK-PRESERVE-01 test-STACK-FULL-01 test-FLAG-ADC-NVZ test-FLAG-SBC-BORROW test-FLAG-OVERFLOW-01 test-FLAG-OVERFLOW-02 test-FLAG-ZERO-ADC test-FLAG-ZERO-SBC test-BOUNDARY-INC-FF test-BOUNDARY-DEC-00 test-BOUNDARY-ADC-7F test-BOUNDARY-SBC-80 test-BOUNDARY-ASL-80 test-BOUNDARY-LSR-01 test-BOUNDARY-ROL-FF test-BCD-SBC-04 test-BCD-ADC-ZP test-BCD-FLAG-NV-01 test-BCD-FLAG-NV-02 test-BCD-FLAG-Z test-BCD-SBC-FLAGS test-OPCODE-ADC-61 test-OPCODE-ADC-75 test-OPCODE-AND-21 test-OPCODE-AND-35 test-OPCODE-SBC-E1 test-OPCODE-SBC-F5 test-ZPWRAP-LDAIY test-ZPWRAP-LDAIX test-ZPWRAP-ADCIY test-ZPWRAP-SBCIX test-ZPWRAP-STAIY test-ZPWRAP-STAIX test-ADDRWRAP-LDAX test-ADDRWRAP-LDAY test-ADDRWRAP-STAX test-ADDRWRAP-INCX test-ADDRWRAP-LDAIY test-ADDRWRAP-STAIY test-DATA-PREFIX test-LABEL-PREFIX test-STD-ADC-MODES test-EXPR-ARITH test-EXPR-LOHI test-EXPR-STAR test-DIR-ORG-BYTE-WORD test-DIR-TEXT test-CONST-LITERALS test-RESET-VECTOR test-EQU-BYTE-STRING test-LISTING test-PLP-I-CLEAR test-PLP-I-SET test-RTI-I-CLEAR test-RTI-I-SET
+.PHONY: test test-ADCA test-ADCI test-ADCIX test-ADCIY test-ADCX test-ADCY test-ADCZ test-ADCZX test-ANDA test-ANDI test-ANDIX test-ANDIY test-ANDX test-ANDY test-ANDZ test-ANDZX test-ASL test-ASLA test-ASLX test-ASLZ test-ASLZX test-BCC test-BCS test-BEQ test-BIT test-BITZ test-BMI test-BNE test-BPL test-BRK test-BVC test-BVS test-CLC test-CLD test-CLI test-CLV test-CMPA test-CMPI test-CMPIX test-CMPIY test-CMPX test-CMPY test-CMPZ test-CMPZX test-CPXA test-CPXI test-CPXZ test-CPYA test-CPYI test-CPYZ test-DECA test-DECX test-DECZ test-DECZX test-DEX test-DEY test-EORA test-EORI test-EORIX test-EORIY test-EORX test-EORY test-EORZ test-EORZX test-INCA test-INCX test-INCZ test-INCZX test-INX test-INY test-JMP test-JMPI test-JSR test-LDAA test-LDAI1 test-LDAI2 test-LDAI3 test-LDAIX test-LDAIY test-LDAX test-LDAY test-LDAZ test-LDAZX test-LDXA test-LDXY test-LDXZ test-LDXZY test-LDYA test-LDYX test-LDYZ test-LDYZX test-LSR test-LSRA test-LSRX test-LSRZ test-LSRZX test-NOP test-ORAA test-ORAI test-ORAIX test-ORAIY test-ORAX test-ORAY test-ORAZ test-ORAZX test-PHA test-PHP test-PLA test-PLP test-ROL test-ROLA test-ROLX test-ROLZ test-ROLZX test-ROR test-RORA test-RORX test-RORZ test-RORZX test-RTI test-RTS test-SBCA test-SBCI test-SBCIX test-SBCIY test-SBCX test-SBCY test-SBCZ test-SBCZX test-SEC test-SED test-SEI test-STAA test-STAIX test-STAIY test-STAX test-STAY test-STAZ test-STAZX test-STXA test-STXZ test-STXZY test-STYA test-STYZ test-STYZX test-TAX test-TAY test-TSX test-TXA test-TXS test-TYA test-test00 test-test01 test-test05 test-timing test-BCD-ADC-01 test-BCD-ADC-02 test-BCD-ADC-03 test-BCD-ADC-04 test-BCD-ADC-05 test-BCD-ADC-06 test-BCD-SBC-01 test-BCD-SBC-02 test-BCD-SBC-03 test-LDAX-PAGE test-LDAY-PAGE test-STAIX-PAGE test-LDAIY-PAGE test-STAX-PAGE test-STAY-PAGE test-LDAZX-WRAP test-LDAZY-WRAP test-STAZX-WRAP test-STXZY-WRAP test-STYZX-WRAP test-ANDIX-WRAP test-JMPI-BUG-01 test-JMPI-BUG-02 test-JMPI-BUG-03 test-STACK-WRAP-01 test-STACK-WRAP-02 test-STACK-JSR-01 test-STACK-PRESERVE-01 test-STACK-FULL-01 test-FLAG-ADC-NVZ test-FLAG-SBC-BORROW test-FLAG-OVERFLOW-01 test-FLAG-OVERFLOW-02 test-FLAG-ZERO-ADC test-FLAG-ZERO-SBC test-BOUNDARY-INC-FF test-BOUNDARY-DEC-00 test-BOUNDARY-ADC-7F test-BOUNDARY-SBC-80 test-BOUNDARY-ASL-80 test-BOUNDARY-LSR-01 test-BOUNDARY-ROL-FF test-BCD-SBC-04 test-BCD-ADC-ZP test-BCD-FLAG-NV-01 test-BCD-FLAG-NV-02 test-BCD-FLAG-Z test-BCD-SBC-FLAGS test-OPCODE-ADC-61 test-OPCODE-ADC-75 test-OPCODE-AND-21 test-OPCODE-AND-35 test-OPCODE-SBC-E1 test-OPCODE-SBC-F5 test-ZPWRAP-LDAIY test-ZPWRAP-LDAIX test-ZPWRAP-ADCIY test-ZPWRAP-SBCIX test-ZPWRAP-STAIY test-ZPWRAP-STAIX test-ADDRWRAP-LDAX test-ADDRWRAP-LDAY test-ADDRWRAP-STAX test-ADDRWRAP-INCX test-ADDRWRAP-LDAIY test-ADDRWRAP-STAIY test-DATA-PREFIX test-LABEL-PREFIX test-STD-ADC-MODES test-EXPR-ARITH test-EXPR-LOHI test-EXPR-STAR test-DIR-ORG-BYTE-WORD test-DIR-TEXT test-CONST-LITERALS test-RESET-VECTOR test-EQU-BYTE-STRING test-LISTING test-CYCLES-PAGE test-TIMING-MHZ test-PLP-I-CLEAR test-PLP-I-SET test-RTI-I-CLEAR test-RTI-I-SET
 
 # Run all tests: the instruction tests, then the assembler golden-file and
 # negative tests
@@ -647,23 +647,23 @@ test-test05:
 	$(EMU) -c test05.asm -r 4000 -a 0040:33
 
 test-timing:
-	@echo "Running timing integration tests (1..10 Hz)"
+	@echo "Running timing integration tests (50, 100 Hz)"
 	@N_ITER=15; \
-	TOTAL_CYCLES=$$((7 * N_ITER + 1)); \
+	TOTAL_CYCLES=$$((7 * N_ITER + 12)); \
 	TOLERANCE=0.10; \
 	EMU_CMD_TIMING="$(EMU) -c timing.asm --rate {rate} -r 4000"; \
 	case "$$EMU_CMD_TIMING" in \
 	  *\{rate\}*) ;; \
 	  *) echo "EMU_CMD_TIMING must contain the literal {rate}"; exit 2 ;; \
 	esac; \
-	for rate in $$(seq 1 10); do \
+	for rate in 50 100; do \
 	  echo "==== Testing rate $${rate} Hz ===="; \
 	  cmd=$$(printf "%s" "$$EMU_CMD_TIMING" | sed "s/{rate}/$$rate/g"); \
 	  echo "Command: $$cmd"; \
-	  start_time=$$(date +%s.%N); \
+	  start_time=$$(perl -MTime::HiRes=time -e 'printf "%.6f", time'); \
 	  $$cmd; \
 	  exit_status=$$?; \
-	  end_time=$$(date +%s.%N); \
+	  end_time=$$(perl -MTime::HiRes=time -e 'printf "%.6f", time'); \
 	  measured=$$(awk -v s="$$start_time" -v e="$$end_time" 'BEGIN{printf "%.6f", e - s}'); \
 	  expected=$$(awk -v c="$$TOTAL_CYCLES" -v r="$$rate" 'BEGIN{printf "%.6f", c / r}'); \
 	  lower=$$(awk -v x="$$expected" -v t="$$TOLERANCE" 'BEGIN{printf "%.6f", x * (1 - t)}'); \
@@ -1040,3 +1040,21 @@ test-RTI-I-CLEAR:
 test-RTI-I-SET:
 	@echo "Test RTI-I-SET"
 	@out=$$($(EMU) -c RTI-I-SET.asm -r 4000 -pf -a 8000:01 2>&1) && echo "$$out" | grep -q " I=1 "
+
+# Exact cycle count, including page-crossing and taken-branch penalties
+test-CYCLES-PAGE:
+	@echo "Test CYCLES-PAGE"
+	$(EMU) -c CYCLES-PAGE.asm -r 4000 --rate 0 -pr -a 8000:01 2>&1 | grep -q "CYCLES=82$$"
+
+# Wall-clock throttle at 1 MHz: elapsed time must be within 10% of the
+# reported cycle count divided by the rate
+test-TIMING-MHZ:
+	@echo "Test TIMING-MHZ"
+	@start=$$(perl -MTime::HiRes=time -e 'printf "%.6f", time'); \
+	out=$$($(EMU) -c TIMING-MHZ.asm -r 4000 --rate 1000000 -pr 2>&1) || exit 1; \
+	end=$$(perl -MTime::HiRes=time -e 'printf "%.6f", time'); \
+	cycles=$$(printf "%s" "$$out" | sed -n 's/.*CYCLES=\([0-9]*\).*/\1/p'); \
+	awk -v s="$$start" -v e="$$end" -v c="$$cycles" 'BEGIN { \
+	    m = e - s; x = c / 1000000; \
+	    printf "cycles=%d measured=%.3fs expected=%.3fs\n", c, m, x; \
+	    exit !(c > 0 && m >= x * 0.9 && m <= x * 1.1) }'

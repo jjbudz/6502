@@ -229,6 +229,8 @@ run_test test-PLP-I-CLEAR
 run_test test-PLP-I-SET
 run_test test-RTI-I-CLEAR
 run_test test-RTI-I-SET
+run_test test-CYCLES-PAGE
+run_test test-TIMING-MHZ
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE
