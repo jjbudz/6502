@@ -282,4 +282,7 @@ Breakpoint at $4010
 - Test programs typically store results at `$8000` and above
 - Default program start address is `$4000`
 - Stack is located at `$0100-$01FF` and grows downward
+- A run ends at a `BRK` when no handler is installed at `$FFFE`, or at an
+  instruction that jumps to itself (`done JMP done`); with a handler, `BRK`
+  is a software interrupt and skips the byte after it on return
 

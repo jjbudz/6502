@@ -248,6 +248,12 @@ uint8_t decimal();
 uint8_t brk();
 
 /**
+ * Return true once the program has ended: a BRK with no handler installed
+ * (the vector at $FFFE is $0000), or an instruction that jumps to itself.
+ */
+bool halted();
+
+/**
  * Return the value of the overflow flag.
  */
 uint8_t overflow();

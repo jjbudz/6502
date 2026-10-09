@@ -333,7 +333,7 @@ JMP ($0010)   ; Jump to the address stored at $0010/$0011
 JSR sub       ; Call subroutine; RTS returns
 BNE loop      ; Branch to label (relative, within -128..+127 bytes)
 BEQ $4010     ; Branch to a literal address
-BRK           ; Break (halt execution)
+BRK           ; Software interrupt via $FFFE; halts if no handler is installed
 NOP           ; No operation
 ```
 
@@ -356,7 +356,8 @@ Key conventions:
 - First line often specifies start address (e.g., `$4000`)
 - Instructions can be indented for readability
 - Comments start with `;` and run to the end of the line
-- Programs should end with `BRK`
+- Programs should end with `BRK`, or with a jump to itself (`done JMP done`)
+  if they install a `BRK`/IRQ handler at `$FFFE` (see [Ending a Program](#ending-a-program))
 
 ### Assembler Limitations
 
@@ -498,6 +499,36 @@ setCarry(carry_occurred);  // C flag
 setOverflow(v_occurred);   // V flag
 ```
 
+### Ending a Program
+
+A run ends when either of these happens:
+
+- **`BRK` with no handler installed.** If the vector at `$FFFE` is `$0000`,
+  `BRK` stops the run where it is, so a bare `BRK` ends a program as before.
+- **An instruction that jumps to itself.** `done JMP done`, or a taken branch
+  to itself, leaves PC unchanged and would loop forever, so the run stops
+  there. Klaus Dormann's test suites signal pass and fail this way.
+
+Otherwise `BRK` behaves as on the 6502: it pushes the address two bytes past
+itself (it skips a padding byte), then P with B set, sets I, and jumps through
+`$FFFE`. `RTI` resumes after the padding byte. A program that installs a
+handler must therefore end with a jump to itself, since a final `BRK` would
+enter the handler:
+
+```asm
+        .ORG $4000
+        BRK
+        .BYTE $00       ; padding byte, skipped by RTI
+        ...
+done    JMP done        ; ends the run
+
+handler ...             ; P with B set is at $0101,X after TSX
+        RTI
+
+        .ORG $FFFE
+        .WORD handler
+```
+
 ### Execution Flow
 
 #### Main Execution Loop (`run()`)
@@ -517,7 +548,7 @@ int run(uint16_t address) {
         
         inst->func();  // Execute instruction
         
-        if (opcode == BRK) break;  // Halt on BRK
+        if (halted()) break;  // BRK with no handler, or a jump to itself
         
         ticker_wait_for_cycles();  // Timing simulation
     }
@@ -713,7 +744,7 @@ A test file should:
 1. **Start at a consistent address** (convention: `$4000`)
 2. **Perform operations** to test specific functionality
 3. **Store result** at a predictable memory location
-4. **End with BRK** to halt execution
+4. **End with BRK** to halt execution (or `done JMP done` if the test installs a handler at `$FFFE`)
 
 Example test (`LDAI2.asm`):
 ```asm
