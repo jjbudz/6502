@@ -47,7 +47,7 @@ const char* kVersion = "6502 Emulator v0.3.1";
  * Consts for program stack size, label and branch tables, 
  * and instruction set mapping table.
  */
-static const int kStackSize         = 256;
+static const uint16_t kStackBase    = 0x0100; // the stack is page 1
 static const int kInstrSetTableSize = 256;
 
 /**
@@ -170,11 +170,6 @@ static uint8_t  P;  /// Status register
 
 static uint64_t CYCLES; /// Cycles executed since reset, not part of 6502
 
-/**
- * Program stack
- */
-static uint8_t STACK[kStackSize]; 
-
 //
 // 6502 instruction set table (indexed by opcode)
 //
@@ -294,6 +289,32 @@ unsigned char getImmediateValue()
 }
 
 /**
+ * Push a byte onto the stack in page 1. SP is 8 bits, so it wraps from
+ * $00 to $FF as on the 6502.
+ */
+static void push(uint8_t value)
+{
+    *(BP + kStackBase + SP) = value;
+    SP--;
+}
+
+/**
+ * Pull a byte from the stack in page 1.
+ */
+static uint8_t pull()
+{
+    SP++;
+    return *(BP + kStackBase + SP);
+}
+
+/**
+ * Bits of P as pushed by PHP and BRK: B (bit 4) and the unused bit 5 have
+ * no storage in the 6502's status register and always read as 1 when P is
+ * pushed. PLP and RTI discard them.
+ */
+static const uint8_t kPushedBits = (1<<kBREAKBIT) | (1<<5);
+
+/**
  * Refresh the cached flag variables from P after P is loaded whole (PLP,
  * RTI). The emulator reads flags from these variables, not from P, so one
  * left stale here would report the old value (e.g. I to the IRQ check).
@@ -304,8 +325,6 @@ static void setFlagsFromP()
     ZEROBIT = (P&(1<<kZEROBIT)) == (1<<kZEROBIT);
     INTERRUPTBIT = (P&(1<<kINTERRUPTBIT)) == (1<<kINTERRUPTBIT);
     DECIMALBIT = (P&(1<<kDECIMALBIT)) == (1<<kDECIMALBIT);
-    // @todo B is not a flag in P on a real 6502; revisit with the BRK rework
-    BREAKBIT = (P&(1<<kBREAKBIT)) == (1<<kBREAKBIT);
     OVERFLOWBIT = (P&(1<<kOVERFLOWBIT)) == (1<<kOVERFLOWBIT);
     SIGNBIT = (P&(1<<kSIGNBIT)) == (1<<kSIGNBIT);
 }
@@ -1405,9 +1424,8 @@ INSTRUCTION(JSR, 0x20, 3, 6, "Jump to subroutine")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sJSR, (uint16_t)addr16);
-    STACK[SP] = (PC+2)>>8; 
-    STACK[SP-1] = (PC+2)&0xFF; 
-    SP -= 2;
+    push((PC+2)>>8);    // address of the JSR's last byte; RTS adds 1
+    push((PC+2)&0xFF);
     PC = addr16;
 }
 
@@ -1835,8 +1853,7 @@ INSTRUCTION(ORAIY, 0x11, 2, 5, "Logical OR accumulator using indexed indirect, Y
 INSTRUCTION(PHA, 0x48, 1, 3, "Push accumulator onto stack")
 {
     FTRACE("%s", __FILE__, __LINE__, sPHA);
-    STACK[SP] = A;
-    SP--;
+    push(A);
     PC++;
 }
 
@@ -1846,8 +1863,9 @@ INSTRUCTION(PHA, 0x48, 1, 3, "Push accumulator onto stack")
 INSTRUCTION(PLA, 0x68, 1, 4, "Pull accumulator from stack")
 {
     FTRACE("%s", __FILE__, __LINE__, sPLA);
-    A = STACK[SP+1];
-    SP++;
+    A = pull();
+    SET_ZERO(A);
+    SET_SIGN(A);
     PC++;
 }
 
@@ -1857,8 +1875,7 @@ INSTRUCTION(PLA, 0x68, 1, 4, "Pull accumulator from stack")
 INSTRUCTION(PHP, 0x08, 1, 3, "Push processor status on stack")
 {
     FTRACE("%s", __FILE__, __LINE__, sPHP);
-    STACK[SP] = P;
-    SP--;
+    push(P | kPushedBits);
     PC++;
 }
 
@@ -1868,9 +1885,8 @@ INSTRUCTION(PHP, 0x08, 1, 3, "Push processor status on stack")
 INSTRUCTION(PLP, 0x28, 1, 4, "Pull process status from stack")
 {
     FTRACE("%s", __FILE__, __LINE__, sPLP);
-    P = STACK[SP+1];
+    P = pull() & ~kPushedBits;
     setFlagsFromP();
-    SP++;
     PC++;
 }
 
@@ -2047,10 +2063,10 @@ INSTRUCTION(RORX, 0x7E, 3, 7, "Rotate absolute memory value indexed by X to the 
 INSTRUCTION(RTI, 0x40, 1, 6, "Return from interrupt, restoring status bits")
 {
     FTRACE("%s", __FILE__, __LINE__, sRTI);
-    P = STACK[SP+1];
+    P = pull() & ~kPushedBits;
     setFlagsFromP();
-    PC = (uint16_t)(STACK[SP+3]<<8)+(uint16_t)STACK[SP+2];
-    SP += 3;
+    uint8_t lo = pull();
+    PC = (uint16_t)(pull()<<8) + lo;
 }
 
 /**
@@ -2059,8 +2075,8 @@ INSTRUCTION(RTI, 0x40, 1, 6, "Return from interrupt, restoring status bits")
 INSTRUCTION(RTS, 0x60, 1, 6, "Return from subroutine")
 {
     FTRACE("%s", __FILE__, __LINE__, sRTS);
-    PC = (uint16_t)(STACK[SP+2]<<8)+(uint16_t)STACK[SP+1]+1;
-    SP += 2;
+    uint8_t lo = pull();
+    PC = (uint16_t)((pull()<<8) + lo + 1);
 }
 
 /**
@@ -2883,9 +2899,9 @@ void dumpStack()
 {
     fprintf(stderr, "Stack Dump...");
 
-    for (uint8_t i=kStackSize-1; i > SP; i--)
+    for (uint8_t i=0xff; i > SP; i--)
     {
-        fprintf(stderr, "%02x ", (uint8_t)STACK[i]);
+        fprintf(stderr, "%02x ", *(BP + kStackBase + i));
     }
 
     fprintf(stderr, "\n");
