@@ -225,6 +225,10 @@ run_test test-EXPR-ARITH
 run_test test-RESET-VECTOR
 run_test test-EQU-BYTE-STRING
 run_test test-LISTING
+run_test test-PLP-I-CLEAR
+run_test test-PLP-I-SET
+run_test test-RTI-I-CLEAR
+run_test test-RTI-I-SET
 run_test test-CYCLES-PAGE
 run_test test-TIMING-MHZ
 

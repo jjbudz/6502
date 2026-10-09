@@ -294,6 +294,23 @@ unsigned char getImmediateValue()
 }
 
 /**
+ * Refresh the cached flag variables from P after P is loaded whole (PLP,
+ * RTI). The emulator reads flags from these variables, not from P, so one
+ * left stale here would report the old value (e.g. I to the IRQ check).
+ */
+static void setFlagsFromP()
+{
+    CARRYBIT = (P&(1<<kCARRYBIT)) == (1<<kCARRYBIT);
+    ZEROBIT = (P&(1<<kZEROBIT)) == (1<<kZEROBIT);
+    INTERRUPTBIT = (P&(1<<kINTERRUPTBIT)) == (1<<kINTERRUPTBIT);
+    DECIMALBIT = (P&(1<<kDECIMALBIT)) == (1<<kDECIMALBIT);
+    // @todo B is not a flag in P on a real 6502; revisit with the BRK rework
+    BREAKBIT = (P&(1<<kBREAKBIT)) == (1<<kBREAKBIT);
+    OVERFLOWBIT = (P&(1<<kOVERFLOWBIT)) == (1<<kOVERFLOWBIT);
+    SIGNBIT = (P&(1<<kSIGNBIT)) == (1<<kSIGNBIT);
+}
+
+/**
  * Return 1 if indexing base by index lands on a different 256-byte page.
  */
 static uint8_t pageCrossed(uint16_t base, uint8_t index)
@@ -1852,12 +1869,7 @@ INSTRUCTION(PLP, 0x28, 1, 4, "Pull process status from stack")
 {
     FTRACE("%s", __FILE__, __LINE__, sPLP);
     P = STACK[SP+1];
-    ZEROBIT = (P&(1<<kZEROBIT)) == (1<<kZEROBIT);
-    SIGNBIT = (P&(1<<kSIGNBIT)) == (1<<kSIGNBIT);
-    CARRYBIT = (P&(1<<kCARRYBIT)) == (1<<kCARRYBIT);
-    OVERFLOWBIT = (P&(1<<kOVERFLOWBIT)) == (1<<kOVERFLOWBIT);
-    DECIMALBIT = (P&(1<<kDECIMALBIT)) == (1<<kDECIMALBIT);
-    BREAKBIT = (P&(1<<kBREAKBIT)) == (1<<kBREAKBIT);
+    setFlagsFromP();
     SP++;
     PC++;
 }
@@ -2036,12 +2048,7 @@ INSTRUCTION(RTI, 0x40, 1, 6, "Return from interrupt, restoring status bits")
 {
     FTRACE("%s", __FILE__, __LINE__, sRTI);
     P = STACK[SP+1];
-    ZEROBIT = (P&(1<<kZEROBIT)) == (1<<kZEROBIT);
-    SIGNBIT = (P&(1<<kSIGNBIT)) == (1<<kSIGNBIT);
-    CARRYBIT = (P&(1<<kCARRYBIT)) == (1<<kCARRYBIT);
-    OVERFLOWBIT = (P&(1<<kOVERFLOWBIT)) == (1<<kOVERFLOWBIT);
-    DECIMALBIT = (P&(1<<kDECIMALBIT)) == (1<<kDECIMALBIT);
-    BREAKBIT = (P&(1<<kBREAKBIT)) == (1<<kBREAKBIT);
+    setFlagsFromP();
     PC = (uint16_t)(STACK[SP+3]<<8)+(uint16_t)STACK[SP+2];
     SP += 3;
 }
