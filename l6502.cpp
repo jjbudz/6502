@@ -295,9 +295,8 @@ unsigned char getImmediateValue()
 
 /**
  * Refresh the cached flag variables from P after P is loaded whole (PLP,
- * RTI). Every SET_* macro rebuilds its bit of P from these variables, so a
- * flag left stale here would overwrite the pulled value on the next flag
- * change.
+ * RTI). The emulator reads flags from these variables, not from P, so one
+ * left stale here would report the old value (e.g. I to the IRQ check).
  */
 static void setFlagsFromP()
 {
