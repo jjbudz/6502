@@ -106,6 +106,24 @@ BEQ $4010        ; Relative branch to a literal address
 A label used before it is defined is encoded as an absolute address. Using a mode
 an instruction does not have (`LDX $10,X`) is an error.
 
+### Expressions, Constants and Directives
+
+```asm
+BASE = $50               ; constant
+MASK = %00001111         ; binary literal
+* = $4000                ; same as .ORG $4000
+        LDA #'A'         ; character literal ($41)
+        AND #MASK
+        STA BASE+2       ; expressions use + and -, 16-bit
+        LDA #<TARGET     ; low byte of an address
+        LDX #>TARGET     ; high byte
+        JMP *+6          ; * is this instruction's address
+        LDA #-1          ; negative immediate ($FF)
+TABLE   .BYTE 1, 2, 3    ; one byte each
+PTR     .WORD $1234, TABLE ; two bytes each, low first
+MSG     .TEXT "Hello", 0 ; string bytes (case kept) plus a terminator
+```
+
 The legacy syntax instead spells the mode in the mnemonic:
 
 ```asm

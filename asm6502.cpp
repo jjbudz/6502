@@ -12,38 +12,43 @@
  *    |
  *    +-- lexLine()      text  -> vector<Token>
  *    |                  Splits the line into words and classifies each one
- *    |                  by its first character: a number ($hex or decimal),
- *    |                  an identifier (mnemonic, label or register), a
- *    |                  directive (.DATA), '#', or punctuation ( ) , :.
- *    |                  Drops comments. Remembers the column of every token
- *    |                  for error messages.
+ *    |                  by its first character: a number ($hex, decimal,
+ *    |                  %binary or 'c'), an identifier (mnemonic, label or
+ *    |                  register), a directive (.ORG ...), a "string", '#',
+ *    |                  or punctuation ( ) , : = + - < > *. Drops comments.
+ *    |                  Remembers the column of every token for messages.
  *    |
  *    +-- parseLine()    vector<Token> -> Statement (appended to statements_)
  *    |     |            Recognises the line shape
  *    |     |                [$addr] [label[:]] MNEMONIC [operand]
- *    |     |                [$addr] [label[:]] .DATA value ...
+ *    |     |                [$addr] [label[:]] .DIRECTIVE arguments
+ *    |     |                NAME = expression      (or  * = expression)
  *    |     |            A leading $addr moves the location counter (pc_).
  *    |     |            A label is recorded in labels_ at pc_. The statement
  *    |     |            is stamped with pc_, then pc_ is advanced by the
  *    |     |            statement's size.
  *    |     |
  *    |     +-- parseOperandShape()  reads the operand's punctuation into a
- *    |     |                        Shape: #v, v, v,X, v,Y, (v,X), (v),Y, (v)
- *    |     |                        or A, with v a number or a label
+ *    |     |                        Shape: #e, e, e,X, e,Y, (e,X), (e),Y, (e)
+ *    |     |                        or A, with e an expression
  *    |     +-- encodeLegacy()       for a suffixed mnemonic (LDAZX, ...):
  *    |     |                        the mode is in the name; check the
  *    |     |                        operand is the right width
  *    |     +-- encodeStandard()     for a bare mnemonic (LDA, ...): choose
  *    |     |                        the mode from the shape and the value,
  *    |     |                        then look up (mnemonic, mode) -> opcode
- *    |     +-- parseData()          converts .DATA values to bytes
+ *    |     +-- parseDirective()     .ORG .BYTE .WORD .TEXT .DATA
+ *    |     +-- evalExpr()           used by all of the above to compute an
+ *    |                              expression's value, or to find out that
+ *    |                              it depends on a label not yet defined
  *    |
  *    |  after the whole file has been read (pass 2):
  *    |
  *    +-- emit()         vector<Statement> -> bytes in memory_
  *                       Writes each statement at its recorded address.
- *                       Label operands are looked up here, which is why a
- *                       branch can refer to a label defined further down.
+ *                       Expressions are evaluated again here with the full
+ *                       label table (evalExpr), which is why an operand can
+ *                       refer to a label defined further down.
  *
  * Why two passes: an instruction's size is settled in pass 1 (by the
  * mnemonic for the legacy form; by the operand's shape and, for zero page
@@ -58,7 +63,9 @@
  * SYNTAX ACCEPTED
  *
  *   [$addr] [label[:]] MNEMONIC [operand]   ; comment
- *   [$addr] [label[:]] .DATA value ...      ; comment
+ *   [$addr] [label[:]] .DIRECTIVE args      ; comment
+ *   NAME = expression                       ; constant
+ *   *    = expression                       ; same as .ORG
  *
  * Two mnemonic styles are accepted and may be mixed in one file:
  *
@@ -78,9 +85,21 @@
  *              $hhhh or a label. A 3-byte instruction requires a 4-digit
  *              address; a 2-byte one a value under $100 in fewer digits.
  *
+ * Expressions:  value  (+|-) value ...  with unary  <  (low byte),
+ *               >  (high byte) and  -  (negate). A value is a number
+ *               ($1F, 31, %00011111, 'A'), a label or constant, or  *  (the
+ *               address of the current instruction). Arithmetic is 16-bit.
+ *
+ * Directives:   .ORG e           set the location counter (e known now)
+ *               .BYTE e, e, ...  one byte each
+ *               .WORD e, e, ...  two bytes each, low byte first
+ *               .TEXT "s", e...  the characters of each string, and one byte
+ *                                for each expression
+ *               .DATA h h ...    legacy: hex values with or without '$', one
+ *                                byte each or two (low first) when above $FF
+ *
  * A label is an identifier in column 1, or any identifier followed by ':'.
- * .DATA values are hex, with or without a '$' prefix; a value above $FF is
- * stored as two bytes, low byte first. Source is case-insensitive.
+ * Source is case-insensitive except inside strings and character literals.
  */
 
 #include <assert.h>
@@ -237,30 +256,59 @@ const OpcodeTable& opcodeTable()
  *
  * The lexer only classifies; it does not know whether an identifier is a
  * mnemonic, a label or the register X, or whether a number is a sensible
- * size. Those are the parser's decisions, which is why text, hex and value
- * are all kept.
+ * size. Those are the parser's decisions, which is why text, radix and
+ * value are all kept.
  */
 struct Token
 {
     enum Kind
     {
-        kNumber,     // $hex or decimal digits
-        kIdentifier, // mnemonic, label, or A/X/Y
-        kDirective,  // .DATA
+        kNumber,     // $hex, decimal, %binary or 'c'
+        kIdentifier, // mnemonic, label, constant, or A/X/Y
+        kDirective,  // .ORG .BYTE .WORD .TEXT .DATA
+        kString,     // "text", kept in its original case
         kHash,       // '#', introduces an immediate value
-        kPunct       // one of ( ) , :
+        kPunct       // one of ( ) , : = + - < > *
+    };
+
+    enum Radix
+    {
+        kDecimal,
+        kHex,
+        kBinary,
+        kChar
     };
 
     Kind          kind;
-    std::string   text;   // source text, uppercased, without any '$' prefix
-    bool          hex;    // kNumber: had a '$' prefix
+    std::string   text;   // source text, uppercased, without any $ % or quotes
+    Radix         radix;  // kNumber
     unsigned long value;  // kNumber: numeric value
     int           col;    // 1-based column of the first character
+
+    Token() : kind(kPunct), radix(kDecimal), value(0), col(0) {}
+
+    bool isPunct(char c) const { return kind == kPunct && text[0] == c; }
+    bool isHex() const         { return kind == kNumber && radix == kHex; }
+};
+
+typedef std::vector<Token> Expr; // an operand expression, as tokens
+
+/**
+ * What evalExpr() learns about an expression.
+ */
+struct ExprResult
+{
+    uint16_t value;     // valid when known
+    bool     known;     // every label in it is defined
+    bool     byteOp;    // the whole expression is < e or > e, so fits a byte
+    bool     wideHex;   // a lone 4-digit hex literal, e.g. $0080: never zero page
+
+    ExprResult() : value(0), known(false), byteOp(false), wideHex(false) {}
 };
 
 /**
  * The punctuation pattern of an operand, as read by parseOperandShape(),
- * before any decision about addressing mode. 'v' is a number or label.
+ * before any decision about addressing mode. 'e' is an expression.
  */
 struct Shape
 {
@@ -268,48 +316,52 @@ struct Shape
     {
         kNone,         //
         kAccumulator,  // A
-        kImmediate,    // #v
-        kDirect,       // v
-        kDirectX,      // v,X
-        kDirectY,      // v,Y
-        kIndirect,     // (v)
-        kIndirectX,    // (v,X)
-        kIndirectY     // (v),Y
+        kImmediate,    // #e
+        kDirect,       // e
+        kDirectX,      // e,X
+        kDirectY,      // e,Y
+        kIndirect,     // (e)
+        kIndirectX,    // (e,X)
+        kIndirectY     // (e),Y
     };
 
-    Kind  kind;
-    Token value;  // the v token; meaningful unless kNone/kAccumulator
+    Kind kind;
+    Expr expr;  // the e tokens; empty for kNone/kAccumulator
+    int  col;   // column of the first operand token
 
-    Shape() : kind(kNone) {}
+    Shape() : kind(kNone), col(0) {}
 };
 
 /**
  * An instruction's encoded operand, as produced by encodeLegacy() or
- * encodeStandard(). width and relative are final; the value is final for
- * kLiteral, and for kLabel is looked up by emit().
+ * encodeStandard(). width and relative are final; the value comes from
+ * evaluating expr in pass 2, when every label is known.
  */
 struct Operand
 {
-    enum Kind
-    {
-        kNone,
-        kLiteral, // value is known
-        kLabel    // value is labels_[label], resolved in pass 2
-    };
+    Expr     expr;      // empty for an instruction with no operand
+    uint16_t pc;        // address of the instruction, for '*' in expr
+    uint8_t  width;     // operand bytes: 0, 1 or 2
+    bool     relative;  // encode as a branch offset from the next instruction
+    bool     immediate; // may hold a negative byte (-128..-1 as $80..$FF)
+    int      col;       // for error messages in pass 2
 
-    Kind        kind;
-    uint16_t    value;
-    std::string label;
-    uint8_t     width;    // operand bytes: 0, 1 or 2
-    bool        relative; // encode as a branch offset from the next instruction
-    int         col;      // for error messages in pass 2
+    Operand() : pc(0), width(0), relative(false), immediate(false), col(0) {}
+};
 
-    Operand() : kind(kNone), value(0), width(0), relative(false), col(0) {}
+/**
+ * One value of a data directive: an expression and the bytes it occupies.
+ */
+struct DataItem
+{
+    Expr    expr;
+    uint8_t width; // 1 or 2
+    int     col;
 };
 
 /**
  * One assembled item, as produced by parseLine(): an instruction with its
- * operand, or a run of data bytes. address is where emit() will write it.
+ * operand, or a run of data. address is where emit() will write it.
  */
 struct Statement
 {
@@ -319,12 +371,12 @@ struct Statement
         kData
     };
 
-    Kind                 kind;
-    uint16_t             address;
-    int                  line;    // for error messages in pass 2
-    uint8_t              opcode;  // kInstruction
-    Operand              operand; // kInstruction
-    std::vector<uint8_t> data;    // kData
+    Kind                  kind;
+    uint16_t              address;
+    int                   line;    // for error messages in pass 2
+    uint8_t               opcode;  // kInstruction
+    Operand               operand; // kInstruction
+    std::vector<DataItem> data;    // kData
 };
 
 /**
@@ -335,6 +387,25 @@ struct Statement
 bool isBranch(uint8_t opcode)
 {
     return (opcode & 0x1f) == 0x10;
+}
+
+/**
+ * A single-token expression holding a known value, for data the parser
+ * has already turned into bytes (.DATA values, .TEXT characters).
+ */
+Expr literalExpr(unsigned long value, int col)
+{
+    Token tok;
+    tok.kind = Token::kNumber;
+    tok.radix = Token::kDecimal;
+    tok.value = value;
+    tok.col = col;
+
+    char text[16];
+    snprintf(text, sizeof(text), "%lu", value);
+    tok.text = text;
+
+    return Expr(1, tok);
 }
 
 /*
@@ -358,6 +429,7 @@ private:
     // Pass 1: text -> tokens -> statements, addresses and labels
     bool lexLine(const char* line, int lineno, std::vector<Token>& tokens);
     void parseLine(const std::vector<Token>& tokens, int lineno);
+    bool defineLabel(const Token& name, uint16_t value, int lineno);
     bool parseOperandShape(const std::vector<Token>& tokens, size_t first,
                            int lineno, Shape& shape);
     bool encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
@@ -365,10 +437,22 @@ private:
     bool encodeStandard(const Shape& shape, const std::string& mnemonic,
                         const OpcodeSet& set, int lineno, int col,
                         uint8_t& opcode, Operand& operand);
-    bool parseData(const std::vector<Token>& tokens, size_t first,
-                   int lineno, std::vector<uint8_t>& data);
+    bool parseDirective(const std::vector<Token>& tokens, size_t first,
+                        int lineno, Statement& statement, bool& isStatement);
+    bool parseDataLegacy(const std::vector<Token>& tokens, size_t first,
+                         int lineno, std::vector<DataItem>& data);
+    bool splitArguments(const std::vector<Token>& tokens, size_t first, int lineno,
+                        std::vector<Expr>& args);
 
-    // Pass 2: statements -> bytes, labels resolved
+    // Expressions, both passes
+    bool evalExpr(const Expr& expr, uint16_t pc, int lineno, bool final,
+                  ExprResult& result);
+    bool evalSum(const Expr& expr, size_t& i, uint16_t pc, int lineno, bool final,
+                 long& value, bool& known);
+    bool evalTerm(const Expr& expr, size_t& i, uint16_t pc, int lineno, bool final,
+                  long& value, bool& known);
+
+    // Pass 2: statements -> bytes, expressions resolved
     void emit();
 
     void error(int line, int col, const char* fmt, ...);
@@ -377,7 +461,7 @@ private:
     uint8_t*                        memory_;     // the emulator's 64K image
     uint16_t                        pc_;         // location counter during pass 1
     int                             errors_;
-    std::map<std::string, uint16_t> labels_;     // name -> address, filled in pass 1
+    std::map<std::string, uint16_t> labels_;     // labels and constants, filled in pass 1
     std::vector<Statement>          statements_; // in source order, filled in pass 1
 };
 
@@ -418,14 +502,17 @@ void Assembler::error(int line, int col, const char* fmt, ...)
  * Walks the line character by character. Whitespace separates tokens; ';'
  * ends the line. The first character of a word decides its kind:
  *
- *   '#'              kHash (a one-character token)
- *   ( ) , :          kPunct (one-character tokens, so "($10),Y" lexes
- *                    without spaces)
- *   '$' or digit     kNumber; the digits that follow are validated against
- *                    the radix here so later stages can trust token.value
- *   '.'              kDirective
- *   letter or '_'    kIdentifier
- *   anything else    error
+ *   '#'                  kHash (a one-character token)
+ *   ( ) , : = + - < > *  kPunct (one-character tokens, so "($10),Y" and
+ *                        "LABEL+1" lex without spaces)
+ *   '$' '%' or digit     kNumber in hex, binary or decimal; the digits that
+ *                        follow are validated against the radix here so
+ *                        later stages can trust token.value
+ *   'c'                  kNumber with the character's code
+ *   "text"               kString, case preserved
+ *   '.'                  kDirective
+ *   letter or '_'        kIdentifier
+ *   anything else        error
  *
  * Text is uppercased so the rest of the assembler is case-insensitive.
  * Returns false after reporting an error; the caller skips the line.
@@ -449,8 +536,6 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
 
         Token token;
         token.col = (int)i + 1;
-        token.hex = false;
-        token.value = 0;
 
         if (c == '#')
         {
@@ -458,17 +543,43 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
             token.text = "#";
             i++;
         }
-        else if (c == '(' || c == ')' || c == ',' || c == ':')
+        else if (strchr("(),:=+-<>*", c) != NULL)
         {
             token.kind = Token::kPunct;
             token.text = std::string(1, c);
             i++;
         }
-        else if (c == '$' || isdigit((unsigned char)c))
+        else if (c == '\'') // character literal
+        {
+            if (i + 2 >= len || line[i+2] != '\'')
+            {
+                error(lineno, token.col, "character literal must be one character in quotes");
+                return false;
+            }
+            token.kind = Token::kNumber;
+            token.radix = Token::kChar;
+            token.value = (unsigned char)line[i+1];
+            token.text = std::string(1, line[i+1]);
+            i += 3;
+        }
+        else if (c == '"') // string
+        {
+            size_t end = i + 1;
+            while (end < len && line[end] != '"') end++;
+            if (end >= len)
+            {
+                error(lineno, token.col, "unterminated string");
+                return false;
+            }
+            token.kind = Token::kString;
+            token.text = std::string(line + i + 1, end - i - 1);
+            i = end + 1;
+        }
+        else if (c == '$' || c == '%' || isdigit((unsigned char)c))
         {
             token.kind = Token::kNumber;
-            token.hex = (c == '$');
-            if (token.hex) i++; // the '$' itself is not part of the text
+            token.radix = (c == '$') ? Token::kHex : (c == '%') ? Token::kBinary : Token::kDecimal;
+            if (token.radix != Token::kDecimal) i++; // the $ or % is not part of the text
 
             // Collect every alphanumeric so that a malformed number such
             // as $12G4 is reported as one bad value rather than split in two.
@@ -479,22 +590,29 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
                 i++;
             }
 
-            const char* digits = token.hex ? "0123456789ABCDEF" : "0123456789";
+            const char* digits = (token.radix == Token::kHex) ? "0123456789ABCDEF" :
+                                 (token.radix == Token::kBinary) ? "01" : "0123456789";
+            const char* name   = (token.radix == Token::kHex) ? "hex" :
+                                 (token.radix == Token::kBinary) ? "binary" : "decimal";
+            const char* prefix = (token.radix == Token::kHex) ? "$" :
+                                 (token.radix == Token::kBinary) ? "%" : "";
+
             if (token.text.empty() ||
                 strspn(token.text.c_str(), digits) != token.text.size())
             {
                 error(lineno, (int)start + 1, "bad %s value ->%s%s<-",
-                      token.hex ? "hex" : "decimal", token.hex ? "$" : "",
-                      token.text.c_str());
+                      name, prefix, token.text.c_str());
                 return false;
             }
 
             // The parser checks digit counts (2 for a byte, 4 for an
             // address) and reports them; here just avoid overflowing on an
             // absurdly long literal.
-            if (token.text.size() <= 8)
+            int base = (token.radix == Token::kHex) ? 16 : (token.radix == Token::kBinary) ? 2 : 10;
+            if (token.text.size() <= 16)
             {
-                token.value = strtoul(token.text.c_str(), NULL, token.hex ? 16 : 10);
+                token.value = strtoul(token.text.c_str(), NULL, base);
+                if (token.value > 0xffffffff) token.value = 0xffffffff;
             }
             else
             {
@@ -524,21 +642,201 @@ bool Assembler::lexLine(const char* line, int lineno, std::vector<Token>& tokens
 }
 
 /**
+ * Record a label or constant. Returns false if the name is already taken.
+ */
+bool Assembler::defineLabel(const Token& name, uint16_t value, int lineno)
+{
+    if (labels_.find(name.text) != labels_.end())
+    {
+        error(lineno, name.col, "label %s is already defined", name.text.c_str());
+        return false;
+    }
+
+    FTRACE("Assembler recording label: %s = %04x",
+        __FILE__, __LINE__, name.text.c_str(), value);
+
+    labels_[name.text] = value;
+    return true;
+}
+
+/*
+ * Expressions
+ *
+ *   sum  := term (('+' | '-') term)*
+ *   term := '<' term | '>' term | '-' term | number | identifier | '*'
+ *
+ * Evaluation is 16-bit; results wrap. An identifier not yet in labels_
+ * makes the result unknown; in pass 2 (final) that is an error instead.
+ */
+
+/**
+ * Evaluate a whole expression and describe the result. Reports syntax
+ * errors, and in pass 2 undefined labels. Returns false on error.
+ */
+bool Assembler::evalExpr(const Expr& expr, uint16_t pc, int lineno, bool final,
+                         ExprResult& result)
+{
+    if (expr.empty())
+    {
+        error(lineno, 0, "expected an expression");
+        return false;
+    }
+
+    size_t i = 0;
+    long value = 0;
+    bool known = true;
+
+    if (!evalSum(expr, i, pc, lineno, final, value, known)) return false;
+
+    if (i < expr.size())
+    {
+        error(lineno, expr[i].col, "unexpected ->%s<- in expression", expr[i].text.c_str());
+        return false;
+    }
+
+    result.known = known;
+    result.value = (uint16_t)(value & 0xffff);
+    result.byteOp = (expr[0].isPunct('<') || expr[0].isPunct('>'));
+    result.wideHex = (expr.size() == 1 && expr[0].isHex() && expr[0].text.size() == 4);
+
+    return true;
+}
+
+bool Assembler::evalSum(const Expr& expr, size_t& i, uint16_t pc, int lineno, bool final,
+                        long& value, bool& known)
+{
+    if (!evalTerm(expr, i, pc, lineno, final, value, known)) return false;
+
+    while (i < expr.size() && (expr[i].isPunct('+') || expr[i].isPunct('-')))
+    {
+        bool add = expr[i].isPunct('+');
+        i++;
+
+        long rhs = 0;
+        if (!evalTerm(expr, i, pc, lineno, final, rhs, known)) return false;
+
+        value = add ? value + rhs : value - rhs;
+    }
+
+    return true;
+}
+
+bool Assembler::evalTerm(const Expr& expr, size_t& i, uint16_t pc, int lineno, bool final,
+                         long& value, bool& known)
+{
+    if (i >= expr.size())
+    {
+        error(lineno, expr.back().col + (int)expr.back().text.size(),
+              "expression ends with an operator");
+        return false;
+    }
+
+    const Token& tok = expr[i];
+
+    if (tok.isPunct('<') || tok.isPunct('>') || tok.isPunct('-'))
+    {
+        i++;
+        if (!evalTerm(expr, i, pc, lineno, final, value, known)) return false;
+
+        if (tok.isPunct('<'))      value = value & 0xff;
+        else if (tok.isPunct('>')) value = (value >> 8) & 0xff;
+        else                       value = -value;
+        return true;
+    }
+
+    i++;
+
+    if (tok.kind == Token::kNumber)
+    {
+        if (tok.value > 0xffff)
+        {
+            error(lineno, tok.col, "value out of range, ->%s<-", tok.text.c_str());
+            return false;
+        }
+        value = (long)tok.value;
+        return true;
+    }
+
+    if (tok.isPunct('*'))
+    {
+        value = pc;
+        return true;
+    }
+
+    if (tok.kind == Token::kIdentifier)
+    {
+        std::map<std::string, uint16_t>::const_iterator it = labels_.find(tok.text);
+
+        if (it != labels_.end())
+        {
+            value = it->second;
+        }
+        else if (final)
+        {
+            error(lineno, tok.col, "undefined label %s", tok.text.c_str());
+            return false;
+        }
+        else
+        {
+            known = false;
+            value = 0;
+        }
+        return true;
+    }
+
+    error(lineno, tok.col, "unexpected ->%s<- in expression", tok.text.c_str());
+    return false;
+}
+
+/**
+ * Split tokens[first..] at commas into argument expressions, for
+ * directives. Reports empty arguments. Returns false on error.
+ */
+bool Assembler::splitArguments(const std::vector<Token>& tokens, size_t first, int lineno,
+                               std::vector<Expr>& args)
+{
+    Expr current;
+
+    for (size_t i = first; i <= tokens.size(); i++)
+    {
+        bool end = (i == tokens.size());
+
+        if (end || tokens[i].isPunct(','))
+        {
+            if (current.empty())
+            {
+                error(lineno, end ? tokens.back().col : tokens[i].col, "expected a value");
+                return false;
+            }
+            args.push_back(current);
+            current.clear();
+        }
+        else
+        {
+            current.push_back(tokens[i]);
+        }
+    }
+
+    return true;
+}
+
+/**
  * Read the operand tokens (tokens[first..]) into a Shape: which of the
- * 6502 operand patterns they form, and the value token inside it.
+ * 6502 operand patterns they form, and the expression inside it.
  *
  *   (nothing)          kNone
  *   A                  kAccumulator
- *   # v                kImmediate
- *   v                  kDirect
- *   v , X   /  v , Y   kDirectX / kDirectY
- *   ( v )              kIndirect
- *   ( v , X )          kIndirectX
- *   ( v ) , Y          kIndirectY
+ *   # e                kImmediate
+ *   e                  kDirect
+ *   e , X   /  e , Y   kDirectX / kDirectY
+ *   ( e )              kIndirect
+ *   ( e , X )          kIndirectX
+ *   ( e ) , Y          kIndirectY
  *
- * where v is a number or an identifier. This is pure syntax: whether the
- * instruction supports the pattern is decided by encodeLegacy() or
- * encodeStandard(). Returns false after reporting an error.
+ * where e is an expression: a run of tokens up to the next ')' or ','.
+ * This is pure syntax: whether the instruction supports the pattern is
+ * decided by encodeLegacy() or encodeStandard(), and the expression is
+ * checked there. Returns false after reporting an error.
  */
 bool Assembler::parseOperandShape(const std::vector<Token>& tokens, size_t first,
                                   int lineno, Shape& shape)
@@ -552,78 +850,79 @@ bool Assembler::parseOperandShape(const std::vector<Token>& tokens, size_t first
         return true;
     }
 
+    shape.col = tokens[i].col;
+
     // Helpers expressed as small lambdas would be neater, but this file is
     // kept to the C++ the rest of the project uses.
-    #define IS_PUNCT(idx, ch) ((idx) < n && tokens[idx].kind == Token::kPunct && tokens[idx].text[0] == (ch))
+    #define IS_PUNCT(idx, ch) ((idx) < n && tokens[idx].isPunct(ch))
     #define IS_REG(idx, name) ((idx) < n && tokens[idx].kind == Token::kIdentifier && tokens[idx].text == (name))
-    #define IS_VALUE(idx)     ((idx) < n && (tokens[idx].kind == Token::kNumber || tokens[idx].kind == Token::kIdentifier))
+    #define TAKE_EXPR()       while (i < n && !tokens[i].isPunct(')') && !tokens[i].isPunct(',')) shape.expr.push_back(tokens[i++])
 
     if (IS_REG(i, "A") && i + 1 == n)
     {
         shape.kind = Shape::kAccumulator;
-        shape.value = tokens[i];
         return true;
     }
 
-    if (tokens[i].kind == Token::kHash) // # v
+    if (tokens[i].kind == Token::kHash) // # e
     {
-        if (!IS_VALUE(i + 1))
+        i++;
+        TAKE_EXPR();
+        if (shape.expr.empty())
         {
-            error(lineno, tokens[i].col, "expected a value after #");
+            error(lineno, tokens[first].col, "expected a value after #");
             return false;
         }
         shape.kind = Shape::kImmediate;
-        shape.value = tokens[i + 1];
-        i += 2;
     }
-    else if (IS_PUNCT(i, '(')) // ( v ...
+    else if (IS_PUNCT(i, '(')) // ( e ...
     {
-        if (!IS_VALUE(i + 1))
+        i++;
+        TAKE_EXPR();
+        if (shape.expr.empty())
         {
-            error(lineno, tokens[i].col, "expected a value after (");
+            error(lineno, tokens[first].col, "expected a value after (");
             return false;
         }
-        shape.value = tokens[i + 1];
 
-        if (IS_PUNCT(i + 2, ',')) // ( v , X )
+        if (IS_PUNCT(i, ',')) // ( e , X )
         {
-            if (!IS_REG(i + 3, "X") || !IS_PUNCT(i + 4, ')'))
+            if (!IS_REG(i + 1, "X") || !IS_PUNCT(i + 2, ')'))
             {
-                error(lineno, tokens[i].col, "expected (value,X)");
+                error(lineno, tokens[first].col, "expected (value,X)");
                 return false;
             }
             shape.kind = Shape::kIndirectX;
-            i += 5;
+            i += 3;
         }
-        else if (IS_PUNCT(i + 2, ')'))
+        else if (IS_PUNCT(i, ')'))
         {
-            if (IS_PUNCT(i + 3, ',')) // ( v ) , Y
+            if (IS_PUNCT(i + 1, ',')) // ( e ) , Y
             {
-                if (!IS_REG(i + 4, "Y"))
+                if (!IS_REG(i + 2, "Y"))
                 {
-                    error(lineno, tokens[i + 3].col, "expected (value),Y");
+                    error(lineno, tokens[i + 1].col, "expected (value),Y");
                     return false;
                 }
                 shape.kind = Shape::kIndirectY;
-                i += 5;
+                i += 3;
             }
-            else // ( v )
+            else // ( e )
             {
                 shape.kind = Shape::kIndirect;
-                i += 3;
+                i += 1;
             }
         }
         else
         {
-            error(lineno, tokens[i].col, "unbalanced parenthesis in operand");
+            error(lineno, tokens[first].col, "unbalanced parenthesis in operand");
             return false;
         }
     }
-    else if (IS_VALUE(i)) // v [, X|Y]
+    else if (!IS_PUNCT(i, ')') && !IS_PUNCT(i, ',')) // e [, X|Y]
     {
-        shape.value = tokens[i];
+        TAKE_EXPR();
         shape.kind = Shape::kDirect;
-        i++;
 
         if (IS_PUNCT(i, ','))
         {
@@ -645,7 +944,7 @@ bool Assembler::parseOperandShape(const std::vector<Token>& tokens, size_t first
 
     #undef IS_PUNCT
     #undef IS_REG
-    #undef IS_VALUE
+    #undef TAKE_EXPR
 
     // Anything left over is a second operand, which no 6502 instruction has
     if (i < n)
@@ -670,11 +969,12 @@ bool Assembler::parseOperandShape(const std::vector<Token>& tokens, size_t first
  *   $hhhh         two bytes: for 3-byte instructions, exactly four digits
  *                 (so $0040 is an absolute address and $40 is zero page)
  *   label         width is whatever the instruction needs; the value is
- *                 filled in by emit()
+ *                 filled in by emit(). Any other expression is treated the
+ *                 same way.
  *
  * These are the rules the original assembler applied to its test programs,
  * kept so existing sources assemble to identical bytes. The standard forms
- * v,X  (v)  and so on are not accepted here: the suffix already said that.
+ * e,X  (e)  and so on are not accepted here: the suffix already said that.
  *
  * Returns false after reporting an error.
  */
@@ -682,7 +982,6 @@ bool Assembler::encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
                              Operand& operand)
 {
     uint8_t bytes = asmInstructionBytes(opcode);
-    const Token& tok = shape.value;
 
     if (shape.kind == Shape::kNone)
     {
@@ -696,63 +995,62 @@ bool Assembler::encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
 
     if (bytes == 1)
     {
-        error(lineno, tok.col, "instruction takes no operand");
+        error(lineno, shape.col, "instruction takes no operand");
         return false;
     }
 
-    operand.col = tok.col;
+    if (shape.kind != Shape::kImmediate && shape.kind != Shape::kDirect)
+    {
+        error(lineno, shape.col,
+              "%s spells its addressing mode; use the bare mnemonic for standard syntax",
+              asmInstructionSymbol(opcode));
+        return false;
+    }
+
+    // Check the expression's syntax now, whatever its value
+    ExprResult result;
+    if (!evalExpr(shape.expr, pc_, lineno, false, result)) return false;
+
+    operand.expr = shape.expr;
+    operand.pc = pc_;
+    operand.col = shape.col;
     operand.width = bytes - 1;
     operand.relative = isBranch(opcode);
+    operand.immediate = (shape.kind == Shape::kImmediate);
+
+    bool single = (shape.expr.size() == 1 && shape.expr[0].kind == Token::kNumber);
+    const Token& tok = shape.expr[0];
 
     if (shape.kind == Shape::kImmediate)
     {
-        if (tok.kind != Token::kNumber)
-        {
-            error(lineno, tok.col, "expected a value after #");
-            return false;
-        }
-        if (tok.hex && tok.text.size() > 2)
+        if (single && tok.radix == Token::kHex && tok.text.size() > 2)
         {
             error(lineno, tok.col, "wrong number of digits in hex value, ->$%s<-",
                   tok.text.c_str());
             return false;
         }
-        if (!tok.hex && tok.text.size() > 3)
+        if (single && tok.radix == Token::kDecimal && tok.text.size() > 3)
         {
             error(lineno, tok.col, "wrong number of digits in decimal value, ->%s<-",
                   tok.text.c_str());
             return false;
         }
-        if (tok.value > 0xff)
+        if (single && tok.value > 0xff)
         {
             error(lineno, tok.col, "immediate value out of range, ->%s<-",
                   tok.text.c_str());
             return false;
         }
 
-        operand.kind = Operand::kLiteral;
-        operand.value = (uint16_t)tok.value;
         operand.width = 1;
         return true;
     }
 
-    if (shape.kind != Shape::kDirect)
-    {
-        error(lineno, tok.col,
-              "%s spells its addressing mode; use the bare mnemonic for standard syntax",
-              asmInstructionSymbol(opcode));
-        return false;
-    }
-
-    if (tok.kind == Token::kIdentifier) // label, resolved in pass 2
-    {
-        operand.kind = Operand::kLabel;
-        operand.label = tok.text;
-        return true;
-    }
+    // Direct: a label or other expression is sized by the instruction
+    if (!single) return true;
 
     // Address literal
-    if (!tok.hex)
+    if (tok.radix != Token::kHex)
     {
         error(lineno, tok.col, "address must be hex, ->%s<-", tok.text.c_str());
         return false;
@@ -783,8 +1081,6 @@ bool Assembler::encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
         return false;
     }
 
-    operand.kind = Operand::kLiteral;
-    operand.value = (uint16_t)tok.value;
     return true;
 }
 
@@ -794,20 +1090,21 @@ bool Assembler::encodeLegacy(const Shape& shape, uint8_t opcode, int lineno,
  *
  *   shape           candidate modes
  *   (none) / A      implied
- *   #v              immediate
- *   v               relative if the mnemonic is a branch; else zero page
+ *   #e              immediate
+ *   e               relative if the mnemonic is a branch; else zero page
  *                   or absolute
- *   v,X   v,Y       zero page,X or absolute,X;  zero page,Y or absolute,Y
- *   (v)             (indirect)
- *   (v,X)  (v),Y    (indirect,X)  (indirect),Y
+ *   e,X   e,Y       zero page,X or absolute,X;  zero page,Y or absolute,Y
+ *   (e)             (indirect)
+ *   (e,X)  (e),Y    (indirect,X)  (indirect),Y
  *
  * Zero page is chosen over absolute when the mnemonic has a zero page form
  * and the value is known to fit: a literal under $100 written with fewer
- * than four digits, or a label already defined at an address under $100.
- * A label defined later in the file is assumed absolute, so that pass 1
- * can fix the instruction's size without knowing the label. When only the
- * zero page form exists (STX v,Y; every (indirect,X) and (indirect),Y) the
- * value must fit in a byte, which emit() checks for labels.
+ * than four digits, an expression over labels already defined whose value
+ * is under $100, or any <e or >e. A label defined later in the file is
+ * assumed absolute, so that pass 1 can fix the instruction's size without
+ * knowing the label. When only the zero page form exists (STX e,Y; every
+ * (indirect,X) and (indirect),Y) the value must fit in a byte, which
+ * emit() checks.
  *
  * Returns false after reporting an error.
  */
@@ -815,39 +1112,13 @@ bool Assembler::encodeStandard(const Shape& shape, const std::string& mnemonic,
                                const OpcodeSet& set, int lineno, int col,
                                uint8_t& opcode, Operand& operand)
 {
-    const Token& tok = shape.value;
-
-    // Is the value known now, and does it fit in zero page?
-    unsigned long value = 0;
+    ExprResult result;
     bool fitsZeroPage = false;
 
     if (shape.kind != Shape::kNone && shape.kind != Shape::kAccumulator)
     {
-        if (tok.kind == Token::kNumber)
-        {
-            if (tok.hex && tok.text.size() > 4)
-            {
-                error(lineno, tok.col, "wrong number of digits in hex value, ->$%s<-",
-                      tok.text.c_str());
-                return false;
-            }
-            if (tok.value > 0xffff)
-            {
-                error(lineno, tok.col, "value out of range, ->%s<-", tok.text.c_str());
-                return false;
-            }
-            value = tok.value;
-            fitsZeroPage = (value <= 0xff) && !(tok.hex && tok.text.size() == 4);
-        }
-        else
-        {
-            std::map<std::string, uint16_t>::const_iterator it = labels_.find(tok.text);
-            if (it != labels_.end())
-            {
-                value = it->second;
-                fitsZeroPage = (value <= 0xff);
-            }
-        }
+        if (!evalExpr(shape.expr, pc_, lineno, false, result)) return false;
+        fitsZeroPage = result.byteOp || (result.known && result.value <= 0xff && !result.wideHex);
     }
 
     // Pick the mode from the shape
@@ -907,7 +1178,7 @@ bool Assembler::encodeStandard(const Shape& shape, const std::string& mnemonic,
 
     if (mode == kModeCount || set.opcode[mode] < 0)
     {
-        error(lineno, tok.col ? tok.col : col, "%s has no %s form",
+        error(lineno, shape.col ? shape.col : col, "%s has no %s form",
               mnemonic.c_str(), kModeNames[mode == kModeCount ? kImplied : mode]);
         return false;
     }
@@ -915,42 +1186,38 @@ bool Assembler::encodeStandard(const Shape& shape, const std::string& mnemonic,
     opcode = (uint8_t)set.opcode[mode];
     operand.width = kModeWidth[mode];
     operand.relative = (mode == kRelative);
-    operand.col = tok.col;
+    operand.immediate = (mode == kImmediate);
+    operand.col = shape.col;
+    operand.pc = pc_;
 
     if (operand.width == 0) return true;
 
-    if (tok.kind == Token::kIdentifier)
-    {
-        // A label is always resolved in pass 2 (even if known now) so that
-        // one code path checks ranges and computes branch offsets.
-        operand.kind = Operand::kLabel;
-        operand.label = tok.text;
-        return true;
-    }
+    operand.expr = shape.expr;
 
-    if (operand.width == 1 && !operand.relative && value > 0xff)
+    // A value known now that cannot fit is reported here, where the mode
+    // can be named; emit() repeats the check for values known only later.
+    if (result.known && operand.width == 1 && !operand.relative && result.value > 0xff &&
+        !(operand.immediate && result.value >= 0xff80))
     {
-        error(lineno, tok.col, "%s %s takes a 1-byte value, got ->%s%s<-",
-              mnemonic.c_str(), kModeNames[mode], tok.hex ? "$" : "", tok.text.c_str());
+        error(lineno, shape.col, "%s %s takes a 1-byte value, got $%04x",
+              mnemonic.c_str(), kModeNames[mode], result.value);
         return false;
     }
 
-    operand.kind = Operand::kLiteral;
-    operand.value = (uint16_t)value;
     return true;
 }
 
 /**
- * Parse the values of a .DATA directive (tokens[first..]) into bytes.
+ * Parse the values of the legacy .DATA directive (tokens[first..]).
  *
  * Each value is 1-4 hex digits with an optional '$' prefix. A value above
  * $FF produces two bytes, low byte first; otherwise one byte. So
- * ".DATA $06 $1234" produces 06 34 12.
+ * ".DATA $06 $1234" produces 06 34 12. Values are separated by spaces.
  *
  * Returns false after reporting an error.
  */
-bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
-                          int lineno, std::vector<uint8_t>& data)
+bool Assembler::parseDataLegacy(const std::vector<Token>& tokens, size_t first,
+                                int lineno, std::vector<DataItem>& data)
 {
     if (first >= tokens.size())
     {
@@ -965,21 +1232,127 @@ bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
         // The lexer does not know it is inside .DATA, so bare hex arrives
         // in two forms: "55" as a decimal kNumber and "AB" as a kIdentifier.
         // Both are accepted here by re-reading the text as hex digits.
-        bool ok = (tok.kind == Token::kNumber || tok.kind == Token::kIdentifier) &&
+        bool ok = ((tok.kind == Token::kNumber && tok.radix != Token::kChar) ||
+                   tok.kind == Token::kIdentifier) &&
                   !tok.text.empty() && tok.text.size() <= 4 &&
                   strspn(tok.text.c_str(), "0123456789ABCDEF") == tok.text.size();
 
         if (!ok)
         {
             error(lineno, tok.col, "invalid hex value in data section, ->%s%s<-",
-                  tok.hex ? "$" : "", tok.text.c_str());
+                  tok.isHex() ? "$" : "", tok.text.c_str());
             return false;
         }
 
-        uint16_t value = (uint16_t)strtoul(tok.text.c_str(), NULL, 16);
+        unsigned long value = strtoul(tok.text.c_str(), NULL, 16);
 
-        data.push_back(LOBYTE(value));
-        if (value > 0xff) data.push_back(HIBYTE(value));
+        DataItem item;
+        item.expr = literalExpr(value, tok.col);
+        item.width = (value > 0xff) ? 2 : 1;
+        item.col = tok.col;
+        data.push_back(item);
+    }
+
+    return true;
+}
+
+/**
+ * Parse a directive (tokens[first] is the directive token).
+ *
+ *   .ORG e           sets pc_; e must be computable now. Not a statement.
+ *   .BYTE e, ...     one DataItem of width 1 per expression
+ *   .WORD e, ...     one DataItem of width 2 per expression
+ *   .TEXT "s", e...  one DataItem per character of each string, width 1;
+ *                    an expression argument is a single byte, so
+ *                    .TEXT "HI", 0  gives a terminated string
+ *   .DATA h h ...    legacy, see parseDataLegacy()
+ *
+ * On return isStatement says whether statement was filled in (.ORG only
+ * moves pc_). Returns false after reporting an error.
+ */
+bool Assembler::parseDirective(const std::vector<Token>& tokens, size_t first,
+                               int lineno, Statement& statement, bool& isStatement)
+{
+    const Token& dir = tokens[first];
+    isStatement = false;
+
+    if (dir.text == ".ORG")
+    {
+        Expr expr(tokens.begin() + first + 1, tokens.end());
+        ExprResult result;
+
+        if (expr.empty())
+        {
+            error(lineno, dir.col, ".ORG requires an address");
+            return false;
+        }
+        if (!evalExpr(expr, pc_, lineno, false, result)) return false;
+        if (!result.known)
+        {
+            error(lineno, expr[0].col, ".ORG address must not depend on a label defined later");
+            return false;
+        }
+
+        pc_ = result.value;
+        return true;
+    }
+
+    statement.kind = Statement::kData;
+    isStatement = true;
+
+    if (dir.text == ".DATA")
+    {
+        return parseDataLegacy(tokens, first + 1, lineno, statement.data);
+    }
+
+    if (dir.text != ".BYTE" && dir.text != ".WORD" && dir.text != ".TEXT")
+    {
+        error(lineno, dir.col, "unknown directive %s", dir.text.c_str());
+        return false;
+    }
+
+    if (first + 1 >= tokens.size())
+    {
+        error(lineno, dir.col, "%s requires at least one value", dir.text.c_str());
+        return false;
+    }
+
+    std::vector<Expr> args;
+    if (!splitArguments(tokens, first + 1, lineno, args)) return false;
+
+    for (size_t a = 0; a < args.size(); a++)
+    {
+        const Expr& expr = args[a];
+
+        if (expr.size() == 1 && expr[0].kind == Token::kString)
+        {
+            if (dir.text != ".TEXT")
+            {
+                error(lineno, expr[0].col, "strings are only allowed in .TEXT");
+                return false;
+            }
+
+            const std::string& text = expr[0].text;
+            for (size_t c = 0; c < text.size(); c++)
+            {
+                DataItem item;
+                item.expr = literalExpr((unsigned char)text[c], expr[0].col);
+                item.width = 1;
+                item.col = expr[0].col;
+                statement.data.push_back(item);
+            }
+            continue;
+        }
+
+        // Check the expression's syntax now; its value may come later
+        ExprResult result;
+        if (!evalExpr(expr, pc_, lineno, false, result)) return false;
+
+        DataItem item;
+        item.expr = expr;
+        item.width = (dir.text == ".WORD") ? 2 : 1;
+        item.col = expr[0].col;
+        statement.data.push_back(item);
     }
 
     return true;
@@ -991,16 +1364,20 @@ bool Assembler::parseData(const std::vector<Token>& tokens, size_t first,
  * Works left to right through the line shape
  *
  *     [$addr] [label[:]] MNEMONIC [operand]
- *     [$addr] [label[:]] .DATA value ...
+ *     [$addr] [label[:]] .DIRECTIVE arguments
+ *     NAME = expression
+ *     *    = expression
  *
  *   1. A leading $addr sets the location counter.
- *   2. An identifier in column 1, or any identifier followed by ':',
+ *   2. "NAME = e" defines a constant (e must be computable now) and
+ *      "* = e" sets the location counter; neither produces a statement.
+ *   3. An identifier in column 1, or any identifier followed by ':',
  *      defines a label at the current location. Column 1 is the rule for
  *      the colon-less form so an indented mnemonic is never mistaken for a
  *      label and a label is never confused with an operand elsewhere on
  *      the line.
- *   3. What remains is a directive or a mnemonic. The operand's shape is
- *      read first (parseOperandShape), then:
+ *   4. What remains is a directive (parseDirective) or a mnemonic. The
+ *      operand's shape is read first (parseOperandShape), then:
  *        - a name in the emulator's table with a mode suffix (LDAZX) is a
  *          legacy mnemonic: encodeLegacy()
  *        - a three-letter name in the standard table (LDA): encodeStandard()
@@ -1018,7 +1395,7 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
     if (n == 0) return; // blank or comment-only line
 
     // 1. Optional location: a $addr token first on the line
-    if (tokens[0].kind == Token::kNumber && tokens[0].hex)
+    if (tokens[0].isHex())
     {
         if (tokens[0].text.size() > 4)
         {
@@ -1030,33 +1407,46 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
         i++;
     }
 
-    // 2. Optional label: an identifier in column 1, or one followed by ':'
+    // 2. Constant definition or "* = e"
+    if (i + 1 < n && tokens[i+1].isPunct('=') &&
+        (tokens[i].kind == Token::kIdentifier || tokens[i].isPunct('*')))
+    {
+        Expr expr(tokens.begin() + i + 2, tokens.end());
+        ExprResult result;
+
+        if (expr.empty())
+        {
+            error(lineno, tokens[i+1].col, "expected a value after =");
+            return;
+        }
+        if (!evalExpr(expr, pc_, lineno, false, result)) return;
+        if (!result.known)
+        {
+            error(lineno, expr[0].col, "%s must not depend on a label defined later",
+                  tokens[i].isPunct('*') ? "the location counter" : "a constant");
+            return;
+        }
+
+        if (tokens[i].isPunct('*')) pc_ = result.value;
+        else defineLabel(tokens[i], result.value, lineno);
+        return;
+    }
+
+    // 3. Optional label: an identifier in column 1, or one followed by ':'
     if (i < n && tokens[i].kind == Token::kIdentifier)
     {
-        bool colon = (i + 1 < n && tokens[i+1].kind == Token::kPunct &&
-                      tokens[i+1].text == ":");
+        bool colon = (i + 1 < n && tokens[i+1].isPunct(':'));
 
         if (colon || tokens[i].col == 1)
         {
-            const std::string& label = tokens[i].text;
-
-            if (labels_.find(label) != labels_.end())
-            {
-                error(lineno, tokens[i].col, "label %s is already defined", label.c_str());
-                return;
-            }
-
-            FTRACE("Assembler recording label: %s at %04x",
-                __FILE__, __LINE__, label.c_str(), pc_);
-
-            labels_[label] = pc_;
+            if (!defineLabel(tokens[i], pc_, lineno)) return;
             i += colon ? 2 : 1;
         }
     }
 
     if (i >= n) return; // just a location or a label on its own
 
-    // 3. The statement itself
+    // 4. The statement itself
     Statement statement;
     statement.address = pc_;
     statement.line = lineno;
@@ -1066,15 +1456,14 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
 
     if (tok.kind == Token::kDirective)
     {
-        if (tok.text != ".DATA")
-        {
-            error(lineno, tok.col, "unknown directive %s", tok.text.c_str());
-            return;
-        }
+        bool isStatement = false;
+        if (!parseDirective(tokens, i, lineno, statement, isStatement)) return;
+        if (!isStatement) return;
 
-        statement.kind = Statement::kData;
-        if (!parseData(tokens, i + 1, lineno, statement.data)) return;
-        pc_ += (uint16_t)statement.data.size();
+        for (size_t d = 0; d < statement.data.size(); d++)
+        {
+            pc_ += statement.data[d].width;
+        }
     }
     else if (tok.kind == Token::kIdentifier)
     {
@@ -1108,7 +1497,7 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
     else
     {
         error(lineno, tok.col, "expected an instruction, got ->%s%s<-",
-              tok.hex ? "$" : "", tok.text.c_str());
+              tok.isHex() ? "$" : "", tok.text.c_str());
         return;
     }
 
@@ -1124,18 +1513,18 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
 /**
  * Emitter: write every statement's bytes into memory (pass 2).
  *
- * By now labels_ is complete, so this is where a label operand becomes a
- * number. Then, for a label or a literal alike:
+ * By now labels_ is complete, so every expression can be evaluated (an
+ * undefined label is reported here). Then:
  *
  *   relative (branches)      one byte: the signed distance from the address
  *                            after the operand byte to the target, which
  *                            must be within -128..127
- *   one-byte operand         the value must fit in a byte (zero page, or
- *                            an immediate given as a label)
- *   two-byte operand         low byte first
+ *   one-byte operand/data    the value must fit in a byte; an immediate may
+ *                            also be a negative byte, -128..-1
+ *   two-byte operand/data    low byte first
  *
- * An unresolvable or out-of-range operand is reported at the line and
- * column of the operand and left unwritten.
+ * An unresolvable or out-of-range value is reported at the line and column
+ * of the operand and left unwritten.
  */
 void Assembler::emit()
 {
@@ -1148,7 +1537,24 @@ void Assembler::emit()
         {
             for (size_t d = 0; d < statement.data.size(); d++)
             {
-                memory_[ip++] = statement.data[d];
+                const DataItem& item = statement.data[d];
+                ExprResult result;
+
+                if (!evalExpr(item.expr, statement.address, statement.line, true, result))
+                {
+                    ip += item.width;
+                    continue;
+                }
+                if (item.width == 1 && result.value > 0xff)
+                {
+                    error(statement.line, item.col,
+                          "value $%04x does not fit in a byte", result.value);
+                    ip += item.width;
+                    continue;
+                }
+
+                memory_[ip++] = LOBYTE(result.value);
+                if (item.width == 2) memory_[ip++] = HIBYTE(result.value);
             }
             continue;
         }
@@ -1159,23 +1565,13 @@ void Assembler::emit()
         memory_[ip++] = statement.opcode;
 
         const Operand& operand = statement.operand;
-        uint16_t value = operand.value;
 
-        if (operand.kind == Operand::kNone) continue;
+        if (operand.width == 0) continue;
 
-        if (operand.kind == Operand::kLabel)
-        {
-            std::map<std::string, uint16_t>::const_iterator it = labels_.find(operand.label);
+        ExprResult result;
+        if (!evalExpr(operand.expr, operand.pc, statement.line, true, result)) continue;
 
-            if (it == labels_.end())
-            {
-                error(statement.line, operand.col, "undefined label %s",
-                      operand.label.c_str());
-                continue;
-            }
-
-            value = it->second;
-        }
+        uint16_t value = result.value;
 
         if (operand.relative)
         {
@@ -1194,9 +1590,16 @@ void Assembler::emit()
         }
         else if (operand.width == 1 && value > 0xff)
         {
-            error(statement.line, operand.col,
-                  "value $%04x does not fit in a 1-byte operand", value);
-            continue;
+            if (operand.immediate && value >= 0xff80)
+            {
+                value &= 0xff; // a negative byte such as #-1
+            }
+            else
+            {
+                error(statement.line, operand.col,
+                      "value $%04x does not fit in a 1-byte operand", value);
+                continue;
+            }
         }
 
         memory_[ip++] = LOBYTE(value);
