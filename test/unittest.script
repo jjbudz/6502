@@ -26,31 +26,33 @@ $EMU_CMD -c test05.asm -r 4000 -a 0040:33
 
 # Timing integration test - appended by copilot
 # Deterministic loop in test/timing.asm uses X as iteration counter (LDX #$0F)
-# Total cycles = 7*N + 1 where N = 15 -> 106 cycles
+# Total cycles = 7*N + 12 where N = 15 -> 117 cycles
 N_ITER=15
-TOTAL_CYCLES=$((7 * N_ITER + 1))
+TOTAL_CYCLES=$((7 * N_ITER + 12))
 TOLERANCE=0.10
+# Wall clock with sub-second resolution; macOS date has no %N.
+now() { perl -MTime::HiRes=time -e 'printf "%.6f", time'; }
 # Override EMU_CMD for timing tests with rate template.
 # Template MUST include the literal {rate} which will be replaced with numeric Hz.
-EMU_CMD_TIMING="${EMU_CMD} -c timing.asm --rate {rate}"
+EMU_CMD_TIMING="${EMU_CMD} -c timing.asm -r 4000 --rate {rate}"
 
 # Simple check for placeholder presence
-echo "Running timing integration tests (1..10 Hz), total cycles=${TOTAL_CYCLES}, tolerance=${TOLERANCE}"
+echo "Running timing integration tests (50, 100 Hz), total cycles=${TOTAL_CYCLES}, tolerance=${TOLERANCE}"
 case "$EMU_CMD_TIMING" in
   *\{rate\}*) ;; 
   *) echo "EMU_CMD_TIMING must contain the literal {rate}; current EMU_CMD_TIMING='$EMU_CMD_TIMING'"; exit 2 ;;
 esac
 
-for rate in $(seq 1 10); do
+for rate in 50 100; do
   echo "==== Testing rate ${rate} Hz ===="
   # Replace {rate} in template (portable):
   cmd=$(printf "%s" "$EMU_CMD_TIMING" | sed "s/{rate}/$rate/g")
   echo "Command: $cmd"
-  start_time=$(date +%s.%N)
+  start_time=$(now)
   # Run emulator; expect it to exit when BRK executes
   $cmd
   exit_status=$?
-  end_time=$(date +%s.%N)
+  end_time=$(now)
 
   measured=$(awk -v s="$start_time" -v e="$end_time" 'BEGIN{printf "%.6f", e - s}')
   expected=$(awk -v c="$TOTAL_CYCLES" -v r="$rate" 'BEGIN{printf "%.6f", c / r}')

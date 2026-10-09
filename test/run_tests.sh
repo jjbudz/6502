@@ -225,6 +225,8 @@ run_test test-EXPR-ARITH
 run_test test-RESET-VECTOR
 run_test test-EQU-BYTE-STRING
 run_test test-LISTING
+run_test test-CYCLES-PAGE
+run_test test-TIMING-MHZ
 
 # Phase 1 Edge Case Tests - Page Boundary Crossing
 run_test test-LDAX-PAGE

@@ -258,6 +258,11 @@ uint8_t overflow();
 uint8_t sign();
 
 /**
+ * Return the number of CPU cycles executed since the last reset.
+ */
+uint64_t cycles();
+
+/**
  * Return the value of the accumulator.
  */
 uint8_t a();  /// Accumulator

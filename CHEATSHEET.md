@@ -45,7 +45,7 @@ Program command line arguments include:
   -i to list assembler instructions
   -p[rfsm] to print (dump) registers, flags, stack, and memory on exit
   -v to print version information
-  --rate <hz> to set CPU clock rate in Hz (default: 1000000)
+  --rate <hz> to set CPU clock rate in Hz (default: 1000000; 0 = unthrottled)
 ```
 
 Command line examples:
@@ -77,6 +77,9 @@ Command line examples:
   
   # Run at original 6502 speed (1.79 MHz, similar to Apple II)
   6502 -c program.asm -r 4000 --rate 1790000
+
+  # Run as fast as possible and report the cycles used (CYCLES= in -pr)
+  6502 -c program.asm -r 4000 --rate 0 -pr
   
   # Dump all state (registers, flags, stack, memory) on exit
   6502 -c program.asm -r 4000 -prfsm

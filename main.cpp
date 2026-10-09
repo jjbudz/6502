@@ -80,12 +80,15 @@ int main(int argc, char** argv)
             // Long option
             if (strcmp(long_options[option_index].name, "rate") == 0)
             {
-                clockRate = (unsigned int)atoi(optarg);
-                if (clockRate == 0)
+                // 0 is valid and runs unthrottled
+                char* end = 0;
+                unsigned long rate = strtoul(optarg, &end, 10);
+                if (end == optarg || *end != '\0' || rate > 0xffffffffUL)
                 {
                     fprintf(stderr, "Warning: invalid clock rate specified, using default 1MHz (1000000 Hz)\n");
-                    clockRate = 1000000;
+                    rate = 1000000;
                 }
+                clockRate = (unsigned int)rate;
             }
             break;
         case 'r':
@@ -281,7 +284,7 @@ usage:
     printf("\t-i to list assembler instructions\n");
     printf("\t-p[rfsm] to print (dump) registers, flags, stack, and memory on exit\n");
     printf("\t-v to print version information\n");
-    printf("\t--rate <hz> to set CPU clock rate in Hz (default: 1000000)\n");
+    printf("\t--rate <hz> to set CPU clock rate in Hz (default: 1000000; 0 = unthrottled)\n");
 
     exit(0);
     return 0;
