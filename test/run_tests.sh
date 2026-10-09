@@ -242,6 +242,7 @@ run_test test-IRQ-MASKED
 run_test test-NMI-TIMER
 run_test test-IRQ-WAIT
 run_test test-DEBUG-IRQ
+run_test test-CLI-BAD-OPTION
 run_test test-CYCLES-PAGE
 run_test test-TIMING-MHZ
 

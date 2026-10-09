@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     ftrace_init(); 
 
     int nStatus = 0;
-    char chOption;
+    int chOption; // int, not char: where char is unsigned, getopt's -1 reads as 255
     char* pchSource = 0;
     char* pchLoad = 0;
     char* pchSave = 0;
@@ -66,6 +66,7 @@ int main(int argc, char** argv)
     bool bPrintVersion = false;
     bool bPrintInsts = false;
     bool bHelp = true;
+    int usageStatus = 0; // exit status after printing usage: 0 for -h, 2 for a bad option
     
     // Long options
     static struct option long_options[] = {
@@ -199,7 +200,11 @@ int main(int argc, char** argv)
             }
             break;
         case 'h':
+            goto usage;
         default:
+            // getopt has already reported the unknown option or missing
+            // argument; fail so scripts and tests notice
+            usageStatus = 2;
             goto usage;
         }
     }
@@ -314,8 +319,8 @@ usage:
     printf("\t--irq-every <cycles> to raise an IRQ every so many CPU cycles\n");
     printf("\t--nmi-every <cycles> to raise an NMI every so many CPU cycles\n");
 
-    exit(0);
-    return 0;
+    exit(usageStatus);
+    return usageStatus;
 
 }
 
