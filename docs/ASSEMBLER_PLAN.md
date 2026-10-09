@@ -78,8 +78,10 @@ about instruction sizes.
 
 ## Phases
 
-Each phase is one pull request. Status: phases 1-4 are done (PRs #55, #56,
-#57 and the phase 4 PR); 5 remains.
+Each phase is one pull request. Status: all five are done (PRs #55, #56,
+#57, #58 and the phase 5 PR). Phase 5 also added `.EQU`, strings in
+`.BYTE`, and running from the reset vector (`-r` with no address), after
+a look at what other 6502 assemblers do.
 
 | # | PR | Done when |
 |---|----|-----------|
@@ -87,7 +89,7 @@ Each phase is one pull request. Status: phases 1-4 are done (PRs #55, #56,
 | 2 | **Restructure, no behaviour change.** Add `asm6502.cpp`, lexer, line parser, two passes. Legacy syntax only. Delete `branches`, `resolve()` and the label helpers (`getToken` stays: the debugger uses it). Typos, duplicate labels and operands of the wrong width become errors. | All tests and all golden files match byte for byte |
 | 3 | **Standard syntax.** Infer addressing modes; accept `LDA`, `STA`, etc. Branches accept literal addresses. | Tests for every addressing-mode shape, including rejected ones (`LDX ($10),X`) |
 | 4 | **Expressions and directives.** `+ -`, `<`/`>` (low/high byte), `*` (location counter); `.ORG`, `.BYTE`, `.WORD`, `.TEXT`, `NAME = value`. | Tests for each, plus failure tests for undefined symbols and out-of-range values |
-| 5 | **Polish (optional).** `-L` listing output (address, bytes, source). Port `sample*.asm` to standard syntax. Update `DEVELOPMENT.md` and `CHEATSHEET.md`. | Docs describe both syntaxes |
+| 5 | **Polish.** `-L` listing output (address, bytes, source). Port `sample*.asm` to standard syntax. `.EQU`, strings in `.BYTE`, `-r` with no address runs from the reset vector at `$FFFC`. Update `DEVELOPMENT.md` and `CHEATSHEET.md`. | Docs describe both syntaxes; `LISTING` test pins the listing format |
 
 ### Phase 1 design
 

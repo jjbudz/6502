@@ -35,8 +35,10 @@ Program command line arguments include:
   -h to display command line options
   -l <filename> to load an object file
   -c <filename> to compile source file
+  -L to print an assembly listing (address, bytes, source) after -c
   -s <filename> to save object file after assembly
-  -r <address> to run code from the address (hexadecimal, e.g. A000)
+  -r [<address>] to run code from the address (hexadecimal, e.g. A000);
+     with no address, run from the reset vector at $FFFC
   -d <address> to debug code from the address (hexadecimal, e.g. A000)
   -a <address>:<value> to assert value matches at the given address
   -t to turn on trace output
@@ -110,7 +112,7 @@ an instruction does not have (`LDX $10,X`) is an error.
 
 ```asm
 BASE = $50               ; constant
-MASK = %00001111         ; binary literal
+MASK .EQU %00001111      ; same thing, binary literal
 * = $4000                ; same as .ORG $4000
         LDA #'A'         ; character literal ($41)
         AND #MASK
@@ -122,7 +124,12 @@ MASK = %00001111         ; binary literal
 TABLE   .BYTE 1, 2, 3    ; one byte each
 PTR     .WORD $1234, TABLE ; two bytes each, low first
 MSG     .TEXT "Hello", 0 ; string bytes (case kept) plus a terminator
+        .BYTE "Hi", 0    ; strings work in .BYTE too
+        * = $FFFC
+        .WORD START      ; reset vector: '6502 -c prog.asm -r' starts here
 ```
+
+`6502 -c prog.asm -L` prints a listing with the address and bytes of every line.
 
 The legacy syntax instead spells the mode in the mnemonic:
 

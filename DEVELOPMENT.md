@@ -203,7 +203,7 @@ LDA #10-3
 Labels used in an expression may be defined later in the file. The exceptions are `.ORG` and constant definitions, which must be computable where they appear.
 
 #### Constants
-`NAME = expression` defines a constant; it can be used anywhere a label can, and a constant under `$100` selects zero page like a label would. `* = expression` is the same as `.ORG`.
+`NAME = expression` (or `NAME .EQU expression`) defines a constant; it can be used anywhere a label can, and a constant under `$100` selects zero page like a label would. `* = expression` is the same as `.ORG`.
 ```asm
 BASE = $50
 MASK = %00001111
@@ -215,9 +215,10 @@ MASK = %00001111
 | Directive | Effect |
 |-----------|--------|
 | `.ORG e` | Set the address for the code that follows (same as a leading `$addr` or `* = e`) |
-| `.BYTE e, e, ...` | One byte per expression |
+| `NAME .EQU e` | Define a constant (same as `NAME = e`) |
+| `.BYTE e, e, ...` | One byte per expression; a `"string"` gives one byte per character, case preserved |
 | `.WORD e, e, ...` | Two bytes per expression, low byte first |
-| `.TEXT "s", e, ...` | The characters of each string (case preserved), one byte per expression; `.TEXT "Hi", 0` is a terminated string |
+| `.TEXT "s", e, ...` | The same as `.BYTE`, for readability: `.TEXT "Hi", 0` is a terminated string |
 | `.DATA h h ...` | Legacy: space-separated hex values, with or without `$`, one byte each or two (low first) above `$FF` |
 
 ```asm
@@ -364,7 +365,7 @@ Current known limitations (see `docs/ASSEMBLER_PLAN.md` for what is planned):
 1. **Hex Format**: Requires `#$XX` for hex immediate values, not `#XX`
 2. **Expressions** have only `+`, `-`, `<`, `>` and unary `-`: no multiplication, shifts, bitwise operators or parentheses for grouping
 3. **Forward references are absolute**: a label defined later in the file is encoded with a 16-bit operand even if it turns out to be in zero page (write `<LABEL` to force a byte)
-4. **No listing output**: there is no way to see the address and bytes generated for each source line other than `-pm`
+4. **No macros, includes, conditional assembly or local labels**
 
 Errors are reported with file, line and column, and all errors in a file are reported in one run. Unknown mnemonics, duplicate labels, and operands of the wrong size for their instruction are errors.
 
@@ -383,6 +384,15 @@ Errors are reported with file, line and column, and all errors in a file are rep
 
 # Compile and debug
 6502 -c program.asm -d 4000
+
+# Compile and print a listing: address, bytes and source for every line
+6502 -c program.asm -L
+
+# Run from the reset vector, the way real hardware starts. The program
+# sets the vector itself:
+#     * = $FFFC
+#     .WORD start
+6502 -c program.asm -r
 ```
 
 #### List Available Instructions

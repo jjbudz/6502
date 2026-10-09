@@ -45,10 +45,12 @@
  *    |  after the whole file has been read (pass 2):
  *    |
  *    +-- emit()         vector<Statement> -> bytes in memory_
- *                       Writes each statement at its recorded address.
- *                       Expressions are evaluated again here with the full
- *                       label table (evalExpr), which is why an operand can
- *                       refer to a label defined further down.
+ *    |                  Writes each statement at its recorded address.
+ *    |                  Expressions are evaluated again here with the full
+ *    |                  label table (evalExpr), which is why an operand can
+ *    |                  refer to a label defined further down.
+ *    |
+ *    +-- writeListing() optional: address, bytes and text of every line
  *
  * Why two passes: an instruction's size is settled in pass 1 (by the
  * mnemonic for the legacy form; by the operand's shape and, for zero page
@@ -64,7 +66,7 @@
  *
  *   [$addr] [label[:]] MNEMONIC [operand]   ; comment
  *   [$addr] [label[:]] .DIRECTIVE args      ; comment
- *   NAME = expression                       ; constant
+ *   NAME = expression                       ; constant (or NAME .EQU expression)
  *   *    = expression                       ; same as .ORG
  *
  * Two mnemonic styles are accepted and may be mixed in one file:
@@ -91,10 +93,10 @@
  *               address of the current instruction). Arithmetic is 16-bit.
  *
  * Directives:   .ORG e           set the location counter (e known now)
- *               .BYTE e, e, ...  one byte each
+ *               .BYTE e, e, ...  one byte each; a "string" gives one byte
+ *                                per character
  *               .WORD e, e, ...  two bytes each, low byte first
- *               .TEXT "s", e...  the characters of each string, and one byte
- *                                for each expression
+ *               .TEXT "s", e...  the same as .BYTE, for readability
  *               .DATA h h ...    legacy: hex values with or without '$', one
  *                                byte each or two (low first) when above $FF
  *
@@ -380,6 +382,23 @@ struct Statement
 };
 
 /**
+ * What the listing shows for one source line: the address the line
+ * occupies or defines, the bytes it generated, or a constant's value.
+ */
+struct LineInfo
+{
+    bool                 hasAddress;
+    uint16_t             address;
+    bool                 isConstant;
+    uint16_t             value;    // isConstant
+    std::vector<uint8_t> bytes;
+
+    LineInfo() : hasAddress(false), address(0), isConstant(false), value(0) {}
+
+    void setAddress(uint16_t a) { if (!hasAddress) { hasAddress = true; address = a; } }
+};
+
+/**
  * The eight relative branch instructions (BPL BMI BVC BVS BCC BCS BNE BEQ)
  * are the opcodes xxx10000; they are the only ones whose operand is encoded
  * as an offset rather than an address.
@@ -417,7 +436,7 @@ Expr literalExpr(unsigned long value, int col)
 class Assembler
 {
 public:
-    Assembler(const char* filename, uint8_t* memory);
+    Assembler(const char* filename, uint8_t* memory, FILE* listing);
 
     /**
      * Assemble the whole file into memory. Returns the error count, or -1
@@ -454,19 +473,23 @@ private:
 
     // Pass 2: statements -> bytes, expressions resolved
     void emit();
+    void writeListing();
 
     void error(int line, int col, const char* fmt, ...);
 
     const char*                     filename_;   // for error messages
     uint8_t*                        memory_;     // the emulator's 64K image
+    FILE*                           listing_;    // where to write the listing, or NULL
     uint16_t                        pc_;         // location counter during pass 1
     int                             errors_;
     std::map<std::string, uint16_t> labels_;     // labels and constants, filled in pass 1
     std::vector<Statement>          statements_; // in source order, filled in pass 1
+    std::vector<std::string>        source_;     // the file's lines, for the listing
+    std::vector<LineInfo>           lines_;      // per source line, for the listing
 };
 
-Assembler::Assembler(const char* filename, uint8_t* memory)
-    : filename_(filename), memory_(memory), pc_(0), errors_(0)
+Assembler::Assembler(const char* filename, uint8_t* memory, FILE* listing)
+    : filename_(filename), memory_(memory), listing_(listing), pc_(0), errors_(0)
 {
     assert(filename);
     assert(memory);
@@ -1260,12 +1283,13 @@ bool Assembler::parseDataLegacy(const std::vector<Token>& tokens, size_t first,
  * Parse a directive (tokens[first] is the directive token).
  *
  *   .ORG e           sets pc_; e must be computable now. Not a statement.
- *   .BYTE e, ...     one DataItem of width 1 per expression
+ *   .BYTE e, ...     one DataItem of width 1 per expression; a "string"
+ *                    argument gives one DataItem per character
  *   .WORD e, ...     one DataItem of width 2 per expression
- *   .TEXT "s", e...  one DataItem per character of each string, width 1;
- *                    an expression argument is a single byte, so
- *                    .TEXT "HI", 0  gives a terminated string
+ *   .TEXT "s", e...  the same as .BYTE; the name documents intent
  *   .DATA h h ...    legacy, see parseDataLegacy()
+ *
+ * .EQU is handled by parseLine(), since the name comes before it.
  *
  * On return isStatement says whether statement was filled in (.ORG only
  * moves pc_). Returns false after reporting an error.
@@ -1326,9 +1350,9 @@ bool Assembler::parseDirective(const std::vector<Token>& tokens, size_t first,
 
         if (expr.size() == 1 && expr[0].kind == Token::kString)
         {
-            if (dir.text != ".TEXT")
+            if (dir.text == ".WORD")
             {
-                error(lineno, expr[0].col, "strings are only allowed in .TEXT");
+                error(lineno, expr[0].col, "strings are only allowed in .BYTE and .TEXT");
                 return false;
             }
 
@@ -1407,8 +1431,10 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
         i++;
     }
 
-    // 2. Constant definition or "* = e"
-    if (i + 1 < n && tokens[i+1].isPunct('=') &&
+    // 2. Constant definition ("NAME = e" or "NAME .EQU e") or "* = e"
+    if (i + 1 < n &&
+        (tokens[i+1].isPunct('=') ||
+         (tokens[i+1].kind == Token::kDirective && tokens[i+1].text == ".EQU")) &&
         (tokens[i].kind == Token::kIdentifier || tokens[i].isPunct('*')))
     {
         Expr expr(tokens.begin() + i + 2, tokens.end());
@@ -1427,8 +1453,16 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
             return;
         }
 
-        if (tokens[i].isPunct('*')) pc_ = result.value;
-        else defineLabel(tokens[i], result.value, lineno);
+        if (tokens[i].isPunct('*'))
+        {
+            pc_ = result.value;
+            lines_[lineno-1].setAddress(pc_);
+        }
+        else if (defineLabel(tokens[i], result.value, lineno))
+        {
+            lines_[lineno-1].isConstant = true;
+            lines_[lineno-1].value = result.value;
+        }
         return;
     }
 
@@ -1440,6 +1474,7 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
         if (colon || tokens[i].col == 1)
         {
             if (!defineLabel(tokens[i], pc_, lineno)) return;
+            lines_[lineno-1].setAddress(pc_);
             i += colon ? 2 : 1;
         }
     }
@@ -1451,6 +1486,7 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
     statement.address = pc_;
     statement.line = lineno;
     statement.opcode = 0;
+    lines_[lineno-1].setAddress(pc_);
 
     const Token& tok = tokens[i];
 
@@ -1458,7 +1494,12 @@ void Assembler::parseLine(const std::vector<Token>& tokens, int lineno)
     {
         bool isStatement = false;
         if (!parseDirective(tokens, i, lineno, statement, isStatement)) return;
-        if (!isStatement) return;
+        if (!isStatement) // .ORG: show the new address
+        {
+            lines_[lineno-1].hasAddress = false;
+            lines_[lineno-1].setAddress(pc_);
+            return;
+        }
 
         for (size_t d = 0; d < statement.data.size(); d++)
         {
@@ -1532,6 +1573,7 @@ void Assembler::emit()
     {
         const Statement& statement = statements_[s];
         uint16_t ip = statement.address;
+        std::vector<uint8_t>& listed = lines_[statement.line-1].bytes;
 
         if (statement.kind == Statement::kData)
         {
@@ -1553,8 +1595,13 @@ void Assembler::emit()
                     continue;
                 }
 
+                listed.push_back(LOBYTE(result.value));
                 memory_[ip++] = LOBYTE(result.value);
-                if (item.width == 2) memory_[ip++] = HIBYTE(result.value);
+                if (item.width == 2)
+                {
+                    listed.push_back(HIBYTE(result.value));
+                    memory_[ip++] = HIBYTE(result.value);
+                }
             }
             continue;
         }
@@ -1562,6 +1609,7 @@ void Assembler::emit()
         FTRACE("Assembler storing instruction: %02x at %04x",
             __FILE__, __LINE__, statement.opcode, ip);
 
+        listed.push_back(statement.opcode);
         memory_[ip++] = statement.opcode;
 
         const Operand& operand = statement.operand;
@@ -1602,8 +1650,60 @@ void Assembler::emit()
             }
         }
 
+        listed.push_back(LOBYTE(value));
         memory_[ip++] = LOBYTE(value);
-        if (operand.width == 2) memory_[ip++] = HIBYTE(value);
+        if (operand.width == 2)
+        {
+            listed.push_back(HIBYTE(value));
+            memory_[ip++] = HIBYTE(value);
+        }
+    }
+}
+
+/**
+ * Write the listing: one row per source line, with the address the line
+ * occupies (or =value for a constant), up to eight of the bytes it
+ * generated, and the source text. A line with more bytes continues on
+ * following rows that show only address and bytes.
+ *
+ *   4000  A9 10                     LDA #$10
+ *   =0050                           BASE = $50
+ *   4002  48 65 6C 6C 6F 00         MSG  .TEXT "Hello", 0
+ */
+void Assembler::writeListing()
+{
+    const size_t kBytesPerRow = 8;
+
+    for (size_t l = 0; l < source_.size(); l++)
+    {
+        const LineInfo& info = lines_[l];
+        char addr[8] = "";
+        char bytes[kBytesPerRow * 3 + 1] = "";
+
+        if (info.isConstant)       snprintf(addr, sizeof(addr), "=%04X", info.value);
+        else if (info.hasAddress)  snprintf(addr, sizeof(addr), "%04X", info.address);
+
+        size_t shown = 0;
+        for (; shown < info.bytes.size() && shown < kBytesPerRow; shown++)
+        {
+            snprintf(bytes + shown * 3, 4, "%02X ", info.bytes[shown]);
+        }
+        if (shown) bytes[shown * 3 - 1] = '\0'; // drop the trailing space
+
+        fprintf(listing_, "%-5s  %-23s  %s\n", addr, bytes, source_[l].c_str());
+
+        // Continuation rows for long data lines
+        while (shown < info.bytes.size())
+        {
+            size_t row = 0;
+            for (; row < kBytesPerRow && shown + row < info.bytes.size(); row++)
+            {
+                snprintf(bytes + row * 3, 4, "%02X ", info.bytes[shown + row]);
+            }
+            bytes[row * 3 - 1] = '\0';
+            fprintf(listing_, "%04X   %s\n", (uint16_t)(info.address + shown), bytes);
+            shown += row;
+        }
     }
 }
 
@@ -1636,6 +1736,12 @@ int Assembler::run()
 
         FTRACE("Assembler read line: %s", __FILE__, __LINE__, line);
 
+        // Keep the line, without its line ending, for the listing
+        size_t len = strlen(line);
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) len--;
+        source_.push_back(std::string(line, len));
+        lines_.push_back(LineInfo());
+
         std::vector<Token> tokens;
         if (lexLine(line, lineno, tokens))
         {
@@ -1654,6 +1760,8 @@ int Assembler::run()
 
     emit();
 
+    if (listing_ != NULL) writeListing();
+
     return errors_;
 }
 
@@ -1663,8 +1771,8 @@ int Assembler::run()
  * Entry point; see asm6502.h. assemble() in l6502.cpp calls this after
  * clearing the emulator's memory.
  */
-int asmAssemble(const char* filename, uint8_t* memory)
+int asmAssemble(const char* filename, uint8_t* memory, FILE* listing)
 {
-    Assembler assembler(filename, memory);
+    Assembler assembler(filename, memory, listing);
     return assembler.run();
 }

@@ -1,15 +1,25 @@
-$40	.DATA	$6d $32 $47
-$4000	LDXI	$08
-	LDAZ	$40
-	STAZ	$43
-	LDAZ	$41
-DIVID	ASLZ	$43
-	ROL
-	CMPZ	$42
-	BCC	CHCNT
-	SBCZ	$42
-	INCZ	$43
-CHCNT	DEX
-	BNE	DIVID
-	STAZ	$44
-	BRK
+; 16-bit by 8-bit division. Divides the word at $40/$41 by the byte at $42; the quotient
+; ends up in $43 and the remainder in $44.
+dividend = $40
+divisor  = $42
+quotient = $43
+remainder = $44
+
+        * = dividend
+        .BYTE $6d, $32, $47
+
+        * = $4000
+        LDX #8
+        LDA dividend
+        STA quotient
+        LDA dividend+1
+divide: ASL quotient
+        ROL A
+        CMP divisor
+        BCC next
+        SBC divisor
+        INC quotient
+next:   DEX
+        BNE divide
+        STA remainder
+        BRK

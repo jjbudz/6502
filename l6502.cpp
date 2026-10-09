@@ -2734,7 +2734,7 @@ const char* asmInstructionSymbol(uint8_t opcode)
  * Load the assembly program from the named file and attempt to
  * assemble it into memory. The assembler itself lives in asm6502.cpp.
  */
-int assemble(const char* filename)
+int assemble(const char* filename, FILE* listing)
 {
     assert(filename);
 
@@ -2742,11 +2742,20 @@ int assemble(const char* filename)
 
     prepare();
 
-    int status = asmAssemble(filename, memory);
+    int status = asmAssemble(filename, memory, listing);
 
     if (status < 0) return errno; // could not open the file
 
     return status; // number of errors, 0 on success
+}
+
+/*
+ * The address a 6502 starts executing at after a reset: the little-endian
+ * word at $FFFC/$FFFD.
+ */
+uint16_t resetVector()
+{
+    return (uint16_t)(memory[0xFFFC] | (memory[0xFFFD] << 8));
 }
 
 /*

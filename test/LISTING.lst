@@ -1,0 +1,15 @@
+                                ; Exercises every kind of listing row: comment, constant, .ORG, label on
+                                ; its own, instruction, long data line, and a label with a colon.
+=0050                           BASE = $50
+4000                                    .ORG $4000
+4000                            start
+4000   A9 09                            LDA #<table
+4002   85 50                            STA BASE
+4004   A9 40                            LDA #>table
+4006   85 51                            STA BASE+1
+4008   00                               BRK
+4009   01 02 03 04 05 06 07 08  table:  .BYTE 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+4011   09 0A
+4013   48 69 00                 msg     .TEXT "Hi", 0
+FFFC                                    * = $FFFC
+FFFC   00 40                            .WORD start

@@ -28,6 +28,11 @@ FAILED=0
 FAILED_TESTS=()
 
 for src in fail/*.asm; do
+    # Skip "NAME 2.asm" and the like: conflict copies a syncing service
+    # (iCloud, Dropbox) leaves next to the real file. No test has a space
+    # in its name.
+    case "$src" in *" "*) continue ;; esac
+
     name=$(basename "$src" .asm)
     err="fail/$name.err"
     output=$("$EMU" -c "$src" 2>&1)
