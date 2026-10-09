@@ -237,6 +237,11 @@ run_test test-PLA-FLAGS
 run_test test-BRK-HANDLER
 run_test test-TRAP-JMP
 run_test test-TRAP-BRANCH
+run_test test-IRQ-TIMER
+run_test test-IRQ-MASKED
+run_test test-NMI-TIMER
+run_test test-IRQ-WAIT
+run_test test-DEBUG-IRQ
 run_test test-CYCLES-PAGE
 run_test test-TIMING-MHZ
 

@@ -507,7 +507,9 @@ A run ends when either of these happens:
   `BRK` stops the run where it is, so a bare `BRK` ends a program as before.
 - **An instruction that jumps to itself.** `done JMP done`, or a taken branch
   to itself, leaves PC unchanged and would loop forever, so the run stops
-  there. Klaus Dormann's test suites signal pass and fail this way.
+  there. Klaus Dormann's test suites signal pass and fail this way. If an
+  interrupt could still arrive (an NMI source is active, or an IRQ source is
+  active and I is clear), the loop is instead waiting for it and keeps running.
 
 Otherwise `BRK` behaves as on the 6502: it pushes the address two bytes past
 itself (it skips a padding byte), then P with B set, sets I, and jumps through
@@ -528,6 +530,32 @@ handler ...             ; P with B set is at $0101,X after TSX
         .ORG $FFFE
         .WORD handler
 ```
+
+### Interrupts
+
+The CPU checks for interrupts at the start of each `step()`, between
+instructions. An NMI is taken whenever one is pending; an IRQ is taken while
+the IRQ line is held and I is clear. Taking either pushes PC and P (B clear,
+bit 5 set), sets I, jumps through `$FFFA` (NMI) or `$FFFE` (IRQ) and costs 7
+cycles; that step runs no instruction.
+
+```cpp
+irqAssert(kIrqTimer);   // hold the IRQ line for a source (one bit each)
+irqRelease(kIrqTimer);  // the line stays held while any source holds it
+nmiTrigger();           // latch an NMI edge until it is taken
+setInterruptTimers(1000, 0);  // IRQ every 1000 cycles, no NMI timer
+```
+
+For now interrupts come from two places, neither of which has a device
+register to acknowledge it, so each is released when the CPU takes it:
+
+- `--irq-every <cycles>` / `--nmi-every <cycles>`, driven by the cycle counter
+- the debugger's `irq` and `nmi` commands
+
+Memory-mapped devices that hold the IRQ line until the handler acknowledges
+them will need a bus layer between the CPU and memory. The NMOS timing
+quirks (CLI/SEI/PLP taking effect one instruction late, taken branches
+delaying an interrupt, NMI hijacking BRK) are not emulated.
 
 ### Execution Flow
 

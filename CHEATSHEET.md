@@ -46,6 +46,8 @@ Program command line arguments include:
   -p[rfsm] to print (dump) registers, flags, stack, and memory on exit
   -v to print version information
   --rate <hz> to set CPU clock rate in Hz (default: 1000000; 0 = unthrottled)
+  --irq-every <cycles> to raise an IRQ every so many CPU cycles
+  --nmi-every <cycles> to raise an NMI every so many CPU cycles
 ```
 
 Command line examples:
@@ -80,6 +82,9 @@ Command line examples:
 
   # Run as fast as possible and report the cycles used (CYCLES= in -pr)
   6502 -c program.asm -r 4000 --rate 0 -pr
+
+  # Raise an IRQ every 1000 cycles (handler address at $FFFE)
+  6502 -c program.asm -r 4000 --irq-every 1000
   
   # Dump all state (registers, flags, stack, memory) on exit
   6502 -c program.asm -r 4000 -prfsm
@@ -253,6 +258,8 @@ Available debugger commands:
   break (or b) <address>   - Set breakpoint at address
   clear (or c) <address>   - Clear breakpoint at address
   trace (or t)             - Toggle trace mode
+  irq (or i)               - Raise an IRQ (taken when I is clear)
+  nmi (or n)               - Raise an NMI (taken on the next step)
   quit (or q)              - Exit debugger
 ```
 
