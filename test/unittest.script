@@ -18,7 +18,7 @@ $EMU_CMD -c NOP.asm -r 4000 -a 8000:01
 echo "Test PHA"
 $EMU_CMD -c PHA.asm -r 4000 -a 1000:ff
 echo "Test test00"
-$EMU_CMD -c test00.asm -r 4000 -a 022a:55
+$EMU_CMD -c test00.asm -r 4000 -a 0200:55 -a 0210:fe
 echo "Test test01"
 $EMU_CMD -c test01.asm -r 4000 -a 00a9:aa
 echo "Test test05"

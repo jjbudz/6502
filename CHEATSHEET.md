@@ -40,7 +40,7 @@ Program command line arguments include:
   -r [<address>] to run code from the address (hexadecimal, e.g. A000);
      with no address, run from the reset vector at $FFFC
   -d <address> to debug code from the address (hexadecimal, e.g. A000)
-  -a <address>:<value> to assert value matches at the given address
+  -a <address>:<value> to assert value matches at the given address (repeatable)
   -t to turn on trace output
   -i to list assembler instructions
   -p[rfsm] to print (dump) registers, flags, stack, and memory on exit

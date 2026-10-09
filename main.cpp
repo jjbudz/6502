@@ -48,8 +48,10 @@ int main(int argc, char** argv)
     char* pchLoad = 0;
     char* pchSave = 0;
     uint16_t address = 0x4000;
-    uint16_t address2 = 0x0;
-    uint8_t value = 0x00;
+    static const int kMaxAsserts = 32;
+    uint16_t assertAddress[kMaxAsserts];
+    uint8_t assertValue[kMaxAsserts];
+    int nAsserts = 0;
     unsigned int clockRate = 1000000; // Default 1MHz (1,000,000 Hz)
     bool bRun = false;
     bool bRunFromVector = false; // -r with no address: start at the reset vector
@@ -61,7 +63,6 @@ int main(int argc, char** argv)
     bool bDumpMemory = false;
     bool bPrintVersion = false;
     bool bPrintInsts = false;
-    bool bAssert = false;
     bool bHelp = true;
     
     // Long options
@@ -159,20 +160,25 @@ int main(int argc, char** argv)
             break;
         case 'a':
             {
+                // -a may be repeated; every assertion is checked on exit
                 char* delim = strchr(optarg, ':');
-                if (delim)
-                {
-                    *delim = '\0';
-                    delim++;
-                    address2 = (uint16_t)getHex(uppercase(optarg)); 
-                    value = (uint8_t)getHex(uppercase(delim)); 
-                }
-                else
+                if (!delim)
                 {
                     fprintf(stderr, "Warning: assert parameters malformed\n");
                 }
+                else if (nAsserts == kMaxAsserts)
+                {
+                    fprintf(stderr, "Warning: more than %d asserts, ignoring %s\n", kMaxAsserts, optarg);
+                }
+                else
+                {
+                    *delim = '\0';
+                    delim++;
+                    assertAddress[nAsserts] = (uint16_t)getHex(uppercase(optarg)); 
+                    assertValue[nAsserts] = (uint8_t)getHex(uppercase(delim)); 
+                    nAsserts++;
+                }
             }
-            bAssert = true;
             break;
         case 'h':
         default:
@@ -254,10 +260,10 @@ int main(int argc, char** argv)
         dump(bDumpRegisters, bDumpFlags, bDumpStack, bDumpMemory);
     }
 
-    if (bAssert)
+    for (int i = 0; i < nAsserts; i++)
     {
-        bool bPassed = assertmem(address2, value);
-        fprintf(stderr, "Assert $%04x:%02x=%02x %s\n", address2, value,inspect(address2), (bPassed?"true":"false"));
+        bool bPassed = assertmem(assertAddress[i], assertValue[i]);
+        fprintf(stderr, "Assert $%04x:%02x=%02x %s\n", assertAddress[i], assertValue[i], inspect(assertAddress[i]), (bPassed?"true":"false"));
         if (!bPassed) nStatus = 1; // an earlier failure (e.g. assembly) is not masked by a passing assert
     }
 
@@ -279,7 +285,7 @@ usage:
     printf("\t-r [<address>] to run code from the address (hexadecimal, e.g. A000);\n");
     printf("\t   with no address, run from the reset vector at $FFFC\n");
     printf("\t-d <address> to debug code from the address (hexadecimal, e.g. A000)\n");
-    printf("\t-a <address>:<value> to assert value matches at the given address\n");
+    printf("\t-a <address>:<value> to assert value matches at the given address (repeatable)\n");
     printf("\t-t to turn on trace output\n");
     printf("\t-i to list assembler instructions\n");
     printf("\t-p[rfsm] to print (dump) registers, flags, stack, and memory on exit\n");
