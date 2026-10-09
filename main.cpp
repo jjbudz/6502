@@ -36,6 +36,17 @@
 #include "util.h"
 
 /**
+ * Exit status. Each kind of failure has its own code so scripts and tests
+ * can tell them apart; the first failure wins.
+ */
+static const int kExitOK       = 0;
+static const int kExitAssert   = 1; // an -a assertion did not hold
+static const int kExitUsage    = 2; // unknown option or missing argument
+static const int kExitAssemble = 3; // the source file had assembler errors
+static const int kExitFile     = 4; // a file could not be read or written
+static const int kExitEmulator = 5; // the emulator failed to initialize or run
+
+/**
  * Main program
  */
 int main(int argc, char** argv)
@@ -43,6 +54,7 @@ int main(int argc, char** argv)
     ftrace_init(); 
 
     int nStatus = 0;
+    int nExit = kExitOK; // see kExit*
     int chOption; // int, not char: where char is unsigned, getopt's -1 reads as 255
     char* pchSource = 0;
     char* pchLoad = 0;
@@ -66,7 +78,7 @@ int main(int argc, char** argv)
     bool bPrintVersion = false;
     bool bPrintInsts = false;
     bool bHelp = true;
-    int usageStatus = 0; // exit status after printing usage: 0 for -h, 2 for a bad option
+    int usageStatus = kExitOK; // exit status after printing usage: kExitUsage for a bad option
     
     // Long options
     static struct option long_options[] = {
@@ -204,7 +216,7 @@ int main(int argc, char** argv)
         default:
             // getopt has already reported the unknown option or missing
             // argument; fail so scripts and tests notice
-            usageStatus = 2;
+            usageStatus = kExitUsage;
             goto usage;
         }
     }
@@ -217,7 +229,7 @@ int main(int argc, char** argv)
     if ((nStatus = initialize(clockRate)) != 0) 
     {
         fprintf(stderr, "Error: initialization failed with error %d\n", nStatus);
-        exit(nStatus);
+        exit(kExitEmulator);
     }
 
     setInterruptTimers(irqEvery, nmiEvery);
@@ -234,21 +246,38 @@ int main(int argc, char** argv)
 
     if (pchSource && pchLoad)
     {
-        fprintf(stderr, "Warning: both -a and -l specified, will ignore load flag\n");
+        fprintf(stderr, "Warning: both -c and -l specified, will ignore load flag\n");
     }
 
     if (pchSource)
     {
         nStatus = assemble(pchSource, bListing ? stdout : NULL);
 
-        if (nStatus == 0 && pchSave) 
+        if (nStatus < 0)
         {
-            nStatus = save(pchSave); // @todo logged failed save
+            fprintf(stderr, "Error: cannot read %s: %s\n", pchSource, strerror(-nStatus));
+            nExit = kExitFile;
+        }
+        else if (nStatus > 0)
+        {
+            // the assembler has already reported each error
+            fprintf(stderr, "Error: %d assembler error%s in %s\n",
+                nStatus, nStatus == 1 ? "" : "s", pchSource);
+            nExit = kExitAssemble;
+        }
+        else if (pchSave && (nStatus = save(pchSave)) != 0)
+        {
+            fprintf(stderr, "Error: cannot write %s: %s\n", pchSave, strerror(nStatus));
+            nExit = kExitFile;
         }
     }
-    else if (pchLoad)
+    else if (pchLoad && (nStatus = load(pchLoad)) != 0)
     {
-        nStatus = load(pchLoad); // @todo log failed load
+        if (nStatus == kErrNotObjectFile)
+            fprintf(stderr, "Error: %s is not an object file (a 64K memory image)\n", pchLoad);
+        else
+            fprintf(stderr, "Error: cannot read %s: %s\n", pchLoad, strerror(nStatus));
+        nExit = kExitFile;
     }
 
     if (bRun && bDebug)
@@ -256,7 +285,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "Warning: both -r and -d specified, will ignore debug flag\n");
     }
 
-    if (nStatus == 0 && bRunFromVector)
+    if (nExit == kExitOK && bRunFromVector)
     {
         address = resetVector();
         if (address == 0)
@@ -266,19 +295,15 @@ int main(int argc, char** argv)
         }
     }
 
-    if (nStatus == 0)
+    if (nExit == kExitOK && (bRun || bDebug))
     {
-        if (bRun)
+        nStatus = bRun ? run(address) : debug(address);
+        if (nStatus != 0)
         {
-            nStatus = run(address); // @todo log failed run
-        }
-        else if (bDebug)
-        {
-            nStatus = debug(address); // @todo log failed debug
+            fprintf(stderr, "Error: %s failed with error %d\n", bRun ? "run" : "debug", nStatus);
+            nExit = kExitEmulator;
         }
     }
-
-    if (nStatus) perror("Error"); // @todo this is kinda stupid and should use custom error strings
 
     if (bDumpRegisters || bDumpFlags || bDumpStack || bDumpMemory) 
     {
@@ -289,15 +314,15 @@ int main(int argc, char** argv)
     {
         bool bPassed = assertmem(assertAddress[i], assertValue[i]);
         fprintf(stderr, "Assert $%04x:%02x=%02x %s\n", assertAddress[i], assertValue[i], inspect(assertAddress[i]), (bPassed?"true":"false"));
-        if (!bPassed) nStatus = 1; // an earlier failure (e.g. assembly) is not masked by a passing assert
+        if (!bPassed && nExit == kExitOK) nExit = kExitAssert; // an earlier failure is the one reported
     }
 
     cleanup();
     ftrace_cleanup();
 
-    exit(nStatus);
+    exit(nExit);
 
-    return nStatus;
+    return nExit;
 
 usage:
 

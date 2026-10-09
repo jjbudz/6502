@@ -50,6 +50,21 @@ Program command line arguments include:
   --nmi-every <cycles> to raise an NMI every so many CPU cycles
 ```
 
+Exit status:
+
+```
+  0  success
+  1  an -a assertion did not hold
+  2  unknown option or missing argument
+  3  the source file had assembler errors
+  4  a source or object file could not be read or written, or an object
+     file is not a 64K memory image
+  5  the emulator failed to initialize or run
+```
+
+When several things fail, the first one sets the status: a program that fails
+to assemble exits 3 even if its asserts also fail.
+
 Command line examples:
 
 ```bash
