@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     ftrace_init(); 
 
     int nStatus = 0;
-    char chOption;
+    int chOption; // int, not char: where char is unsigned, getopt's -1 reads as 255
     char* pchSource = 0;
     char* pchLoad = 0;
     char* pchSave = 0;
