@@ -52,6 +52,8 @@ int main(int argc, char** argv)
     uint8_t value = 0x00;
     unsigned int clockRate = 1000000; // Default 1MHz (1,000,000 Hz)
     bool bRun = false;
+    bool bRunFromVector = false; // -r with no address: start at the reset vector
+    bool bListing = false;
     bool bDebug = false;
     bool bDumpRegisters = false;
     bool bDumpFlags = false;
@@ -69,7 +71,7 @@ int main(int argc, char** argv)
     };
     
     int option_index = 0;
-    while ((chOption = getopt_long(argc, argv, "l:c:s:r:tp::a:vd:hi", long_options, &option_index)) != -1)
+    while ((chOption = getopt_long(argc, argv, "l:c:s:r::tp::a:vd:hiL", long_options, &option_index)) != -1)
     {
         bHelp = false;
         switch (chOption)
@@ -87,8 +89,29 @@ int main(int argc, char** argv)
             }
             break;
         case 'r':
-            address = (uint16_t)getHex(uppercase(optarg)); 
+            //
+            // The address is optional. getopt only attaches an optional
+            // argument written as -r4000, so also accept a following
+            // hex word (-r 4000); with neither, start at the reset vector.
+            //
             bRun = true;
+            if (optarg)
+            {
+                address = (uint16_t)getHex(uppercase(optarg));
+            }
+            else if (optind < argc && argv[optind][0] != '-' &&
+                     strspn(argv[optind], "0123456789abcdefABCDEF") == strlen(argv[optind]))
+            {
+                address = (uint16_t)getHex(uppercase(argv[optind]));
+                optind++;
+            }
+            else
+            {
+                bRunFromVector = true;
+            }
+            break;
+        case 'L':
+            bListing = true;
             break;
         case 'c':
             pchSource = strdup(optarg);
@@ -182,7 +205,7 @@ int main(int argc, char** argv)
 
     if (pchSource)
     {
-        nStatus = assemble(pchSource); // @todo log failed assemble
+        nStatus = assemble(pchSource, bListing ? stdout : NULL);
 
         if (nStatus == 0 && pchSave) 
         {
@@ -197,6 +220,16 @@ int main(int argc, char** argv)
     if (bRun && bDebug)
     {
         fprintf(stderr, "Warning: both -r and -d specified, will ignore debug flag\n");
+    }
+
+    if (nStatus == 0 && bRunFromVector)
+    {
+        address = resetVector();
+        if (address == 0)
+        {
+            fprintf(stderr, "Warning: reset vector at $FFFC is $0000; "
+                            "set it with '* = $FFFC' and '.WORD start', or pass -r <address>\n");
+        }
     }
 
     if (nStatus == 0)
@@ -234,12 +267,14 @@ int main(int argc, char** argv)
 
 usage:
 
-    printf("Usage: -l <filename> -a <filename> -s <filename> -r [<address>] [-t] [-p] where:\n");
+    printf("Usage: -l <filename> -c <filename> -s <filename> -r [<address>] [-L] [-t] [-p] where:\n");
     printf("\t-h to display command line options\n");
     printf("\t-l <filename> to load an object file\n");
     printf("\t-c <filename> to compile source file\n");
+    printf("\t-L to print an assembly listing (address, bytes, source) after -c\n");
     printf("\t-s <filename> to save object file after assembly\n");
-    printf("\t-r <address> to run code from the address (hexadecimal, e.g. A000)\n");
+    printf("\t-r [<address>] to run code from the address (hexadecimal, e.g. A000);\n");
+    printf("\t   with no address, run from the reset vector at $FFFC\n");
     printf("\t-d <address> to debug code from the address (hexadecimal, e.g. A000)\n");
     printf("\t-a <address>:<value> to assert value matches at the given address\n");
     printf("\t-t to turn on trace output\n");

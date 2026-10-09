@@ -45,6 +45,11 @@ UPDATED=0
 FAILED_TESTS=()
 
 for src in *.asm ../sample*.asm; do
+    # Skip "NAME 2.asm" and the like: conflict copies a syncing service
+    # (iCloud, Dropbox) leaves next to the real file. No test has a space
+    # in its name.
+    case "$src" in *" "*) continue ;; esac
+
     name=$(basename "$src" .asm)
     bin="$TMP/$name.bin"
     actual="$TMP/$name.hex"

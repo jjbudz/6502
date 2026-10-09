@@ -1,6 +1,8 @@
 #ifndef _ASM6502_H_
 #define _ASM6502_H_
 
+#include <stdio.h>
+
 #include "platform.h"
 
 /**
@@ -14,10 +16,13 @@
  * is reported to stderr as "file:line:col: error: message" and assembly
  * continues so that all errors in a file are reported together.
  *
+ * If listing is not NULL, a listing is written to it after assembly: one
+ * row per source line with the address, the bytes generated, and the line.
+ *
  * @return the number of errors (0 on success), or -1 if the file could not
  *         be opened (errno is set).
  */
-int asmAssemble(const char* filename, uint8_t* memory);
+int asmAssemble(const char* filename, uint8_t* memory, FILE* listing);
 
 /*
  * Instruction table access the assembler needs from the emulator. These are

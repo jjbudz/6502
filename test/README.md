@@ -78,6 +78,15 @@ changes you expected.
 also appear in the assembler's output. Add one of these whenever the assembler
 gains a new error check.
 
+**Listing** (`make test-LISTING`): `LISTING.asm` is assembled with `-L` and
+the output compared to `LISTING.lst`. Regenerate the `.lst` with
+`../bin/debug/<platform>/6502 -c LISTING.asm -L > LISTING.lst` after an
+intentional change to the listing format.
+
+Both scripts ignore files with a space in the name, so the `NAME 2.asm`
+conflict copies that iCloud or Dropbox sometimes leave behind do not count
+as tests.
+
 ## Test Status
 
 ### Summary

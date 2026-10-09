@@ -1,6 +1,9 @@
-$40	.DATA	$06 $55 $AA $AB
+; Count down X from the value stored at $40.
+        * = $40
+        .BYTE $06, $55, $AA, $AB
 
-$4000	  LDXZ  $40
-LOOP	  DEX
-	      BNE	  LOOP
+        * = $4000
+        LDX $40
+loop:   DEX
+        BNE loop
         BRK
