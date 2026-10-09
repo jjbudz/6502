@@ -169,6 +169,7 @@ static uint8_t  SP; /// Stack pointer
 static uint8_t  P;  /// Status register
 
 static uint64_t CYCLES; /// Cycles executed since reset, not part of 6502
+static bool HALTED;     /// Program has ended (see halted()), not part of 6502
 
 //
 // 6502 instruction set table (indexed by opcode)
@@ -881,14 +882,31 @@ INSTRUCTION(BMI, 0x30, 2, 2, "Branch to relative address on sign bit set")
 }
 
 /**
- * Force break
+ * Force break: a software interrupt through the IRQ/BRK vector at $FFFE.
+ * Pushes the address two bytes past the BRK (it skips a padding byte), then
+ * P with B set so the handler can tell BRK from IRQ, sets I and jumps
+ * through the vector. RTI returns past the padding byte.
+ *
+ * With no handler installed (the vector is $0000) BRK ends the program
+ * instead, so programs may still finish with a bare BRK.
  */
-INSTRUCTION(BRK, 0x00, 1, 7, "Set break")
+INSTRUCTION(BRK, 0x00, 1, 7, "Force break")
 {
     FTRACE("%s", __FILE__, __LINE__, sBRK);
-    SET_BREAK(1);
-    // @todo correct the implementation of this instruction, 
-    // see http://nesdev.parodius.com/the%20'B'%20flag%20&%20BRK%20instruction.txt
+    uint16_t vector = (uint16_t)(*(BP+0xFFFE) | (*(BP+0xFFFF) << 8));
+
+    if (vector == 0)
+    {
+        SET_BREAK(1);
+        HALTED = true;
+        return;
+    }
+
+    push((PC+2)>>8);
+    push((PC+2)&0xFF);
+    push(P | kPushedBits);
+    SET_INTERRUPT(1);
+    PC = vector;
 }
 
 /**
@@ -2460,6 +2478,15 @@ uint8_t brk()
 }
 
 /**
+ * Return true once the program has ended: a BRK with no handler installed,
+ * or an instruction that jumps to itself.
+ */
+bool halted()
+{
+    return HALTED;
+}
+
+/**
  * Return the value of the overflow flag.
  */
 uint8_t overflow()
@@ -2861,6 +2888,7 @@ void reset(uint16_t address)
     INTERRUPTBIT = 0;
     DECIMALBIT = 0;
     BREAKBIT = 0;
+    HALTED = false;
     OVERFLOWBIT = 0;
     SIGNBIT = 0;
 
@@ -2991,11 +3019,18 @@ int step()
  
     assert(i6502[*(BP+PC)].pFunc);
 
+    uint16_t pc = PC;
     uint8_t opcode = *(BP+PC);
     uint8_t cycles = i6502[opcode].cycles + extraCycles(opcode);
     i6502[opcode].pFunc();
     CYCLES += cycles;
     ticker_wait(cycles);
+
+    // An instruction that leaves PC where it was (JMP *, or a taken branch
+    // to itself) loops forever, so treat it as the end of the program. Test
+    // suites such as Klaus Dormann's signal pass and fail this way.
+    // @todo once IRQs exist, a loop with I clear may be waiting for one
+    if (PC == pc) HALTED = true;
 
     return 0;
 }
@@ -3009,7 +3044,7 @@ int run(uint16_t address)
    
     reset(address);
 
-    for(;BREAKBIT != 1;)
+    for(;!HALTED;)
     {
         step();
     }
@@ -3160,7 +3195,7 @@ int debug(uint16_t address)
     char line[kMaxLineLength];
     bool bRead = true;
 
-    for(;BREAKBIT != 1;)
+    for(;!HALTED;)
     {
         if (bRead)
         {

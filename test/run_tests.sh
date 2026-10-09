@@ -234,6 +234,9 @@ run_test test-STACK-PUSHED-B
 run_test test-STACK-PLP-B
 run_test test-STACK-PULL-WRAP
 run_test test-PLA-FLAGS
+run_test test-BRK-HANDLER
+run_test test-TRAP-JMP
+run_test test-TRAP-BRANCH
 run_test test-CYCLES-PAGE
 run_test test-TIMING-MHZ
 
