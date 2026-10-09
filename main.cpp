@@ -53,6 +53,8 @@ int main(int argc, char** argv)
     uint8_t assertValue[kMaxAsserts];
     int nAsserts = 0;
     unsigned int clockRate = 1000000; // Default 1MHz (1,000,000 Hz)
+    unsigned long long irqEvery = 0; // cycles between timer IRQs, 0 = off
+    unsigned long long nmiEvery = 0; // cycles between timer NMIs, 0 = off
     bool bRun = false;
     bool bRunFromVector = false; // -r with no address: start at the reset vector
     bool bListing = false;
@@ -69,6 +71,8 @@ int main(int argc, char** argv)
     // Long options
     static struct option long_options[] = {
         {"rate", required_argument, 0, 0},
+        {"irq-every", required_argument, 0, 0},
+        {"nmi-every", required_argument, 0, 0},
         {0, 0, 0, 0}
     };
     
@@ -91,6 +95,20 @@ int main(int argc, char** argv)
                     rate = 1000000;
                 }
                 clockRate = (unsigned int)rate;
+            }
+            else
+            {
+                // --irq-every / --nmi-every <cycles>
+                char* end = 0;
+                unsigned long long every = strtoull(optarg, &end, 10);
+                if (end == optarg || *end != '\0')
+                {
+                    fprintf(stderr, "Warning: invalid cycle count for --%s, ignoring\n",
+                        long_options[option_index].name);
+                    every = 0;
+                }
+                if (strcmp(long_options[option_index].name, "irq-every") == 0) irqEvery = every;
+                else nmiEvery = every;
             }
             break;
         case 'r':
@@ -202,6 +220,8 @@ int main(int argc, char** argv)
         exit(nStatus);
     }
 
+    setInterruptTimers(irqEvery, nmiEvery);
+
     if (bPrintVersion) 
     {
         printVersion();
@@ -296,6 +316,8 @@ usage:
     printf("\t-p[rfsm] to print (dump) registers, flags, stack, and memory on exit\n");
     printf("\t-v to print version information\n");
     printf("\t--rate <hz> to set CPU clock rate in Hz (default: 1000000; 0 = unthrottled)\n");
+    printf("\t--irq-every <cycles> to raise an IRQ every so many CPU cycles\n");
+    printf("\t--nmi-every <cycles> to raise an NMI every so many CPU cycles\n");
 
     exit(usageStatus);
     return usageStatus;

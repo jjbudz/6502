@@ -171,6 +171,28 @@ static uint8_t  P;  /// Status register
 static uint64_t CYCLES; /// Cycles executed since reset, not part of 6502
 static bool HALTED;     /// Program has ended (see halted()), not part of 6502
 
+/**
+ * Interrupt inputs. IRQ is level-triggered: the line is held while any
+ * source's bit is set, and is taken whenever I is clear. NMI is
+ * edge-triggered: nmiTrigger() latches it until the CPU takes it.
+ */
+static uint8_t IRQLINES;   /// IRQ sources holding the line, one bit each
+static bool NMIPENDING;    /// NMI latched and not yet taken
+
+/**
+ * Sources with no device register to acknowledge them yet release the IRQ
+ * line when the CPU takes the interrupt.
+ */
+static const uint8_t kIrqAckOnService = kIrqTimer | kIrqDebugger;
+
+/**
+ * Periodic interrupt sources (--irq-every, --nmi-every), in cycles; 0 is off.
+ */
+static uint64_t irqPeriod = 0;
+static uint64_t nmiPeriod = 0;
+static uint64_t nextIrq = 0;
+static uint64_t nextNmi = 0;
+
 //
 // 6502 instruction set table (indexed by opcode)
 //
@@ -205,6 +227,8 @@ typedef enum
     kTrace, 
     kList, 
     kAssert,
+    kIrq,
+    kNmi,
     kHelp
 } ACTION; 
  
@@ -237,6 +261,8 @@ static COMMAND_TO_ACTION commands[] =
     {"TRACE", "T", kTrace},
     {"LIST", "L", kList},
     {"ASSERT", "A", kAssert},
+    {"IRQ", "I", kIrq},
+    {"NMI", "N", kNmi},
     {"HELP", "H", kHelp}
 };
 
@@ -2487,6 +2513,41 @@ bool halted()
 }
 
 /**
+ * Hold the IRQ line on behalf of the given sources (kIrq* bits).
+ */
+void irqAssert(uint8_t sources)
+{
+    IRQLINES |= sources;
+}
+
+/**
+ * Release the IRQ line for the given sources; it stays asserted while any
+ * other source holds it.
+ */
+void irqRelease(uint8_t sources)
+{
+    IRQLINES &= ~sources;
+}
+
+/**
+ * Signal an NMI edge. It is taken before the next instruction, whatever I.
+ */
+void nmiTrigger()
+{
+    NMIPENDING = true;
+}
+
+/**
+ * Raise an IRQ and/or NMI every so many cycles; 0 turns a source off. The
+ * first fires once that many cycles have run after the next reset.
+ */
+void setInterruptTimers(uint64_t irqEvery, uint64_t nmiEvery)
+{
+    irqPeriod = irqEvery;
+    nmiPeriod = nmiEvery;
+}
+
+/**
  * Return the value of the overflow flag.
  */
 uint8_t overflow()
@@ -2899,6 +2960,11 @@ void reset(uint16_t address)
 
     CYCLES = 0;
     ticker_reset();
+
+    IRQLINES = 0;
+    NMIPENDING = false;
+    nextIrq = irqPeriod;
+    nextNmi = nmiPeriod;
 }
 
 /*
@@ -3004,7 +3070,70 @@ void list(uint16_t first, uint16_t last)
 }
 
 /**
- * Interpret and execute a single instruction.
+ * Account for cycles just executed: count them, throttle to the clock rate
+ * and fire any periodic interrupt sources that have come due.
+ */
+static void advance(uint8_t cycles)
+{
+    CYCLES += cycles;
+    ticker_wait(cycles);
+
+    if (irqPeriod && CYCLES >= nextIrq)
+    {
+        irqAssert(kIrqTimer);
+        while (nextIrq <= CYCLES) nextIrq += irqPeriod;
+    }
+
+    if (nmiPeriod && CYCLES >= nextNmi)
+    {
+        nmiTrigger();
+        while (nextNmi <= CYCLES) nextNmi += nmiPeriod;
+    }
+}
+
+/**
+ * Take a pending interrupt, NMI first: push PC and P (with B clear, which
+ * tells a handler at $FFFE that this is an IRQ rather than BRK), set I and
+ * jump through the vector. 7 cycles.
+ */
+static void serviceInterrupt()
+{
+    uint16_t vector;
+
+    if (NMIPENDING)
+    {
+        NMIPENDING = false;
+        vector = 0xFFFA;
+        FTRACE("NMI taken at PC=%04x", __FILE__, __LINE__, PC);
+    }
+    else
+    {
+        irqRelease(kIrqAckOnService);
+        vector = 0xFFFE;
+        FTRACE("IRQ taken at PC=%04x", __FILE__, __LINE__, PC);
+    }
+
+    push(PC>>8);
+    push(PC&0xFF);
+    push((P | kPushedBits) & ~(1<<kBREAKBIT));
+    SET_INTERRUPT(1);
+    PC = (uint16_t)(*(BP+vector) | (*(BP+vector+1) << 8));
+    advance(7);
+}
+
+/**
+ * Return true if an interrupt could still be taken, so a program idling in
+ * a jump to itself may yet be woken. The debugger's IRQ/NMI commands are
+ * not counted: they cannot be typed while the program runs.
+ */
+static bool interruptCanArrive()
+{
+    if (NMIPENDING || nmiPeriod) return true;
+    return !INTERRUPTBIT && (IRQLINES || irqPeriod);
+}
+
+/**
+ * Interpret and execute a single instruction, or take a pending interrupt.
  */
 int step()
 {
@@ -3017,20 +3146,26 @@ int step()
         (int)SIGNBIT, (int)OVERFLOWBIT, (int)BREAKBIT, (int)DECIMALBIT,
         (int)INTERRUPTBIT, (int)ZEROBIT, (int)CARRYBIT);
  
+    // Interrupts are taken between instructions
+    if (NMIPENDING || (IRQLINES && !INTERRUPTBIT))
+    {
+        serviceInterrupt();
+        return 0;
+    }
+
     assert(i6502[*(BP+PC)].pFunc);
 
     uint16_t pc = PC;
     uint8_t opcode = *(BP+PC);
     uint8_t cycles = i6502[opcode].cycles + extraCycles(opcode);
     i6502[opcode].pFunc();
-    CYCLES += cycles;
-    ticker_wait(cycles);
+    advance(cycles);
 
     // An instruction that leaves PC where it was (JMP *, or a taken branch
     // to itself) loops forever, so treat it as the end of the program. Test
-    // suites such as Klaus Dormann's signal pass and fail this way.
-    // @todo once IRQs exist, a loop with I clear may be waiting for one
-    if (PC == pc) HALTED = true;
+    // suites such as Klaus Dormann's signal pass and fail this way. If an
+    // interrupt could still arrive, the loop may instead be waiting for it.
+    if (PC == pc && !interruptCanArrive()) HALTED = true;
 
     return 0;
 }
@@ -3177,6 +3312,8 @@ void printDebugHelp()
     fprintf(stdout, "\tclear (or c)\n");
     fprintf(stdout, "\ttrace (or t)\n");
     fprintf(stdout, "\tlist (or l) <first> <last>\n");
+    fprintf(stdout, "\tirq (or i) - raise an IRQ, taken when I is clear\n");
+    fprintf(stdout, "\tnmi (or n) - raise an NMI, taken on the next step\n");
     fprintf(stdout, "\texit (or x)\n");
     fprintf(stdout, "\tquit (or q)\n");
     fprintf(stdout, "\thelp (or h)\n");
@@ -3275,6 +3412,12 @@ int debug(uint16_t address)
                         uint8_t val = (uint8_t)getHex(param2);
                         fprintf(stderr, "%s\n", assertmem(addr,val) ? "true":"false");
                     }
+                    break;
+                case kIrq:
+                    irqAssert(kIrqDebugger);
+                    break;
+                case kNmi:
+                    nmiTrigger();
                     break;
                 case kHelp:
                     printDebugHelp();

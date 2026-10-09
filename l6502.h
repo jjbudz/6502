@@ -254,6 +254,31 @@ uint8_t brk();
 bool halted();
 
 /**
+ * IRQ sources, one bit each; the IRQ line is held while any is asserted.
+ */
+static const uint8_t kIrqTimer    = 0x01; /// --irq-every periodic source
+static const uint8_t kIrqDebugger = 0x02; /// the debugger's IRQ command
+
+/**
+ * Hold or release the IRQ line on behalf of sources (kIrq* bits). The
+ * interrupt is taken between instructions whenever the line is held and
+ * I is clear.
+ */
+void irqAssert(uint8_t sources);
+void irqRelease(uint8_t sources);
+
+/**
+ * Signal an NMI edge; it is taken before the next instruction, whatever I.
+ */
+void nmiTrigger();
+
+/**
+ * Raise an IRQ and/or NMI every so many CPU cycles (0 = off). Takes effect
+ * at the next reset, i.e. when run() or debug() starts.
+ */
+void setInterruptTimers(uint64_t irqEvery, uint64_t nmiEvery);
+
+/**
  * Return the value of the overflow flag.
  */
 uint8_t overflow();
