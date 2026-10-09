@@ -1864,6 +1864,8 @@ INSTRUCTION(PLA, 0x68, 1, 4, "Pull accumulator from stack")
 {
     FTRACE("%s", __FILE__, __LINE__, sPLA);
     A = pull();
+    SET_ZERO(A);
+    SET_SIGN(A);
     PC++;
 }
 
