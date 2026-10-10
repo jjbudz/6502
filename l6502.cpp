@@ -2831,8 +2831,15 @@ int load(const char* filename)
     FILE* fp = fopen(filename, "rb");
 
     if (fp == NULL) return errno;
-    if (k64K != fread(memory, sizeof(char), k64K, fp)) return errno;
-    if (0 != fclose(fp)) return errno;
+
+    // An object file is an image of all 64K of memory, no more and no less
+    size_t n = fread(memory, sizeof(char), k64K, fp);
+    int err = ferror(fp) ? errno : 0;
+    bool bExtra = (n == (size_t)k64K && fgetc(fp) != EOF);
+    fclose(fp);
+
+    if (err) return err;
+    if (n != (size_t)k64K || bExtra) return kErrNotObjectFile;
 
     return 0;
 }
@@ -2849,10 +2856,12 @@ int save(const char* filename)
     FILE* fp = fopen(filename, "wb");
 
     if (fp == NULL) return errno;
-    if (k64K != fwrite(memory, sizeof(char), k64K, fp)) return errno;
-    if (0 != fclose(fp)) return errno;
 
-    return 0;
+    int err = 0;
+    if (k64K != fwrite(memory, sizeof(char), k64K, fp)) err = errno;
+    if (0 != fclose(fp) && err == 0) err = errno;
+
+    return err;
 }
 
 /**
@@ -2921,7 +2930,7 @@ int assemble(const char* filename, FILE* listing)
 
     int status = asmAssemble(filename, memory, listing);
 
-    if (status < 0) return errno; // could not open the file
+    if (status < 0) return -errno; // could not open the file
 
     return status; // number of errors, 0 on success
 }

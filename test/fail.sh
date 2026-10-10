@@ -42,6 +42,13 @@ for src in fail/*.asm; do
         echo "✗ $name (assembled successfully, expected failure)"
         FAILED=$((FAILED + 1))
         FAILED_TESTS+=("$name")
+    elif [ $status -ne 3 ]; then
+        # 3 is the emulator's exit status for assembler errors; anything
+        # else (a crash, a usage error) is not the failure being tested
+        echo "✗ $name (exit status $status, expected 3 for assembler errors)"
+        echo "$output"
+        FAILED=$((FAILED + 1))
+        FAILED_TESTS+=("$name")
     elif [ -f "$err" ] && ! grep -qF -- "$(cat "$err")" <<< "$output"; then
         echo "✗ $name (expected output to contain: $(cat "$err"))"
         echo "$output"

@@ -95,10 +95,16 @@ int initialize(unsigned int rateHz = 1000000);
 int cleanup();
 
 /**
+ * load() result for a file that is not a 64K memory image.
+ */
+static const int kErrNotObjectFile = -2;
+
+/**
  * Load an object file from the specified file.
  *
  * @param const char* name of an object file
- * @return int 0 on success; otherwise, error number
+ * @return int 0 on success; errno if the file could not be read;
+ *         kErrNotObjectFile if it is not exactly 64K; -1 if not initialized
  */
 int load(const char* filename);
 
@@ -106,7 +112,8 @@ int load(const char* filename);
  * Save a program to the named file.
  *
  * @param const char* name of an object file
- * @return int 0 on success; otherwise, error number
+ * @return int 0 on success; errno if the file could not be written;
+ *         -1 if not initialized
  */
 int save(const char* filename);
 
@@ -117,8 +124,8 @@ int save(const char* filename);
  * @param filename name of an assembly source file
  * @param listing  if not NULL, a listing (address, bytes, source) is
  *                 written here after assembly
- * @return int 0 on success; the number of errors, or errno if the file
- *         could not be opened
+ * @return int 0 on success; the number of errors (> 0); -errno if the
+ *         file could not be opened; -1 if not initialized
  */
 int assemble(const char* filename, FILE* listing = 0);
 
