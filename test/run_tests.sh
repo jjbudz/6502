@@ -244,6 +244,9 @@ run_test test-IRQ-WAIT
 run_test test-DEBUG-IRQ
 run_test test-CLI-BAD-OPTION
 run_test test-EXIT-CODES
+run_test test-CPX-CARRY
+run_test test-CPY-CARRY
+run_test test-BIT-FLAGS
 run_test test-CYCLES-PAGE
 run_test test-TIMING-MHZ
 
