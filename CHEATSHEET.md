@@ -299,7 +299,8 @@ Breakpoint at $4010
 - All hexadecimal addresses must use the `$` prefix
 - Immediate hex values require both `#` and `$` (e.g., `#$FF`)
 - Labels can be placed on the same line as instructions
-- The assembler is case-sensitive
+- Mnemonics, directives and labels are case-insensitive (`lda`, `.org` and
+  `Loop`/`LOOP` all work); only string contents keep their case
 - Comments start with `;` character
 - Test programs typically store results at `$8000` and above
 - Default program start address is `$4000`
