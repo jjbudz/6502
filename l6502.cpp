@@ -761,7 +761,7 @@ INSTRUCTION(BITZ, 0x24, 2, 3, "Test accumulator with zero page address")
     uint8_t zi = *(BP+PC+1);
     FTRACE("%s %02x", __FILE__, __LINE__, sBITZ, (uint8_t)zi);
     SET_ZERO((A&*(BP+zi)));                 
-    SET_SIGN((A&*(BP+zi)));
+    SET_SIGN(*(BP+zi));     // N and V come from the operand, not A&M
     SET_OVERFLOW(*(BP+zi));
     PC += 2;
 }
@@ -774,7 +774,7 @@ INSTRUCTION(BIT, 0x2C, 3, 4, "Test accumulator with absolute address")
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sBIT, (uint16_t)addr16);
     SET_ZERO((A&*(BP + addr16)));
-    SET_SIGN((A&*(BP + addr16)));
+    SET_SIGN(*(BP + addr16)); // N and V come from the operand, not A&M
     SET_OVERFLOW(*(BP + addr16));
     PC += 3;
 }
@@ -1101,8 +1101,9 @@ INSTRUCTION(CMPIY, 0xD1, 2, 5, "Compare memory using indirect indexed addressing
 INSTRUCTION(CPXI, 0xE0, 2, 2, "Compare X with immediate value")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCPXI, (uint8_t)*(BP+PC+1));
-    uint8_t x = X - *(BP+PC+1);
-    SET_CARRY(((x&0x80)==0x80));
+    uint8_t m = *(BP+PC+1);
+    uint8_t x = X - m;
+    SET_CARRY(X >= m);
     SET_ZERO(x);
     SET_SIGN(x);
     PC += 2;
@@ -1114,8 +1115,9 @@ INSTRUCTION(CPXI, 0xE0, 2, 2, "Compare X with immediate value")
 INSTRUCTION(CPXZ, 0xE4, 2, 3, "Compare X with zero page value")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCPXZ, (uint8_t)*(BP+PC+1));
-    uint8_t x = X - *(BP+*(BP+PC+1));
-    SET_CARRY(((x&0x80)==0x80));
+    uint8_t m = *(BP+*(BP+PC+1));
+    uint8_t x = X - m;
+    SET_CARRY(X >= m);
     SET_ZERO(x);
     SET_SIGN(x);
     PC += 2;
@@ -1128,8 +1130,9 @@ INSTRUCTION(CPXA, 0xEC, 3, 4, "Compare X with absolute address memory")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sCPXA, (uint16_t)addr16);
-    uint8_t x = X - *(BP + addr16);
-    SET_CARRY(((x&0x80)==0x80));
+    uint8_t m = *(BP + addr16);
+    uint8_t x = X - m;
+    SET_CARRY(X >= m);
     SET_ZERO(x);
     SET_SIGN(x);
     PC += 3;
@@ -1141,8 +1144,9 @@ INSTRUCTION(CPXA, 0xEC, 3, 4, "Compare X with absolute address memory")
 INSTRUCTION(CPYI, 0xC0, 2, 2, "Compare Y with immediate value")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCPYI, (uint8_t)*(BP+PC+1));
-    uint8_t y = Y - *(BP+PC+1);
-    SET_CARRY(((y&0x80)==0x80));
+    uint8_t m = *(BP+PC+1);
+    uint8_t y = Y - m;
+    SET_CARRY(Y >= m);
     SET_ZERO(y);
     SET_SIGN(y);
     PC += 2;
@@ -1154,8 +1158,9 @@ INSTRUCTION(CPYI, 0xC0, 2, 2, "Compare Y with immediate value")
 INSTRUCTION(CPYZ, 0xC4, 2, 3, "Compare Y with zero page memory")
 {
     FTRACE("%s %02x", __FILE__, __LINE__, sCPYZ, (uint8_t)*(BP+PC+1));
-    uint8_t y = Y - *(BP+*(BP+PC+1));
-    SET_CARRY(((y&0x80)==0x80));
+    uint8_t m = *(BP+*(BP+PC+1));
+    uint8_t y = Y - m;
+    SET_CARRY(Y >= m);
     SET_ZERO(y);
     SET_SIGN(y);
     PC += 2;
@@ -1168,8 +1173,9 @@ INSTRUCTION(CPYA, 0xCC, 3, 4, "Compare Y with absolute address memory")
 {
     uint16_t addr16 = getAbsoluteAddress();
     FTRACE("%s %04x", __FILE__, __LINE__, sCPYA, (uint16_t)addr16);
-    uint8_t y = Y - *(BP + addr16);
-    SET_CARRY(((y&0x80)==0x80));
+    uint8_t m = *(BP + addr16);
+    uint8_t y = Y - m;
+    SET_CARRY(Y >= m);
     SET_ZERO(y);
     SET_SIGN(y);
     PC += 3;
